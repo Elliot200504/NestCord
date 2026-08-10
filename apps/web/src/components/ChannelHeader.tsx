@@ -12,7 +12,7 @@ export function ChannelHeader({ channelName, topic }: ChannelHeaderProps) {
   const toggleMemberList = useUiStore((state) => state.toggleMemberList);
 
   return (
-    <header className="border-surface-900 flex h-12 shrink-0 items-center gap-2 border-b px-4 shadow-sm">
+    <header className="border-border flex h-12 shrink-0 items-center gap-2 border-b px-4 shadow-sm">
       <Hash className="text-content-500 size-5" aria-hidden />
       <h1 className="font-semibold">{channelName}</h1>
 
