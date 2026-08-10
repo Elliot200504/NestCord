@@ -11,6 +11,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // @nestcord/shared compiles to CommonJS because the NestJS API consumes it
+    // that way. Vite skips linked workspace packages when pre-bundling, so
+    // without this the browser gets raw CJS and value imports have no named
+    // exports. Type-only imports are erased and were never affected.
+    include: ['@nestcord/shared'],
+  },
   server: {
     port: 5173,
     proxy: {
