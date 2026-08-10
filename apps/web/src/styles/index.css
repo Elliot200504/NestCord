@@ -6,42 +6,33 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Two palettes live here on purpose:
+ * One palette, used everywhere — the landing page, the login page and the chat
+ * shell all draw from these ramps, so the app looks like one product.
  *
- * 1. The NestCord brand — black and NestJS red. Used by the landing page and by
- *    shadcn/ui through the semantic variables below.
- * 2. The in-app chat shell — the Discord-like greys the four-column layout uses.
+ * `surface-*` are the near-blacks the chat shell layers itself out of; they line
+ * up with the semantic variables further down (surface-900 is --background,
+ * surface-800 is --card, surface-600 is --accent) so chrome and content agree.
+ * Brand red is `nest-*`, reachable semantically as --primary.
  */
 @theme {
   /* Brand red, from the NestJS palette (#e0234e). */
-  --color-nest-300: #ff7d97;
   --color-nest-400: #ff4d6d;
   --color-nest-500: #e0234e;
   --color-nest-600: #b81b3f;
   --color-nest-700: #8f1531;
 
-  /* Near-blacks for the landing page. */
-  --color-ink-950: #08080a;
-  --color-ink-900: #0e0e11;
-  --color-ink-800: #16161a;
-  --color-ink-700: #1f1f25;
+  /* Near-blacks, darkest to lightest. The chat shell layers with these. */
+  --color-surface-900: #08080a;
+  --color-surface-800: #0e0e11;
+  --color-surface-700: #131317;
+  --color-surface-600: #1f1f25;
 
-  /* Chat shell greys. */
-  --color-surface-950: #1a1b1e;
-  --color-surface-900: #202225;
-  --color-surface-800: #2b2d31;
-  --color-surface-700: #313338;
-  --color-surface-600: #3f4147;
-  --color-surface-500: #4e5058;
+  /* Text, brightest to dimmest. Matches --foreground / --muted-foreground. */
+  --color-content-100: #fafafa;
+  --color-content-300: #a1a1aa;
+  --color-content-500: #71717a;
 
-  --color-brand-400: #7b8cff;
-  --color-brand-500: #5865f2;
-  --color-brand-600: #4752c4;
-
-  --color-content-100: #f2f3f5;
-  --color-content-300: #b5bac1;
-  --color-content-500: #80848e;
-
+  /* Presence stays green/amber/red — status, not brand. */
   --color-online: #23a55a;
   --color-idle: #f0b232;
   --color-dnd: #f23f43;
@@ -73,7 +64,9 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-surface-950);
+    /* Lighter than every surface it sits on, so it stays visible on both the
+       near-black landing page and the chat columns. */
+    background-color: var(--color-surface-600);
     border-radius: 4px;
   }
 
