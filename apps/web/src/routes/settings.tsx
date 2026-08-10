@@ -8,11 +8,13 @@ function SettingsPage() {
     <main className="bg-background grid min-h-screen place-items-center px-4">
       <div className="text-center">
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-content-300 mt-1">Account, profile and appearance land in phase 3.</p>
+        <p className="text-muted-foreground mt-1">
+          Account, profile and appearance land in phase 3.
+        </p>
         <Link
           to="/app/$serverId/$channelId"
           params={{ serverId: 'hq', channelId: 'general' }}
-          className="bg-brand-500 hover:bg-brand-600 mt-6 inline-block rounded px-4 py-2 font-medium"
+          className="bg-primary hover:bg-nest-600 mt-6 inline-block rounded px-4 py-2 font-medium"
         >
           Back to the app
         </Link>
