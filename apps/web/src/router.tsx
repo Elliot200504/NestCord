@@ -2,7 +2,7 @@ import { createRouter } from '@tanstack/react-router';
 
 import { appRoute } from './routes/app';
 import { channelRoute } from './routes/channel';
-import { indexRoute } from './routes/index';
+import { landingRoute } from './routes/landing';
 import { loginRoute } from './routes/login';
 import { rootRoute } from './routes/root';
 import { settingsRoute } from './routes/settings';
@@ -12,7 +12,7 @@ import { settingsRoute } from './routes/settings';
  * step. See PLAN.MD §11 for the routes still to come.
  */
 const routeTree = rootRoute.addChildren([
-  indexRoute,
+  landingRoute,
   loginRoute,
   settingsRoute,
   appRoute.addChildren([channelRoute]),

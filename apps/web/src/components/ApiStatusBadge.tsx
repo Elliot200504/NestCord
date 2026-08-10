@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { api } from '../api/client';
 import { keys } from '../api/keys';
-import { cn } from '../lib/cn';
+import { cn } from '@/lib/utils';
 
 /**
  * Proves the full stack is wired: React Query -> Vite proxy -> NestJS -> Prisma

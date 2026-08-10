@@ -2,7 +2,7 @@ import { Link, useParams } from '@tanstack/react-router';
 import { ChevronDown, Hash, Volume2 } from 'lucide-react';
 
 import { placeholderChannels, placeholderServers } from '../features/placeholder-data';
-import { cn } from '../lib/cn';
+import { cn } from '@/lib/utils';
 import { UserPanel } from './UserPanel';
 
 export function ChannelSidebar() {

@@ -88,9 +88,10 @@ export default tseslint.config(
     },
   },
 
-  // Route modules export a component and its route definition by design.
+  // Route modules export a component and its route definition by design, and
+  // shadcn/ui components ship their cva variants alongside the component.
   {
-    files: ['apps/web/src/routes/**/*.tsx'],
+    files: ['apps/web/src/routes/**/*.tsx', 'apps/web/src/components/ui/**/*.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 

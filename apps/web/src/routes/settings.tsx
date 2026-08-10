@@ -5,7 +5,7 @@ import { rootRoute } from './root';
 /** Placeholder for the settings area (PLAN.MD §11). */
 function SettingsPage() {
   return (
-    <main className="bg-surface-950 grid h-full place-items-center px-4">
+    <main className="bg-background grid min-h-screen place-items-center px-4">
       <div className="text-center">
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-content-300 mt-1">Account, profile and appearance land in phase 3.</p>

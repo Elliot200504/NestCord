@@ -2,7 +2,7 @@ import { Link, useParams } from '@tanstack/react-router';
 import { Compass, Plus } from 'lucide-react';
 
 import { placeholderServers } from '../features/placeholder-data';
-import { cn } from '../lib/cn';
+import { cn } from '@/lib/utils';
 import { useUiStore } from '../stores/ui-store';
 
 /** Leftmost column: direct messages, then one pill per server. */
