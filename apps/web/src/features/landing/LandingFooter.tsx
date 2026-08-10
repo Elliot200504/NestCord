@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 
+import { BrandMark } from '@/components/BrandMark';
 import { Separator } from '@/components/ui/separator';
 
 export function LandingFooter() {
@@ -8,12 +9,7 @@ export function LandingFooter() {
       <Separator />
       <div className="text-muted-foreground flex flex-col items-center justify-between gap-4 pt-8 text-sm sm:flex-row">
         <p className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="bg-primary grid size-6 place-items-center rounded-md text-xs font-bold text-white"
-          >
-            N
-          </span>
+          <BrandMark size="sm" />
           NestCord — a learning project, built with NestJS and React.
         </p>
 
