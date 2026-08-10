@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { Code } from 'lucide-react';
 
+import { BrandMark } from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
 
 export function LandingNav() {
@@ -8,12 +9,7 @@ export function LandingNav() {
     <header className="border-border/60 bg-background/80 sticky top-0 z-50 border-b backdrop-blur">
       <nav aria-label="Main" className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span
-            aria-hidden
-            className="bg-primary grid size-8 place-items-center rounded-lg text-sm font-bold text-white"
-          >
-            N
-          </span>
+          <BrandMark />
           NestCord
         </Link>
 

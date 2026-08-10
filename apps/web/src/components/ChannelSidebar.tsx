@@ -15,7 +15,7 @@ export function ChannelSidebar() {
 
   return (
     <div className="bg-surface-800 flex w-60 shrink-0 flex-col">
-      <header className="border-surface-900 hover:bg-surface-700 flex h-12 items-center justify-between border-b px-4 shadow-sm">
+      <header className="border-border hover:bg-surface-700 flex h-12 items-center justify-between border-b px-4 shadow-sm">
         <h1 className="truncate font-semibold">{server?.name ?? 'Direct Messages'}</h1>
         <ChevronDown className="text-content-300 size-4" aria-hidden />
       </header>
