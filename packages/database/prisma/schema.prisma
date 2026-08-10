@@ -1,0 +1,357 @@
+// NestCord database schema.
+// Keep it readable — see .claude/rules/nestjs/prisma.md before changing it.
+
+// Prisma 7 emits TypeScript source rather than a compiled package. CommonJS output
+// with .js import specifiers is what the NestJS build (tsc, CJS) and tsx both accept.
+generator client {
+  provider            = "prisma-client"
+  output              = "../generated/client"
+  runtime             = "nodejs"
+  moduleFormat        = "cjs"
+  importFileExtension = "js"
+}
+
+// The connection URL lives in prisma.config.ts (Prisma 7 moved it out of the schema).
+datasource db {
+  provider = "postgresql"
+}
+
+enum PresenceStatus {
+  ONLINE
+  IDLE
+  DO_NOT_DISTURB
+  OFFLINE
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+  CATEGORY
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum OverrideType {
+  ROLE
+  MEMBER
+}
+
+enum AuditAction {
+  MEMBER_KICK
+  MEMBER_BAN
+  MEMBER_UNBAN
+  MESSAGE_DELETE
+  CHANNEL_CREATE
+  CHANNEL_DELETE
+  ROLE_CREATE
+  ROLE_DELETE
+}
+
+enum NotificationType {
+  MENTION
+  FRIEND_REQUEST
+  DIRECT_MESSAGE
+  SERVER_INVITE
+}
+
+model User {
+  id           String         @id @default(uuid())
+  username     String         @unique
+  email        String         @unique
+  passwordHash String
+  avatarUrl    String?
+  status       PresenceStatus @default(OFFLINE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  sessions           Session[]
+  ownedServers       Server[]                  @relation("ServerOwner")
+  memberships        ServerMember[]
+  messages           Message[]
+  reactions          Reaction[]
+  attachments        Attachment[]
+  sentRequests       Friendship[]              @relation("FriendshipRequester")
+  receivedRequests   Friendship[]              @relation("FriendshipAddressee")
+  conversations      ConversationParticipant[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  bansIssued         Ban[]                     @relation("BanIssuer")
+  bansReceived       Ban[]                     @relation("BanTarget")
+  permissionOverride ChannelPermission[]
+
+  @@index([username])
+  @@index([email])
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Server {
+  id        String   @id @default(uuid())
+  name      String
+  iconUrl   String?
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  owner    User           @relation("ServerOwner", fields: [ownerId], references: [id])
+  members  ServerMember[]
+  roles    Role[]
+  channels Channel[]
+  invites  Invite[]
+  bans     Ban[]
+  auditLog AuditLog[]
+
+  @@index([ownerId])
+}
+
+model ServerMember {
+  id       String   @id @default(uuid())
+  serverId String
+  userId   String
+  nickname String?
+  joinedAt DateTime @default(now())
+
+  server Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles  MemberRole[]
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  serverId    String
+  name        String
+  color       String?
+  permissions Int      @default(0)
+  position    Int      @default(0)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  server      Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  members     MemberRole[]
+  overrides   ChannelPermission[]
+
+  @@index([serverId])
+}
+
+model MemberRole {
+  memberId String
+  roleId   String
+
+  member ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, roleId])
+  @@index([roleId])
+}
+
+model Channel {
+  id        String      @id @default(uuid())
+  serverId  String
+  name      String
+  type      ChannelType @default(TEXT)
+  topic     String?
+  position  Int         @default(0)
+  parentId  String?
+  createdAt DateTime    @default(now())
+
+  server    Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  parent    Channel?            @relation("ChannelCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Channel[]           @relation("ChannelCategory")
+  messages  Message[]
+  overrides ChannelPermission[]
+
+  @@index([serverId])
+  @@index([parentId])
+}
+
+/// Channel-level permission override for a role or a single member.
+model ChannelPermission {
+  id        String       @id @default(uuid())
+  channelId String
+  type      OverrideType
+  roleId    String?
+  userId    String?
+  allow     Int          @default(0)
+  deny      Int          @default(0)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roleId])
+  @@unique([channelId, userId])
+  @@index([channelId])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  channelId      String?
+  conversationId String?
+  authorId       String
+  content        String
+  replyToId      String?
+  editedAt       DateTime?
+  createdAt      DateTime  @default(now())
+
+  channel      Channel?      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replyTo      Message?      @relation("MessageReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]     @relation("MessageReply")
+  reactions    Reaction[]
+  attachments  Attachment[]
+
+  @@index([channelId, createdAt])
+  @@index([conversationId, createdAt])
+  @@index([authorId])
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  messageId  String?
+  uploaderId String
+  filename   String
+  mimeType   String
+  size       Int
+  url        String
+  createdAt  DateTime @default(now())
+
+  message  Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  userId      String
+  friendId    String
+  status      FriendshipStatus @default(PENDING)
+  /// Who sent the request — needed to render "incoming" vs "outgoing".
+  requestedBy String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user   User @relation("FriendshipRequester", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipAddressee", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  /// Group DMs have a name; one-to-one conversations do not.
+  name      String?
+  isGroup   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Invite {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  serverId  String
+  maxUses   Int?
+  uses      Int       @default(0)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId])
+}
+
+model Ban {
+  id       String   @id @default(uuid())
+  serverId String
+  userId   String
+  bannedBy String
+  reason   String?
+  bannedAt DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user   User   @relation("BanTarget", fields: [userId], references: [id], onDelete: Cascade)
+  issuer User   @relation("BanIssuer", fields: [bannedBy], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  serverId  String
+  actorId   String
+  action    AuditAction
+  targetId  String?
+  reason    String?
+  createdAt DateTime    @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  actor  User   @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  /// Message, friendship, or invite id depending on type.
+  sourceId  String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}

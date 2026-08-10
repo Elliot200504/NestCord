@@ -43,15 +43,15 @@ Push to origin, with `-u` if the branch is not yet tracking.
 **Title:** `{icons} {Type}: {user-facing summary}`, max 72 characters, no branch names or internal
 jargon.
 
-| Icon | Type        | Icon | Type          |
-| ---- | ----------- | ---- | ------------- |
-| 🐛   | Fix         | ⚡   | Performance   |
-| 🚀   | Feature     | ✅   | Test          |
-| 🎨   | Styling     | 👷   | CI            |
-| 🛠️   | Refactoring | 📦   | Build         |
-| 🔧   | Chore       | ⏪   | Revert        |
-| 📚   | Docs        | ⬆️   | Version       |
-| 🔥   | Critical    |      |               |
+| Icon | Type        | Icon | Type        |
+| ---- | ----------- | ---- | ----------- |
+| 🐛   | Fix         | ⚡   | Performance |
+| 🚀   | Feature     | ✅   | Test        |
+| 🎨   | Styling     | 👷   | CI          |
+| 🛠️   | Refactoring | 📦   | Build       |
+| 🔧   | Chore       | ⏪   | Revert      |
+| 📚   | Docs        | ⬆️   | Version     |
+| 🔥   | Critical    |      |             |
 
 Multi-type PRs prepend secondary icons before the dominant one:
 `🐛✅🚀 Feature: Messages now show who is typing`
@@ -60,13 +60,16 @@ Multi-type PRs prepend secondary icons before the dominant one:
 
 ```markdown
 ## Description
+
 <what changed and why — required>
 
 ## Test Plan
+
 - [ ] <step in plain language>
 - [ ] <step in plain language>
 
 ## Notes
+
 <migrations to run, new env vars, or anything the reviewer must do locally — omit if none>
 ```
 

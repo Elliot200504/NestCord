@@ -33,7 +33,12 @@ function findUp(startDir, filename) {
 function resolveBin(fromDir, name) {
   let dir = fromDir;
   while (true) {
-    const bin = path.join(dir, 'node_modules', '.bin', process.platform === 'win32' ? `${name}.cmd` : name);
+    const bin = path.join(
+      dir,
+      'node_modules',
+      '.bin',
+      process.platform === 'win32' ? `${name}.cmd` : name,
+    );
     if (fs.existsSync(bin)) return bin;
     const parent = path.dirname(dir);
     if (parent === dir) return null;

@@ -1,7 +1,7 @@
 ---
 name: security-reviewer
 description: Security review specialist for NestCord. Use PROACTIVELY after changes to auth, permissions, gateway events, file uploads, or anything handling user input.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools: ['Read', 'Grep', 'Glob', 'Bash']
 model: sonnet
 ---
 

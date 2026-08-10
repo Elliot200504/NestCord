@@ -1,7 +1,7 @@
 ---
 name: doc-updater
 description: Documentation specialist for NestCord. Use after a change alters setup, environment variables, commands, the schema, or the architecture. Keeps README.md and CLAUDE.md accurate.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob']
 model: haiku
 ---
 

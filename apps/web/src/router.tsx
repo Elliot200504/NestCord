@@ -1,0 +1,31 @@
+import { createRouter } from '@tanstack/react-router';
+
+import { appRoute } from './routes/app';
+import { channelRoute } from './routes/channel';
+import { indexRoute } from './routes/index';
+import { loginRoute } from './routes/login';
+import { rootRoute } from './routes/root';
+import { settingsRoute } from './routes/settings';
+
+/**
+ * Code-based routing: the whole tree is visible in one file, with no codegen
+ * step. See PLAN.MD §11 for the routes still to come.
+ */
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  settingsRoute,
+  appRoute.addChildren([channelRoute]),
+]);
+
+export const router = createRouter({
+  routeTree,
+  defaultPreload: 'intent',
+  scrollRestoration: true,
+});
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}

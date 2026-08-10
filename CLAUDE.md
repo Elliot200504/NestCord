@@ -17,13 +17,13 @@ providers between them unless a concrete problem demands it.
 
 ## Stack
 
-| Layer     | Choice                                                                       |
-| --------- | ---------------------------------------------------------------------------- |
-| Monorepo  | pnpm workspaces, TypeScript (strict), ESLint, Prettier                        |
-| Backend   | NestJS, Prisma, PostgreSQL, Socket.IO, JWT, Argon2, class-validator, Swagger  |
-| Frontend  | React, Vite, TanStack Router, TanStack Query, Zustand, Tailwind, Radix, Lucide |
-| Infra     | Docker Compose (PostgreSQL only); API and web run via pnpm in dev             |
-| Testing   | Vitest, Supertest, Playwright                                                 |
+| Layer    | Choice                                                                         |
+| -------- | ------------------------------------------------------------------------------ |
+| Monorepo | pnpm workspaces, TypeScript (strict), ESLint, Prettier                         |
+| Backend  | NestJS, Prisma, PostgreSQL, Socket.IO, JWT, Argon2, class-validator, Swagger   |
+| Frontend | React, Vite, TanStack Router, TanStack Query, Zustand, Tailwind, Radix, Lucide |
+| Infra    | Docker Compose (PostgreSQL only); API and web run via pnpm in dev              |
+| Testing  | Vitest, Supertest, Playwright                                                  |
 
 ## Layout
 

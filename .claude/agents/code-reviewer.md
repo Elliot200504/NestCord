@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Code review specialist for NestCord. Use immediately after writing or modifying code. Reviews correctness, project conventions, and over-engineering.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools: ['Read', 'Grep', 'Glob', 'Bash']
 model: sonnet
 ---
 

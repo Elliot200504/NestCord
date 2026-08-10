@@ -47,7 +47,10 @@ process.stdin.on('end', () => {
       );
     }
 
-    if (/(^|\/)\.env$/.test(normalized) || /(^|\/)\.env\.(development|test|production|local)$/.test(normalized)) {
+    if (
+      /(^|\/)\.env$/.test(normalized) ||
+      /(^|\/)\.env\.(development|test|production|local)$/.test(normalized)
+    ) {
       console.error(
         '[Hook] Writing a real .env file. Secrets must never be committed — put placeholders in .env.example instead.',
       );

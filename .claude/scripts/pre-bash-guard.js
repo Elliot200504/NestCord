@@ -11,19 +11,23 @@ const MAX_STDIN = 1024 * 1024;
 const CHECKS = [
   {
     test: /\bgit\s+push\b/,
-    message: 'About to push. Confirm `pnpm lint`, `pnpm build` and the relevant tests passed first.',
+    message:
+      'About to push. Confirm `pnpm lint`, `pnpm build` and the relevant tests passed first.',
   },
   {
     test: /\b(npm|yarn)\s+(install|add|run|i)\b/,
-    message: 'This repo is a pnpm workspace. Use `pnpm ...` (and `pnpm --filter <pkg> ...`) instead of npm/yarn.',
+    message:
+      'This repo is a pnpm workspace. Use `pnpm ...` (and `pnpm --filter <pkg> ...`) instead of npm/yarn.',
   },
   {
     test: /\bprisma\s+migrate\s+reset\b|\bpnpm\s+db:reset\b/,
-    message: 'This drops the database. Make sure that is intended and that the seed script can rebuild the data.',
+    message:
+      'This drops the database. Make sure that is intended and that the seed script can rebuild the data.',
   },
   {
     test: /\bprisma\s+db\s+push\b/,
-    message: 'This project uses Prisma migrations (PLAN.MD ss.29). Prefer `prisma migrate dev` over `db push`.',
+    message:
+      'This project uses Prisma migrations (PLAN.MD ss.29). Prefer `prisma migrate dev` over `db push`.',
   },
 ];
 

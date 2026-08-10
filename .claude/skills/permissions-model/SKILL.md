@@ -14,19 +14,19 @@ Defined once in `packages/shared` as a bitfield:
 
 ```ts
 export const Permission = {
-  VIEW_CHANNEL:     1 << 0,
-  SEND_MESSAGES:    1 << 1,
-  MANAGE_MESSAGES:  1 << 2,
-  ATTACH_FILES:     1 << 3,
-  ADD_REACTIONS:    1 << 4,
-  CONNECT:          1 << 5,
-  SPEAK:            1 << 6,
-  MANAGE_CHANNELS:  1 << 7,
-  MANAGE_SERVER:    1 << 8,
-  MANAGE_ROLES:     1 << 9,
-  KICK_MEMBERS:     1 << 10,
-  BAN_MEMBERS:      1 << 11,
-  ADMINISTRATOR:    1 << 12,
+  VIEW_CHANNEL: 1 << 0,
+  SEND_MESSAGES: 1 << 1,
+  MANAGE_MESSAGES: 1 << 2,
+  ATTACH_FILES: 1 << 3,
+  ADD_REACTIONS: 1 << 4,
+  CONNECT: 1 << 5,
+  SPEAK: 1 << 6,
+  MANAGE_CHANNELS: 1 << 7,
+  MANAGE_SERVER: 1 << 8,
+  MANAGE_ROLES: 1 << 9,
+  KICK_MEMBERS: 1 << 10,
+  BAN_MEMBERS: 1 << 11,
+  ADMINISTRATOR: 1 << 12,
 } as const;
 
 export type PermissionFlag = (typeof Permission)[keyof typeof Permission];
@@ -80,17 +80,17 @@ export const has = (bits: number, flag: PermissionFlag) =>
 
 ## Where checks go
 
-| Layer                  | Responsibility                                                       |
-| ---------------------- | -------------------------------------------------------------------- |
-| React                  | Show/hide UI only. Cosmetic. Never trusted.                           |
-| NestJS `PermissionGuard` | Authoritative check on every server/channel route                    |
-| Socket.IO gateway      | Same check before joining a room and before handling any event        |
-| Service                | Ownership rules (only the author edits their own message)             |
+| Layer                    | Responsibility                                                 |
+| ------------------------ | -------------------------------------------------------------- |
+| React                    | Show/hide UI only. Cosmetic. Never trusted.                    |
+| NestJS `PermissionGuard` | Authoritative check on every server/channel route              |
+| Socket.IO gateway        | Same check before joining a room and before handling any event |
+| Service                  | Ownership rules (only the author edits their own message)      |
 
 ## Common mistakes to look for
 
 - Checking membership but not the specific permission
-- Forgetting `ADMINISTRATOR` bypass, or applying it *after* the deny overrides
+- Forgetting `ADMINISTRATOR` bypass, or applying it _after_ the deny overrides
 - Applying member overrides before role overrides
 - A gateway event that skips the guard entirely
 - Letting a moderator act on someone at an equal role position

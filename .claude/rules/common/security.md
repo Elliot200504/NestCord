@@ -14,7 +14,7 @@ because they protect real user accounts.
 
 ## Never trust the client
 
-The frontend computes permissions only to decide what to *render*. Every permission decision that
+The frontend computes permissions only to decide what to _render_. Every permission decision that
 matters is re-computed on the server from the database. A user editing their own JS must not be able
 to send a message to a channel they cannot view.
 
