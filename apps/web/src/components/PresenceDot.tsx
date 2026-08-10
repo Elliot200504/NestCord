@@ -1,6 +1,6 @@
 import type { PresenceStatus } from '@nestcord/shared';
 
-import { cn } from '../lib/cn';
+import { cn } from '@/lib/utils';
 
 const STATUS_STYLES: Record<PresenceStatus, string> = {
   ONLINE: 'bg-online',
