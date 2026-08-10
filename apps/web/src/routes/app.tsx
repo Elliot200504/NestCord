@@ -12,7 +12,7 @@ import { rootRoute } from './root';
  */
 function AppLayout() {
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen">
       <ServerRail />
       <ChannelSidebar />
       <main className="bg-surface-700 flex min-w-0 flex-1">
