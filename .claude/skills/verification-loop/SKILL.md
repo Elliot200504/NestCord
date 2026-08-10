@@ -83,14 +83,14 @@ feature works, and realtime events arrive (open two browser sessions when the fe
 ```markdown
 ## Verification
 
-| Phase        | Result                             |
-| ------------ | ---------------------------------- |
-| Typecheck    | pass                               |
-| Lint         | pass                               |
-| Build        | pass                               |
-| Tests        | 42 passed, 0 failed                |
-| DB           | migration `20260810_add_reactions` |
-| Smoke test   | verified in two browser sessions   |
+| Phase      | Result                             |
+| ---------- | ---------------------------------- |
+| Typecheck  | pass                               |
+| Lint       | pass                               |
+| Build      | pass                               |
+| Tests      | 42 passed, 0 failed                |
+| DB         | migration `20260810_add_reactions` |
+| Smoke test | verified in two browser sessions   |
 
 Not run: <anything skipped, and why>
 ```

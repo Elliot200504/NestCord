@@ -4,13 +4,13 @@
 
 Defined in `.claude/agents/`:
 
-| Agent               | Purpose                                  | When to use                                    |
-| ------------------- | ---------------------------------------- | ---------------------------------------------- |
+| Agent               | Purpose                                  | When to use                                     |
+| ------------------- | ---------------------------------------- | ----------------------------------------------- |
 | `planner`           | Phased implementation plans              | Features touching 3+ files or the schema        |
-| `architect`         | Module boundaries, data flow, trade-offs  | Structural decisions, "where should this live"  |
-| `code-reviewer`     | Quality and correctness review            | Immediately after writing a slice of code       |
-| `security-reviewer` | Vulnerability review                      | Auth, input handling, uploads, permissions      |
-| `doc-updater`       | README and docs refresh                   | After a feature changes setup, env, or commands |
+| `architect`         | Module boundaries, data flow, trade-offs | Structural decisions, "where should this live"  |
+| `code-reviewer`     | Quality and correctness review           | Immediately after writing a slice of code       |
+| `security-reviewer` | Vulnerability review                     | Auth, input handling, uploads, permissions      |
+| `doc-updater`       | README and docs refresh                  | After a feature changes setup, env, or commands |
 
 ## When to delegate
 

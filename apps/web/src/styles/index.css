@@ -1,0 +1,59 @@
+@import 'tailwindcss';
+
+/* Discord-ish palette. Tailwind 4 is CSS-first: tokens defined here become
+   utilities like bg-surface-800 automatically. */
+@theme {
+  --color-surface-950: #1a1b1e;
+  --color-surface-900: #202225;
+  --color-surface-800: #2b2d31;
+  --color-surface-700: #313338;
+  --color-surface-600: #3f4147;
+  --color-surface-500: #4e5058;
+
+  --color-brand-400: #7b8cff;
+  --color-brand-500: #5865f2;
+  --color-brand-600: #4752c4;
+
+  --color-content-100: #f2f3f5;
+  --color-content-300: #b5bac1;
+  --color-content-500: #80848e;
+
+  --color-online: #23a55a;
+  --color-idle: #f0b232;
+  --color-dnd: #f23f43;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-surface-700);
+    color: var(--color-content-100);
+    font-family:
+      'gg sans',
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-surface-950);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+}

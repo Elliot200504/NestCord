@@ -26,7 +26,7 @@ dm:{conversationId}    DM messages
 user:{userId}          notifications aimed at one person
 ```
 
-Room membership *is* the authorization boundary. Never emit to a room the user could not read, and
+Room membership _is_ the authorization boundary. Never emit to a room the user could not read, and
 re-check permission when a user's roles change — remove them from channel rooms they lost access to.
 
 ## Event catalogue
@@ -70,7 +70,10 @@ resolution the HTTP guard uses. A `ValidationPipe` on the gateway handlers, not 
 ## Presence
 
 ```ts
-type PresenceEntry = { status: 'ONLINE' | 'IDLE' | 'DO_NOT_DISTURB' | 'OFFLINE'; sockets: Set<string> };
+type PresenceEntry = {
+  status: 'ONLINE' | 'IDLE' | 'DO_NOT_DISTURB' | 'OFFLINE';
+  sockets: Set<string>;
+};
 ```
 
 In-memory `Map<userId, PresenceEntry>`. On disconnect remove the socket id; broadcast `OFFLINE` only

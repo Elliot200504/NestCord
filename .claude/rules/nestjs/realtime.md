@@ -1,7 +1,7 @@
 ---
 paths:
-  - "apps/api/src/gateway/**"
-  - "apps/web/src/websocket/**"
+  - 'apps/api/src/gateway/**'
+  - 'apps/web/src/websocket/**'
 ---
 
 # Realtime (Socket.IO)

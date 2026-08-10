@@ -28,8 +28,9 @@ Skip the ceremony for: styling, layout, pass-through controllers, generated code
 ```ts
 it('rejects an edit from a user who is not the author', async () => {
   const { message, otherUser } = await seedMessage();
-  await expect(service.update(message.id, otherUser.id, { content: 'hacked' }))
-    .rejects.toThrow(ForbiddenException);
+  await expect(service.update(message.id, otherUser.id, { content: 'hacked' })).rejects.toThrow(
+    ForbiddenException,
+  );
 });
 ```
 
@@ -41,13 +42,13 @@ Run it. If it passes, the test is wrong.
 
 ## Layers
 
-| Layer       | Tool                | Use for                                              |
-| ----------- | ------------------- | ---------------------------------------------------- |
-| Unit        | Vitest              | permission math, markdown/mention parsing, helpers    |
-| Integration | Vitest + Prisma     | services against a real test database                 |
-| HTTP        | Supertest + Nest    | auth flows, guards, status codes                      |
-| Component   | Vitest + RTL        | composer, message rendering, permission-driven UI     |
-| E2E         | Playwright          | login, navigate, send a message, friends page         |
+| Layer       | Tool             | Use for                                            |
+| ----------- | ---------------- | -------------------------------------------------- |
+| Unit        | Vitest           | permission math, markdown/mention parsing, helpers |
+| Integration | Vitest + Prisma  | services against a real test database              |
+| HTTP        | Supertest + Nest | auth flows, guards, status codes                   |
+| Component   | Vitest + RTL     | composer, message rendering, permission-driven UI  |
+| E2E         | Playwright       | login, navigate, send a message, friends page      |
 
 Do not mock Prisma to test a query — use a test database. Mock only true externals.
 

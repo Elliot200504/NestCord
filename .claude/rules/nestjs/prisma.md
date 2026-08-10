@@ -1,7 +1,7 @@
 ---
 paths:
-  - "packages/database/**"
-  - "**/*.prisma"
+  - 'packages/database/**'
+  - '**/*.prisma'
 ---
 
 # Prisma and PostgreSQL

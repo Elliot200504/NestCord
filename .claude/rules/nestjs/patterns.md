@@ -1,6 +1,6 @@
 ---
 paths:
-  - "apps/api/**"
+  - 'apps/api/**'
 ---
 
 # NestJS Patterns

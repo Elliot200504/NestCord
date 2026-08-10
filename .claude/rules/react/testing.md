@@ -1,6 +1,6 @@
 ---
 paths:
-  - "apps/web/**"
+  - 'apps/web/**'
 ---
 
 # Web Testing

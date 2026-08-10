@@ -35,7 +35,7 @@ directly to `main` unless the user asks.
 Use `/commit-push-pr`. When writing a PR:
 
 1. Read the whole branch history, not only the last commit (`git diff main...HEAD`).
-2. Write a description that explains *why*, not just *what*.
+2. Write a description that explains _why_, not just _what_.
 3. Include a test plan written in plain language a non-developer could follow.
 4. Push new branches with `-u`.
 
@@ -43,21 +43,21 @@ Use `/commit-push-pr`. When writing a PR:
 
 `{icons} {Type}: {user-facing summary}` — max 72 characters, no branch names or internal jargon.
 
-| Icon | Type                                 |
-| ---- | ------------------------------------ |
-| 🐛   | Fix — bug fix                        |
-| 🎨   | Styling — UI/CSS changes             |
-| 🚀   | Feature — new functionality          |
-| 🛠️   | Refactoring — code structure         |
-| 🔧   | Chore — maintenance, tooling, deps   |
-| ⚡   | Performance                          |
-| ✅   | Test — add or update tests           |
-| 👷   | CI — pipeline changes                |
-| 📦   | Build — build system, external deps  |
-| ⏪   | Revert                               |
-| ⬆️   | Version — release                    |
-| 📚   | Documentation                        |
-| 🔥   | Critical — hotfix                    |
+| Icon | Type                                |
+| ---- | ----------------------------------- |
+| 🐛   | Fix — bug fix                       |
+| 🎨   | Styling — UI/CSS changes            |
+| 🚀   | Feature — new functionality         |
+| 🛠️   | Refactoring — code structure        |
+| 🔧   | Chore — maintenance, tooling, deps  |
+| ⚡   | Performance                         |
+| ✅   | Test — add or update tests          |
+| 👷   | CI — pipeline changes               |
+| 📦   | Build — build system, external deps |
+| ⏪   | Revert                              |
+| ⬆️   | Version — release                   |
+| 📚   | Documentation                       |
+| 🔥   | Critical — hotfix                   |
 
 Multi-type PRs prepend secondary icons before the dominant one:
 `🐛✅🚀 Feature: Messages now show who is typing`

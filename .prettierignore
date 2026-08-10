@@ -1,0 +1,13 @@
+# Instruction files are prose — Prettier's markdown rules mangle their tables and lists
+.claude
+PLAN.MD
+
+node_modules
+dist
+build
+coverage
+pnpm-lock.yaml
+packages/database/generated
+apps/api/uploads
+playwright-report
+test-results

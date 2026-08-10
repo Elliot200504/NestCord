@@ -1,6 +1,6 @@
 ---
 paths:
-  - "apps/api/**"
+  - 'apps/api/**'
 ---
 
 # API Security and Authorization
@@ -38,7 +38,7 @@ kick or ban someone with an equal or higher position.
 
 ## Authorization checks
 
-- Every controller route that touches a server resource verifies membership *and* the specific
+- Every controller route that touches a server resource verifies membership _and_ the specific
   permission — membership alone is not authorization.
 - Gateway events are authorized the same way as HTTP routes. A socket connection is not a bypass.
 - Ownership checks for edit/delete: author may edit their own message; `MANAGE_MESSAGES` may delete

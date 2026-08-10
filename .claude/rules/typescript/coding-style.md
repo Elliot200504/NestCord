@@ -1,8 +1,8 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/tsconfig*.json"
+  - '**/*.ts'
+  - '**/*.tsx'
+  - '**/tsconfig*.json'
 ---
 
 # TypeScript Style

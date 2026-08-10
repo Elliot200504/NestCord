@@ -28,7 +28,12 @@ function findRepoRoot(startDir) {
 }
 
 function resolveBin(root, name) {
-  const bin = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? `${name}.cmd` : name);
+  const bin = path.join(
+    root,
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? `${name}.cmd` : name,
+  );
   return fs.existsSync(bin) ? bin : null;
 }
 
@@ -49,7 +54,8 @@ process.stdin.on('end', () => {
     // Prisma schema has its own formatter.
     if (/\.prisma$/i.test(filePath)) {
       const prismaBin = resolveBin(root, 'prisma');
-      if (prismaBin) spawnSync(prismaBin, ['format', '--schema', filePath], { cwd: root, stdio: 'ignore' });
+      if (prismaBin)
+        spawnSync(prismaBin, ['format', '--schema', filePath], { cwd: root, stdio: 'ignore' });
       return;
     }
 
