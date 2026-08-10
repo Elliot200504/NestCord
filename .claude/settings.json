@@ -1,0 +1,46 @@
+{
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/post-edit-format.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/post-edit-typecheck.js\""
+          }
+        ],
+        "description": "Format with Prettier and type-check TypeScript after edits"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/pre-write-guard.js\""
+          }
+        ],
+        "description": "Warn on documentation sprawl and committed .env files"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/pre-bash-guard.js\""
+          }
+        ],
+        "description": "Warn on npm/yarn usage, destructive Prisma commands, and unverified pushes"
+      }
+    ]
+  }
+}

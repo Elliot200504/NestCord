@@ -22,3 +22,9 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+
+
+# Claude — the shared project instructions are tracked, local overrides are not
+.claude/settings.local.json
+.claude/plans/
+.PLAN
