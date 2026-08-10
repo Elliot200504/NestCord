@@ -22,8 +22,8 @@ export function ServerRail() {
         aria-label="Direct messages"
         className={cn(
           'group grid size-12 place-items-center rounded-3xl transition-all',
-          'bg-surface-700 hover:bg-brand-500 hover:rounded-2xl',
-          activeServerId === '@me' && 'bg-brand-500 rounded-2xl',
+          'bg-surface-700 hover:bg-primary hover:rounded-2xl',
+          activeServerId === '@me' && 'bg-primary rounded-2xl',
         )}
       >
         <Compass className="size-6" aria-hidden />
@@ -40,8 +40,8 @@ export function ServerRail() {
               title={server.name}
               className={cn(
                 'grid size-12 place-items-center rounded-3xl text-sm font-semibold transition-all',
-                'bg-surface-700 hover:bg-brand-500 hover:rounded-2xl',
-                activeServerId === server.id && 'bg-brand-500 rounded-2xl',
+                'bg-surface-700 hover:bg-primary hover:rounded-2xl',
+                activeServerId === server.id && 'bg-primary rounded-2xl',
               )}
             >
               {server.initials}
