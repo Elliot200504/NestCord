@@ -8,7 +8,7 @@ export function UserPanel() {
   return (
     <div className="bg-surface-900 flex items-center gap-2 px-2 py-2">
       <div className="relative">
-        <div className="bg-brand-500 grid size-8 place-items-center rounded-full text-xs font-semibold">
+        <div className="bg-primary grid size-8 place-items-center rounded-full text-xs font-semibold">
           TU
         </div>
         <PresenceDot status="ONLINE" className="absolute -right-0.5 -bottom-0.5" />
