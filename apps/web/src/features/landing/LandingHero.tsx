@@ -37,7 +37,7 @@ export function LandingHero() {
 
           <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <Button asChild size="lg" className="h-11 rounded-xl px-6 text-base">
-              <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
+              <Link to="/register">
                 Come on in
                 <ArrowRight aria-hidden />
               </Link>
