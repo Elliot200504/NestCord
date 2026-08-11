@@ -42,6 +42,19 @@ pnpm dev
 
 Seeded login: `test@nestcord.local` / `password123`
 
+## Authentication
+
+Register at http://localhost:5173/register, or log in with the seeded account above.
+
+- Passwords are hashed with Argon2id. `POST /api/auth/register|login|refresh|logout` and
+  `GET /api/auth/me` are the whole surface.
+- A short-lived access token comes back in the response body and is kept in memory by the web app —
+  never in `localStorage`.
+- The long-lived refresh token is an httpOnly cookie scoped to `/api/auth`, stored hashed in the
+  `Session` table and rotated on every refresh. Logging out deletes the session row, so the access
+  token stops working immediately.
+- Every API route requires a valid token unless it is explicitly marked `@Public()`.
+
 All environment variables live in one `.env` at the repo root; `.env.example` lists them all. The API
 validates them at boot and refuses to start if any are missing.
 
