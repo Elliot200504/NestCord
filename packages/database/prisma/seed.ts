@@ -2,6 +2,7 @@
  * Development seed: a small but realistic world to click around in.
  *
  * Run with `pnpm db:seed`. Safe to re-run — it clears the tables it owns first.
+ * Because of that it refuses to run against anything but a local database.
  */
 import { resolve } from 'node:path';
 
@@ -48,6 +49,33 @@ const SAMPLE_MESSAGES = [
   'I will pick this up tomorrow',
 ];
 
+/** Hosts we consider safe to wipe. */
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', 'db', 'postgres'];
+
+/**
+ * The seed deletes every row in every table, so refuse to run against anything
+ * that is not an obviously local development database.
+ */
+function assertLocalDatabase(url: string): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to seed: NODE_ENV is production.');
+  }
+
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    throw new Error('Refusing to seed: DATABASE_URL is missing or not a valid URL.');
+  }
+
+  if (!LOCAL_HOSTS.includes(host)) {
+    throw new Error(
+      `Refusing to seed: database host "${host}" is not local. ` +
+        'The seed deletes every table. Point DATABASE_URL at a local database.',
+    );
+  }
+}
+
 async function clear(): Promise<void> {
   // Order matters: children before parents where cascade does not cover it.
   await prisma.notification.deleteMany();
@@ -77,6 +105,8 @@ function pick<T>(items: readonly T[], index: number): T {
 }
 
 async function main(): Promise<void> {
+  assertLocalDatabase(process.env.DATABASE_URL ?? '');
+
   console.log('Clearing existing data...');
   await clear();
 
