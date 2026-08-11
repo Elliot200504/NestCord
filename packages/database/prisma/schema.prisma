@@ -63,6 +63,12 @@ model User {
   username     String         @unique
   email        String         @unique
   passwordHash String
+  /// Shown instead of the username where there is room for it. Optional: a user
+  /// who never opens settings is still perfectly identifiable by their username.
+  displayName  String?
+  bio          String?
+  /// Hex colour that tints the profile card and the avatar ring.
+  accentColor  String?
   avatarUrl    String?
   status       PresenceStatus @default(OFFLINE)
   createdAt    DateTime       @default(now())
