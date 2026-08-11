@@ -7,7 +7,9 @@
     "emitDecoratorMetadata": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["node"]
+    // "multer" is here for its global `Express.Multer.File`, which the avatar
+    // upload route is typed with. It has no runtime counterpart to import.
+    "types": ["node", "multer"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
