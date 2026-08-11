@@ -1,4 +1,7 @@
 import { placeholderMessages, type PlaceholderMessage } from '../features/placeholder-data';
+import { avatarTint } from '@/lib/avatar-tint';
+import { BrandMark } from './BrandMark';
+import { cn } from '@/lib/utils';
 
 interface MessageGroup {
   author: string;
@@ -26,19 +29,29 @@ export function MessageList() {
   const groups = groupMessages(placeholderMessages);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Welcome to #general</h2>
-        <p className="text-content-300 text-sm">
-          This is the start of the channel. Messages are placeholder data until the messaging API
+    <div className="flex-1 overflow-y-auto px-3 py-5">
+      {/* The top of a channel is the one place worth a bit of warmth. */}
+      <div className="mb-8 px-3">
+        <BrandMark size="lg" className="mb-4" />
+        <h2 className="font-display text-2xl font-semibold">This is the start of #general</h2>
+        <p className="text-content-300 mt-1 max-w-prose text-sm">
+          Everything said here stays here. Messages are placeholder data until the messaging API
           lands.
         </p>
       </div>
 
-      <ul className="space-y-4">
+      <ul>
         {groups.map((group) => (
-          <li key={`${group.author}-${group.timestamp}`} className="flex gap-3">
-            <div className="bg-surface-600 mt-0.5 grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold uppercase">
+          <li
+            key={`${group.author}-${group.timestamp}`}
+            className="hover:bg-surface-600/35 flex gap-3 rounded-xl px-3 py-2 transition-colors"
+          >
+            <div
+              className={cn(
+                'mt-0.5 grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold uppercase',
+                avatarTint(group.author),
+              )}
+            >
               {group.author.slice(0, 2)}
             </div>
             <div className="min-w-0 flex-1">
@@ -47,7 +60,7 @@ export function MessageList() {
                 <time className="text-content-500 text-xs">{group.timestamp}</time>
               </p>
               {group.messages.map((message) => (
-                <p key={message.id} className="text-content-100 break-words">
+                <p key={message.id} className="text-content-100 leading-relaxed break-words">
                   {message.content}
                 </p>
               ))}

@@ -1,4 +1,6 @@
 import { placeholderMembers } from '../features/placeholder-data';
+import { avatarTint } from '@/lib/avatar-tint';
+import { cn } from '@/lib/utils';
 import { PresenceDot } from './PresenceDot';
 
 export function MemberList() {
@@ -8,25 +10,28 @@ export function MemberList() {
   return (
     <aside
       aria-label="Members"
-      className="bg-surface-800 hidden w-60 shrink-0 overflow-y-auto px-2 py-4 lg:block"
+      className="bg-surface-800 border-border hidden w-60 shrink-0 overflow-y-auto border-l px-2 py-4 lg:block"
     >
       {[
-        { label: `Online — ${online.length}`, members: online },
-        { label: `Offline — ${offline.length}`, members: offline },
+        { label: `Here now — ${online.length}`, members: online },
+        { label: `Away — ${offline.length}`, members: offline },
       ].map((group) => (
-        <section key={group.label} className="mb-4">
-          <h2 className="text-content-500 px-2 pb-1 text-xs font-semibold tracking-wide uppercase">
-            {group.label}
-          </h2>
+        <section key={group.label} className="mb-5">
+          <h2 className="text-content-500 px-2.5 pb-1.5 text-xs font-medium">{group.label}</h2>
           <ul>
             {group.members.map((member) => (
               <li key={member.id}>
                 <button
                   type="button"
-                  className="hover:bg-surface-700 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left"
+                  className="hover:bg-surface-700 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors"
                 >
                   <div className="relative">
-                    <div className="bg-surface-600 grid size-8 place-items-center rounded-full text-xs font-semibold uppercase">
+                    <div
+                      className={cn(
+                        'grid size-8 place-items-center rounded-full text-xs font-semibold uppercase',
+                        avatarTint(member.username),
+                      )}
+                    >
                       {member.username.slice(0, 2)}
                     </div>
                     <PresenceDot
