@@ -1,7 +1,13 @@
 /**
  * Minimal fetch wrapper. Requests go to /api, which Vite proxies to the NestJS
  * server in development, so the browser stays on a single origin.
+ *
+ * The access token lives in this module, in memory only. Putting it in
+ * localStorage would leave it readable by any injected script; the refresh token
+ * it is renewed from is an httpOnly cookie the browser handles for us.
  */
+
+import type { AuthSession } from '@nestcord/shared';
 
 export class ApiError extends Error {
   constructor(
@@ -13,23 +19,87 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+let accessToken: string | null = null;
+
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+}
+
+export function hasAccessToken(): boolean {
+  return accessToken !== null;
+}
+
+interface RequestOptions extends RequestInit {
+  /**
+   * Whether a 401 should trigger a refresh-and-retry. Off for the auth routes
+   * themselves: a failed login is an answer, not an expired token.
+   */
+  retryOnUnauthorized?: boolean;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { retryOnUnauthorized = true, ...init } = options;
+  const response = await send(path, init);
+
+  if (response.status === 401 && retryOnUnauthorized) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return parse<T>(await send(path, init));
+  }
+
+  return parse<T>(response);
+}
+
+async function send(path: string, init: RequestInit): Promise<Response> {
+  return fetch(`/api${path}`, {
     ...init,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...init?.headers,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...init.headers,
     },
   });
+}
 
+async function parse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new ApiError(response.status, body?.message ?? `Request failed (${response.status})`);
+    const body = (await response.json().catch(() => null)) as { message?: string | string[] } | null;
+    const message = Array.isArray(body?.message) ? body?.message.join(', ') : body?.message;
+    throw new ApiError(response.status, message ?? `Request failed (${response.status})`);
   }
 
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+let inFlightRefresh: Promise<boolean> | null = null;
+
+/**
+ * Trades the refresh cookie for a new access token. Concurrent callers share one
+ * request so a page with several queries does not rotate the cookie five times.
+ */
+export function refreshAccessToken(): Promise<boolean> {
+  inFlightRefresh ??= requestRefresh().finally(() => {
+    inFlightRefresh = null;
+  });
+
+  return inFlightRefresh;
+}
+
+async function requestRefresh(): Promise<boolean> {
+  try {
+    const session = await apiRequest<AuthSession>('/auth/refresh', {
+      method: 'POST',
+      retryOnUnauthorized: false,
+    });
+
+    setAccessToken(session.accessToken);
+    return true;
+  } catch {
+    // No usable session — the caller redirects to /login.
+    setAccessToken(null);
+    return false;
+  }
 }
 
 export interface HealthResponse {
@@ -38,5 +108,5 @@ export interface HealthResponse {
 }
 
 export const api = {
-  health: () => request<HealthResponse>('/health'),
+  health: () => apiRequest<HealthResponse>('/health'),
 };
