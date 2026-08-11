@@ -36,9 +36,7 @@ export function LandingNav() {
             <Link to="/login">Log in</Link>
           </Button>
           <Button asChild size="lg" className="ml-1 rounded-xl px-4">
-            <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
-              Come on in
-            </Link>
+            <Link to="/register">Come on in</Link>
           </Button>
         </div>
       </nav>
