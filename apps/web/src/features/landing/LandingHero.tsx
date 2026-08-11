@@ -1,79 +1,81 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { HeroPreview } from './HeroPreview';
 import { stack, stats } from './landing-content';
 
 export function LandingHero() {
   return (
     <section className="relative isolate overflow-hidden">
-      {/* Red glow bleeding out of the black background. */}
+      {/* One warm light, low and to the left, like a lamp in the corner. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-[36rem] opacity-70"
+        className="pointer-events-none absolute -top-24 -left-32 -z-10 size-[38rem] opacity-25"
         style={{
           background:
-            'radial-gradient(60% 60% at 50% 0%, var(--color-nest-500) 0%, transparent 70%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-          maskImage: 'radial-gradient(70% 50% at 50% 0%, black, transparent)',
+            'radial-gradient(closest-side, var(--color-nest-600) 0%, transparent 100%)',
         }}
       />
 
-      <div className="mx-auto w-full max-w-4xl px-6 py-24 text-center sm:py-32">
-        <Badge variant="outline" className="border-primary/40 text-primary mb-6 gap-1.5">
-          <Sparkles aria-hidden className="size-3.5" />
-          Built in the open, one phase at a time
-        </Badge>
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-6 pt-20 pb-14 lg:grid-cols-[1.05fr_0.95fr] lg:pt-24 lg:pb-16">
+        <div>
+          <p className="text-content-300 flex items-center gap-2 text-sm">
+            <span className="bg-online size-2 rounded-full" />
+            Built slowly, in the open, one phase at a time
+          </p>
 
-        <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-6xl">
-          Your own place to talk.{' '}
-          <span className="from-nest-400 to-nest-600 bg-gradient-to-r bg-clip-text text-transparent">
-            Nothing you did not build.
-          </span>
-        </h1>
+          <h1 className="font-display mt-6 text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-5xl">
+            A small room on the internet that belongs to you.
+          </h1>
 
-        <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg text-pretty">
-          NestCord is a self-hosted chat app for small groups — servers, channels, direct messages
-          and realtime everything, running on one modest server you control.
-        </p>
+          <p className="text-content-300 mt-6 max-w-xl text-lg text-pretty">
+            NestCord is chat for the handful of people you actually talk to. Servers, channels,
+            direct messages, everything live as it happens — running on one modest machine you
+            already pay for.
+          </p>
 
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="h-11 px-6 text-base">
-            <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
-              Open NestCord
-              <ArrowRight aria-hidden />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base">
-            <Link to="/login">Create an account</Link>
-          </Button>
+          <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <Button asChild size="lg" className="h-11 rounded-xl px-6 text-base">
+              <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
+                Come on in
+                <ArrowRight aria-hidden />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="lg"
+              className="text-content-300 h-11 rounded-xl px-5 text-base"
+            >
+              <Link to="/login">I already have an account</Link>
+            </Button>
+          </div>
+
+          <p className="text-content-500 mt-10 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+            <span className="mr-1">Made with</span>
+            {stack.map((item, index) => (
+              <span key={item}>
+                {item}
+                {index < stack.length - 1 && <span className="text-content-500/60"> ·</span>}
+              </span>
+            ))}
+          </p>
         </div>
 
-        <ul className="text-muted-foreground mt-12 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs">
-          {stack.map((item) => (
-            <li
-              key={item}
-              className="border-border/70 bg-card/60 rounded-full border px-3 py-1 font-medium"
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
+        <HeroPreview />
+      </div>
 
-        <dl className="mx-auto mt-16 grid max-w-3xl gap-8 sm:grid-cols-3">
+      {/* The three promises, on a shelf across the bottom of the fold. */}
+      <div className="border-border mx-auto w-full max-w-6xl border-t px-6">
+        <dl className="grid gap-8 py-10 sm:grid-cols-3">
           {stats.map((stat) => (
-            <div key={stat.value}>
-              <dt className="text-primary text-xl font-semibold">{stat.value}</dt>
-              <dd className="text-muted-foreground mt-1 text-sm">{stat.label}</dd>
+            <div key={stat.value} className="flex gap-3">
+              <span aria-hidden className="bg-primary/70 mt-1 h-10 w-0.5 shrink-0 rounded-full" />
+              <div>
+                <dt className="font-display text-base font-semibold">{stat.value}</dt>
+                <dd className="text-content-300 mt-0.5 text-sm">{stat.label}</dd>
+              </div>
             </div>
           ))}
         </dl>
