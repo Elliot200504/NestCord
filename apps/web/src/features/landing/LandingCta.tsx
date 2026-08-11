@@ -24,7 +24,7 @@ export function LandingCta() {
           </div>
 
           <Button asChild size="lg" className="h-11 shrink-0 rounded-xl px-6 text-base">
-            <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
+            <Link to="/register">
               Come on in
               <ArrowRight aria-hidden />
             </Link>
