@@ -1,5 +1,6 @@
 import { createRoute, Link } from '@tanstack/react-router';
 
+import { requireSession } from '../features/auth/require-auth';
 import { rootRoute } from './root';
 
 /** Placeholder for the settings area (PLAN.MD §11). */
@@ -24,5 +25,8 @@ function SettingsPage() {
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
+  beforeLoad: async ({ location }) => {
+    await requireSession(location.href);
+  },
   component: SettingsPage,
 });

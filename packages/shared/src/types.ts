@@ -13,9 +13,13 @@ export interface PublicUser {
   status: PresenceStatus;
 }
 
-export interface AuthTokens {
+/**
+ * What the auth endpoints return. The refresh token is deliberately absent — it
+ * travels in an httpOnly cookie the browser never exposes to JavaScript.
+ */
+export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
+  user: PublicUser;
 }
 
 export interface Paginated<T> {
@@ -27,4 +31,8 @@ export const MESSAGE_MAX_LENGTH = 2000;
 export const MESSAGE_PAGE_SIZE = 50;
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 32;
+/** Letters, digits, underscore and dot — no spaces, so mentions stay unambiguous. */
+export const USERNAME_PATTERN = /^[a-zA-Z0-9._]+$/;
 export const PASSWORD_MIN_LENGTH = 8;
+/** Argon2 handles long inputs fine; the cap exists so a huge body cannot burn CPU. */
+export const PASSWORD_MAX_LENGTH = 128;
