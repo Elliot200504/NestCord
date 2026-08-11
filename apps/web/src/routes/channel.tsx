@@ -18,7 +18,7 @@ function ChannelPage() {
   return (
     <>
       <div className="flex min-w-0 flex-1 flex-col">
-        <ChannelHeader channelName={channelName} topic={`Welcome to #${channelName}`} />
+        <ChannelHeader channelName={channelName} topic="Pull up a chair" />
         <MessageList />
         <MessageComposer channelName={channelName} />
       </div>

@@ -10,8 +10,8 @@ export const rootRoute = createRootRoute({
   notFoundComponent: () => (
     <div className="grid min-h-screen place-items-center">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Page not found</h1>
-        <p className="text-muted-foreground">That route does not exist yet.</p>
+        <h1 className="font-display text-2xl font-semibold">Nothing behind this door</h1>
+        <p className="text-content-300 mt-1.5">That route does not exist yet.</p>
       </div>
     </div>
   ),

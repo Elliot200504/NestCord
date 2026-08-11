@@ -23,7 +23,7 @@ function LoginPage() {
         {/* The brand panel is hidden on narrow screens, so the mark comes along. */}
         <Link
           to="/"
-          className="mb-8 flex items-center gap-2 font-semibold tracking-tight lg:hidden"
+          className="font-display mb-8 flex items-center gap-2.5 text-lg font-semibold tracking-tight lg:hidden"
         >
           <BrandMark />
           NestCord
@@ -32,7 +32,7 @@ function LoginPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl">Welcome back</CardTitle>
-            <CardDescription>Log in to pick up where you left off</CardDescription>
+            <CardDescription>Everyone is still here. Pick up where you left off.</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -45,12 +45,12 @@ function LoginPage() {
                 autoComplete="current-password"
               />
 
-              <Button type="submit" disabled className="h-10 w-full text-base">
+              <Button type="submit" disabled className="h-10 w-full rounded-xl text-base">
                 Log in
               </Button>
             </form>
 
-            <p className="text-muted-foreground mt-6 text-center text-xs">
+            <p className="text-content-500 mt-6 text-center text-xs">
               Authentication arrives in phase 2. In the meantime you can{' '}
               <Link
                 to="/app/$serverId/$channelId"
@@ -64,9 +64,9 @@ function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-muted-foreground mt-8 text-sm">
-          <Link to="/" className="hover:text-foreground inline-flex items-center gap-1">
-            Back to the landing page
+        <p className="text-content-500 mt-8 text-sm">
+          <Link to="/" className="hover:text-content-100 inline-flex items-center gap-1">
+            Back to the front page
             <ArrowRight aria-hidden className="size-3.5" />
           </Link>
         </p>
@@ -75,39 +75,29 @@ function LoginPage() {
   );
 }
 
-/** Left half: the same red glow and grid the landing hero uses. */
+/** Left half: the same single warm light the landing hero is lit by. */
 function BrandPanel() {
   return (
     <section className="relative isolate hidden flex-col justify-center overflow-hidden px-12 py-16 lg:flex">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 -left-40 -z-10 w-[42rem] opacity-70"
+        className="pointer-events-none absolute -bottom-32 -left-32 -z-10 size-[38rem] opacity-25"
         style={{
           background:
-            'radial-gradient(50% 50% at 30% 40%, var(--color-nest-500) 0%, transparent 70%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-          maskImage: 'radial-gradient(60% 60% at 30% 40%, black, transparent)',
+            'radial-gradient(closest-side, var(--color-nest-600) 0%, transparent 100%)',
         }}
       />
 
-      <Link to="/" className="flex items-center gap-3 text-lg font-semibold tracking-tight">
+      <Link
+        to="/"
+        className="font-display flex items-center gap-3 text-lg font-semibold tracking-tight"
+      >
         <BrandMark size="lg" />
         NestCord
       </Link>
 
-      <h1 className="mt-10 max-w-md text-4xl font-bold tracking-tight text-balance">
-        Your own place to talk.{' '}
-        <span className="from-nest-400 to-nest-600 bg-gradient-to-r bg-clip-text text-transparent">
-          Nothing you did not build.
-        </span>
+      <h1 className="font-display mt-10 max-w-md text-4xl leading-[1.1] font-semibold tracking-tight text-balance">
+        A small room on the internet that belongs to you.
       </h1>
 
       <ul className="mt-10 space-y-4">
@@ -120,23 +110,22 @@ function BrandPanel() {
               <Check className="size-3.5" />
             </span>
             <div>
-              <p className="font-medium">{stat.value}</p>
-              <p className="text-muted-foreground text-sm">{stat.label}</p>
+              <p className="font-display font-semibold">{stat.value}</p>
+              <p className="text-content-300 text-sm">{stat.label}</p>
             </div>
           </li>
         ))}
       </ul>
 
-      <ul className="text-muted-foreground mt-12 flex flex-wrap items-center gap-x-2 gap-y-2 text-xs">
-        {stack.map((item) => (
-          <li
-            key={item}
-            className="border-border/70 bg-card/60 rounded-full border px-3 py-1 font-medium"
-          >
+      <p className="text-content-500 mt-12 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className="mr-1">Made with</span>
+        {stack.map((item, index) => (
+          <span key={item}>
             {item}
-          </li>
+            {index < stack.length - 1 && <span className="text-content-500/60"> ·</span>}
+          </span>
         ))}
-      </ul>
+      </p>
     </section>
   );
 }
@@ -151,14 +140,12 @@ interface FieldProps {
 function Field({ label, type, name, autoComplete }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-        {label}
-      </span>
+      <span className="text-content-300 text-sm font-medium">{label}</span>
       <input
         type={type}
         name={name}
         autoComplete={autoComplete}
-        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 mt-1.5 w-full rounded-lg border px-3 py-2 outline-none focus-visible:ring-3"
+        className="border-input bg-surface-900/60 focus-visible:border-ring focus-visible:ring-ring/40 mt-1.5 w-full rounded-xl border px-3.5 py-2.5 outline-none focus-visible:ring-3"
       />
     </label>
   );
