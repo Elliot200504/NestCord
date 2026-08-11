@@ -66,7 +66,39 @@ export const stack = [
 ];
 
 export const stats = [
-  { value: 'Self-hosted', label: 'Runs on one box, one database' },
+  { value: 'Self-hosted', label: 'One box, one database, no middlemen' },
   { value: 'Open source', label: 'Read every line before you trust it' },
-  { value: 'No tracking', label: 'Your conversations stay yours' },
+  { value: 'No tracking', label: 'Nobody is reading over your shoulder' },
+];
+
+/**
+ * A short, warm conversation for the hero preview. Not real data — it is there
+ * so a first-time visitor can see what the room looks like with people in it.
+ */
+export interface HeroPreviewLine {
+  author: string;
+  initials: string;
+  time: string;
+  text: string;
+}
+
+export const heroPreview: HeroPreviewLine[] = [
+  {
+    author: 'ada',
+    initials: 'ad',
+    time: '19:04',
+    text: 'kettle is on, who is joining voice?',
+  },
+  {
+    author: 'grace',
+    initials: 'gr',
+    time: '19:05',
+    text: 'two minutes — finishing the washing up',
+  },
+  {
+    author: 'linus',
+    initials: 'li',
+    time: '19:06',
+    text: 'saved us a seat by the fire 🔥',
+  },
 ];

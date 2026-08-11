@@ -30,11 +30,11 @@ export function MessageComposer({ channelName, onSend }: MessageComposerProps) {
 
   return (
     <form onSubmit={submit} className="px-4 pt-1 pb-6">
-      <div className="bg-surface-600 flex items-end gap-2 rounded-lg px-4 py-2.5">
+      <div className="bg-surface-600 border-border flex items-end gap-2.5 rounded-2xl border px-4 py-3">
         <button
           type="button"
           aria-label="Add an attachment"
-          className="text-content-300 mb-0.5 hover:text-white"
+          className="text-content-300 hover:text-content-100 mb-0.5 transition-colors"
         >
           <CirclePlus className="size-5" aria-hidden />
         </button>
@@ -46,15 +46,15 @@ export function MessageComposer({ channelName, onSend }: MessageComposerProps) {
           rows={1}
           maxLength={MESSAGE_MAX_LENGTH}
           aria-label={`Message #${channelName}`}
-          placeholder={`Message #${channelName}`}
-          className="placeholder:text-content-500 max-h-40 flex-1 resize-none bg-transparent py-0.5 outline-none"
+          placeholder={`Say something in #${channelName}…`}
+          className="placeholder:text-content-500 max-h-40 flex-1 resize-none bg-transparent py-0.5 leading-relaxed outline-none"
         />
 
         <button
           type="submit"
           disabled={!trimmed}
           aria-label="Send message"
-          className="text-content-300 mb-0.5 enabled:hover:text-white disabled:opacity-40"
+          className="text-content-300 enabled:hover:text-primary mb-0.5 transition-colors disabled:opacity-40"
         >
           <Send className="size-5" aria-hidden />
         </button>
