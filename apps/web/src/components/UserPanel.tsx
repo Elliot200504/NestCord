@@ -1,34 +1,49 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Headphones, LogOut, Mic, Settings } from 'lucide-react';
+import { Headphones, Mic, Settings } from 'lucide-react';
 
-import { useCurrentUser, useLogout } from '@/features/auth/use-auth';
-import { avatarTint } from '@/lib/avatar-tint';
-import { PresenceDot } from './PresenceDot';
+import type { PresenceStatus } from '@nestcord/shared';
+
+import { useCurrentUser } from '@/features/auth/use-auth';
+import { StatusMenu } from './StatusMenu';
+import { UserAvatar } from './UserAvatar';
+
+const STATUS_LABELS: Record<PresenceStatus, string> = {
+  ONLINE: 'Online',
+  IDLE: 'Idle',
+  DO_NOT_DISTURB: 'Do not disturb',
+  OFFLINE: 'Invisible',
+};
 
 /** Bottom-left panel: who you are, plus quick toggles. */
 export function UserPanel() {
   const { data: user, isPending } = useCurrentUser();
-  const logout = useLogout();
-
-  const username = user?.username ?? '';
-  const initials = username.slice(0, 2).toUpperCase();
 
   return (
     <div className="bg-surface-900 border-border flex items-center gap-2 border-t px-2 py-2.5">
-      <div className="relative">
-        <div
-          className={`grid size-8 place-items-center rounded-full text-xs font-semibold ${avatarTint(username)}`}
-        >
-          {initials}
+      {isPending || !user ? (
+        <div className="flex flex-1 items-center gap-2">
+          <span className="bg-surface-600 size-8 animate-pulse rounded-full" />
+          <span className="bg-surface-600 h-3 w-24 animate-pulse rounded-full" />
         </div>
-        <PresenceDot status={user?.status ?? 'OFFLINE'} className="absolute -right-0.5 -bottom-0.5" />
-      </div>
-
-      <div className="min-w-0 flex-1 leading-tight">
-        <p className="truncate text-sm font-medium">{isPending ? 'Loading…' : username}</p>
-        <p className="text-content-500 truncate text-xs">Here now</p>
-      </div>
+      ) : (
+        <StatusMenu user={user}>
+          <button
+            type="button"
+            className="hover:bg-surface-700 -mx-1 flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors"
+          >
+            <UserAvatar user={user} size="md" status={user.status} />
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block truncate text-sm font-medium">
+                {user.displayName ?? user.username}
+              </span>
+              <span className="text-content-500 block truncate text-xs">
+                {STATUS_LABELS[user.status]}
+              </span>
+            </span>
+          </button>
+        </StatusMenu>
+      )}
 
       <IconButton label="Toggle microphone">
         <Mic className="size-4" aria-hidden />
@@ -36,12 +51,9 @@ export function UserPanel() {
       <IconButton label="Toggle headphones">
         <Headphones className="size-4" aria-hidden />
       </IconButton>
-      <IconButton label="Log out" onClick={() => logout.mutate()} disabled={logout.isPending}>
-        <LogOut className="size-4" aria-hidden />
-      </IconButton>
 
       <Link
-        to="/settings"
+        to="/settings/account"
         aria-label="User settings"
         className="text-content-300 hover:bg-surface-700 hover:text-content-100 grid size-7 shrink-0 place-items-center rounded-lg transition-colors"
       >

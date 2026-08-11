@@ -1,7 +1,6 @@
 import { placeholderMembers } from '../features/placeholder-data';
-import { avatarTint } from '@/lib/avatar-tint';
 import { cn } from '@/lib/utils';
-import { PresenceDot } from './PresenceDot';
+import { UserAvatar } from './UserAvatar';
 
 export function MemberList() {
   const online = placeholderMembers.filter((member) => member.status !== 'OFFLINE');
@@ -23,23 +22,16 @@ export function MemberList() {
               <li key={member.id}>
                 <button
                   type="button"
-                  className="hover:bg-surface-700 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors"
+                  className={cn(
+                    'hover:bg-surface-700 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-opacity transition-colors',
+                    // Offline members stay listed but stop competing for attention.
+                    member.status === 'OFFLINE' && 'opacity-45 hover:opacity-100',
+                  )}
                 >
-                  <div className="relative">
-                    <div
-                      className={cn(
-                        'grid size-8 place-items-center rounded-full text-xs font-semibold uppercase',
-                        avatarTint(member.username),
-                      )}
-                    >
-                      {member.username.slice(0, 2)}
-                    </div>
-                    <PresenceDot
-                      status={member.status}
-                      className="absolute -right-0.5 -bottom-0.5"
-                    />
-                  </div>
-                  <span className="min-w-0 flex-1 truncate text-sm">{member.username}</span>
+                  <UserAvatar user={member} size="md" status={member.status} />
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {member.displayName ?? member.username}
+                  </span>
                   {member.role !== 'Member' && (
                     <span className="text-content-500 text-xs">{member.role}</span>
                   )}

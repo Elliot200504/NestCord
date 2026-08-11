@@ -20,9 +20,13 @@ export interface PlaceholderChannel {
   category: string;
 }
 
+/** Shaped like `PublicUser` so it can be handed straight to `UserAvatar`. */
 export interface PlaceholderMember {
   id: string;
   username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  accentColor: string | null;
   status: PresenceStatus;
   role: string;
 }
@@ -48,11 +52,11 @@ export const placeholderChannels: PlaceholderChannel[] = [
 ];
 
 export const placeholderMembers: PlaceholderMember[] = [
-  { id: '1', username: 'ada', status: 'ONLINE', role: 'Admin' },
-  { id: '2', username: 'grace', status: 'ONLINE', role: 'Moderator' },
-  { id: '3', username: 'linus', status: 'IDLE', role: 'Member' },
-  { id: '4', username: 'margaret', status: 'DO_NOT_DISTURB', role: 'Member' },
-  { id: '5', username: 'dennis', status: 'OFFLINE', role: 'Member' },
+  { id: '1', username: 'ada', displayName: 'Ada', accentColor: '#e0234e', status: 'ONLINE', role: 'Admin', avatarUrl: null },
+  { id: '2', username: 'grace', displayName: 'Grace H.', accentColor: null, status: 'ONLINE', role: 'Moderator', avatarUrl: null },
+  { id: '3', username: 'linus', displayName: null, accentColor: '#f0b232', status: 'IDLE', role: 'Member', avatarUrl: null },
+  { id: '4', username: 'margaret', displayName: 'Margaret', accentColor: null, status: 'DO_NOT_DISTURB', role: 'Member', avatarUrl: null },
+  { id: '5', username: 'dennis', displayName: null, accentColor: null, status: 'OFFLINE', role: 'Member', avatarUrl: null },
 ];
 
 export const placeholderMessages: PlaceholderMessage[] = [
