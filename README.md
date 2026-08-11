@@ -58,6 +58,21 @@ Register at http://localhost:5173/register, or log in with the seeded account ab
 All environment variables live in one `.env` at the repo root; `.env.example` lists them all. The API
 validates them at boot and refuses to start if any are missing.
 
+## Profiles and settings
+
+Settings live at http://localhost:5173/settings — account, profile and appearance.
+
+- **Profile** — display name, bio and an accent colour, with a live preview of the card everyone else
+  sees. `PATCH /api/users/me`; sending `null` clears a field.
+- **Avatars** — uploaded to `apps/api/uploads/avatars` (gitignored) and served from `/uploads`. The
+  file type is decided by the image's own leading bytes, not by its name or declared MIME type, and
+  the stored filename is generated. Replacing or removing an avatar deletes the old file.
+- **Presence** — pick Online, Idle, Do not disturb or Invisible from the user panel. It is stored on
+  the user; connection-driven presence arrives with the gateway in a later phase.
+- **Devices** — every signed-in session is listed with an option to sign one or all others out.
+  Changing your password ends every other session automatically.
+- **Appearance** — theme and message density, kept in this browser rather than on the account.
+
 ## Commands
 
 | Command           | Purpose                      |
