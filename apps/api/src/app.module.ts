@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
 import { HealthModule } from './health/health.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HealthModule } from './health/health.module';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
     AuthModule,
+    UsersModule,
     HealthModule,
   ],
   // Rate limiting runs first, then authentication. Authentication is global so a
