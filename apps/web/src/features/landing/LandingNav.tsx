@@ -8,13 +8,21 @@ export function LandingNav() {
   return (
     <header className="border-border/60 bg-background/80 sticky top-0 z-50 border-b backdrop-blur">
       <nav aria-label="Main" className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-6">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
+        <Link
+          to="/"
+          className="font-display flex items-center gap-2.5 text-lg font-semibold tracking-tight"
+        >
           <BrandMark />
           NestCord
         </Link>
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button asChild variant="ghost" size="lg" className="hidden sm:inline-flex">
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            asChild
+            variant="ghost"
+            size="lg"
+            className="text-content-300 hidden rounded-xl sm:inline-flex"
+          >
             <a
               href="https://github.com/Elliot200504/NestCord"
               target="_blank"
@@ -24,12 +32,12 @@ export function LandingNav() {
               GitHub
             </a>
           </Button>
-          <Button asChild variant="ghost" size="lg">
+          <Button asChild variant="ghost" size="lg" className="text-content-300 rounded-xl">
             <Link to="/login">Log in</Link>
           </Button>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="ml-1 rounded-xl px-4">
             <Link to="/app/$serverId/$channelId" params={{ serverId: 'hq', channelId: 'general' }}>
-              Open NestCord
+              Come on in
             </Link>
           </Button>
         </div>

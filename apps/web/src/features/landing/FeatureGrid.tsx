@@ -1,33 +1,34 @@
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { features } from './landing-content';
 
 export function FeatureGrid() {
   return (
-    <section aria-labelledby="features-heading" className="mx-auto w-full max-w-6xl px-6 py-20">
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 id="features-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+    <section aria-labelledby="features-heading" className="mx-auto w-full max-w-5xl px-6 py-20">
+      <div className="max-w-2xl">
+        <h2
+          id="features-heading"
+          className="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
+        >
           Everything a small community needs
         </h2>
-        <p className="text-muted-foreground mt-4 text-pretty">
+        <p className="text-content-300 mt-4 text-pretty">
           Built for a few hundred people who know each other — not for a million strangers.
         </p>
       </div>
 
-      <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Hairlines, not boxes. Six identical cards is what a template looks like. */}
+      <ul className="border-border mt-12 grid gap-x-12 border-t sm:grid-cols-2">
         {features.map((feature) => (
-          <li key={feature.title}>
-            <Card className="hover:border-primary/40 h-full transition-colors">
-              <CardHeader>
-                <span
-                  aria-hidden
-                  className="bg-primary/10 text-primary mb-3 grid size-10 place-items-center rounded-lg"
-                >
-                  <feature.icon className="size-5" />
-                </span>
-                <CardTitle className="text-base">{feature.title}</CardTitle>
-                <CardDescription className="text-pretty">{feature.description}</CardDescription>
-              </CardHeader>
-            </Card>
+          <li key={feature.title} className="border-border flex gap-4 border-b py-7">
+            <span
+              aria-hidden
+              className="bg-primary/10 text-primary grid size-9 shrink-0 place-items-center rounded-full"
+            >
+              <feature.icon className="size-4.5" />
+            </span>
+            <div>
+              <h3 className="font-display text-base font-semibold">{feature.title}</h3>
+              <p className="text-content-300 mt-1.5 text-sm text-pretty">{feature.description}</p>
+            </div>
           </li>
         ))}
       </ul>
