@@ -1,4 +1,4 @@
-import type { AuthSession, PublicUser } from '@nestcord/shared';
+import type { AuthSession } from '@nestcord/shared';
 
 import { apiRequest } from '@/api/client';
 
@@ -26,8 +26,7 @@ export const authApi = {
       retryOnUnauthorized: false,
     }),
 
-  logout: () =>
-    apiRequest<void>('/auth/logout', { method: 'POST', retryOnUnauthorized: false }),
-
-  me: () => apiRequest<PublicUser>('/auth/me'),
+  // The signed-in user is read through `usersApi.me`, which returns the full
+  // profile. `/auth/me` stays on the server as the guard's own probe.
+  logout: () => apiRequest<void>('/auth/logout', { method: 'POST', retryOnUnauthorized: false }),
 };

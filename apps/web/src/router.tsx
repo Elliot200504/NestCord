@@ -6,7 +6,7 @@ import { landingRoute } from './routes/landing';
 import { loginRoute } from './routes/login';
 import { registerRoute } from './routes/register';
 import { rootRoute } from './routes/root';
-import { settingsRoute } from './routes/settings';
+import { settingsRouteTree } from './routes/settings';
 
 /**
  * Code-based routing: the whole tree is visible in one file, with no codegen
@@ -16,7 +16,7 @@ export const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
   registerRoute,
-  settingsRoute,
+  settingsRouteTree,
   appRoute.addChildren([channelRoute]),
 ]);
 

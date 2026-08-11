@@ -5,6 +5,8 @@
 export const keys = {
   health: ['health'] as const,
   me: ['me'] as const,
+  sessions: ['me', 'sessions'] as const,
+  profile: (userId: string) => ['users', userId] as const,
   servers: ['servers'] as const,
   server: (serverId: string) => ['servers', serverId] as const,
   channels: (serverId: string) => ['servers', serverId, 'channels'] as const,

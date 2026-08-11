@@ -7,14 +7,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAccessToken } from '@/api/client';
 import { routeTree } from '@/router';
 
-const USER = { id: 'user-1', username: 'ada', avatarUrl: null, status: 'ONLINE' };
+const USER = {
+  id: 'user-1',
+  username: 'ada',
+  displayName: null,
+  avatarUrl: null,
+  accentColor: null,
+  status: 'ONLINE',
+};
 
 /** Answers the endpoints the login flow touches; everything else is a 404. */
 function stubApi(overrides: Record<string, () => Response> = {}) {
   const handlers: Record<string, () => Response> = {
     '/api/auth/login': () => json({ accessToken: 'access-token', user: USER }),
     '/api/auth/refresh': () => json({ message: 'Missing refresh token' }, 401),
-    '/api/auth/me': () => json(USER),
+    '/api/users/me': () => json({ ...USER, bio: null, createdAt: '2026-01-01T00:00:00.000Z' }),
     ...overrides,
   };
 

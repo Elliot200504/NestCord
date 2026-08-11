@@ -1,32 +1,80 @@
-import { createRoute, Link } from '@tanstack/react-router';
+import { createRoute, redirect } from '@tanstack/react-router';
 
 import { requireSession } from '../features/auth/require-auth';
+import { useCurrentUser } from '../features/auth/use-auth';
+import { AccountSection } from '../features/settings/AccountSection';
+import { AppearanceSection } from '../features/settings/AppearanceSection';
+import { ProfileSection } from '../features/settings/ProfileSection';
+import { SettingsLayout } from '../features/settings/SettingsLayout';
 import { rootRoute } from './root';
 
-/** Placeholder for the settings area (PLAN.MD §11). */
-function SettingsPage() {
-  return (
-    <main className="bg-background grid min-h-screen place-items-center px-4">
-      <div className="text-center">
-        <h1 className="font-display text-2xl font-semibold">Settings</h1>
-        <p className="text-content-300 mt-1.5">Account, profile and appearance land in phase 3.</p>
-        <Link
-          to="/app/$serverId/$channelId"
-          params={{ serverId: 'hq', channelId: 'general' }}
-          className="bg-primary hover:bg-nest-600 mt-7 inline-block rounded-xl px-5 py-2.5 font-medium transition-colors"
-        >
-          Back to the conversation
-        </Link>
-      </div>
-    </main>
-  );
-}
-
+/** Settings shell (PLAN.MD §11). The sections below render into its outlet. */
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
   beforeLoad: async ({ location }) => {
     await requireSession(location.href);
   },
-  component: SettingsPage,
+  component: SettingsLayout,
 });
+
+/** `/settings` on its own has nothing to show, so it opens the first section. */
+const settingsIndexRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/account' });
+  },
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: 'account',
+  component: () => <WithCurrentUser>{(user) => <AccountSection user={user} />}</WithCurrentUser>,
+});
+
+const profileRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: 'profile',
+  component: () => <WithCurrentUser>{(user) => <ProfileSection user={user} />}</WithCurrentUser>,
+});
+
+const appearanceRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: 'appearance',
+  component: AppearanceSection,
+});
+
+export const settingsRouteTree = settingsRoute.addChildren([
+  settingsIndexRoute,
+  accountRoute,
+  profileRoute,
+  appearanceRoute,
+]);
+
+/**
+ * Both user-facing sections need the loaded profile before they can render a
+ * single field, so they share one loading and error state instead of each
+ * inventing their own.
+ */
+function WithCurrentUser({
+  children,
+}: {
+  children: (user: NonNullable<ReturnType<typeof useCurrentUser>['data']>) => React.ReactNode;
+}) {
+  const { data: user, isPending, error } = useCurrentUser();
+
+  if (isPending) {
+    return <p className="text-content-500 text-sm">Loading your account…</p>;
+  }
+
+  if (error || !user) {
+    return (
+      <p role="alert" className="text-destructive text-sm">
+        {error?.message ?? 'Your account could not be loaded.'}
+      </p>
+    );
+  }
+
+  return <>{children(user)}</>;
+}
