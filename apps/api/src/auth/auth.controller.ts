@@ -17,9 +17,10 @@ import type { CookieOptions, Request, Response } from 'express';
 import type { PublicUser } from '@nestcord/shared';
 
 import type { Env } from '../config/env';
-import { type IssuedSession, AuthService } from './auth.service';
+import { type IssuedSession, type RequestUser, AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { toPublicUser } from './public-user';
 import { AuthSessionDto, PublicUserDto } from './dto/auth-session.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -107,8 +108,10 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The signed-in user' })
   @ApiOkResponse({ type: PublicUserDto })
-  me(@CurrentUser() user: PublicUser): PublicUser {
-    return user;
+  me(@CurrentUser() user: RequestUser): PublicUser {
+    // Mapped rather than returned as-is: the request user carries a session id
+    // that has no business being in a response body.
+    return toPublicUser(user);
   }
 
   /** Attaches the refresh cookie and returns the body the client sees. */

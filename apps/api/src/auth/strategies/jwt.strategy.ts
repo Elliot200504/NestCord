@@ -3,10 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import type { PublicUser } from '@nestcord/shared';
-
 import type { Env } from '../../config/env';
-import { type AccessTokenPayload, AuthService } from '../auth.service';
+import { type AccessTokenPayload, type RequestUser, AuthService } from '../auth.service';
 
 /**
  * Verifies the bearer access token, then confirms the session behind it still
@@ -26,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: AccessTokenPayload): Promise<PublicUser> {
+  async validate(payload: AccessTokenPayload): Promise<RequestUser> {
     return this.auth.findSessionUser(payload);
   }
 }

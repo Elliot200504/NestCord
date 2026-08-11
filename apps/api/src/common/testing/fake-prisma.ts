@@ -16,6 +16,9 @@ export interface FakeUser {
   username: string;
   email: string;
   passwordHash: string;
+  displayName: string | null;
+  bio: string | null;
+  accentColor: string | null;
   avatarUrl: string | null;
   status: PresenceStatus;
   createdAt: Date;
@@ -39,13 +42,24 @@ export class FakePrisma {
 
   readonly client = {
     user: {
-      findFirst: async ({ where }: { where: { OR: Array<Record<string, string>> } }) => {
-        const matches = (user: FakeUser) =>
-          where.OR.some((clause) =>
+      findFirst: async ({
+        where,
+      }: {
+        where: { OR?: Array<Record<string, string>>; username?: string; id?: { not: string } };
+      }) => {
+        const matchesOr = (user: FakeUser) =>
+          (where.OR ?? []).some((clause) =>
             Object.entries(clause).every(
               ([field, value]) => user[field as keyof FakeUser] === value,
             ),
           );
+
+        // The two shapes the code actually asks for: "is this taken by anyone"
+        // and "is this taken by anyone other than me".
+        const matches = (user: FakeUser) =>
+          where.OR
+            ? matchesOr(user)
+            : user.username === where.username && user.id !== where.id?.not;
 
         return [...this.users.values()].find(matches) ?? null;
       },
@@ -53,6 +67,15 @@ export class FakePrisma {
       findUnique: async ({ where }: { where: { id?: string; email?: string } }) => {
         if (where.id) return this.users.get(where.id) ?? null;
         return [...this.users.values()].find((user) => user.email === where.email) ?? null;
+      },
+
+      update: async ({ where, data }: { where: { id: string }; data: Partial<FakeUser> }) => {
+        const user = this.users.get(where.id);
+        if (!user) throw new Error(`No user ${where.id}`);
+
+        const next: FakeUser = { ...user, ...data, updatedAt: new Date() };
+        this.users.set(next.id, next);
+        return next;
       },
 
       create: async ({
@@ -65,6 +88,9 @@ export class FakePrisma {
           username: data.username,
           email: data.email,
           passwordHash: data.passwordHash,
+          displayName: null,
+          bio: null,
+          accentColor: null,
           avatarUrl: null,
           status: 'OFFLINE',
           createdAt: new Date(),
@@ -121,9 +147,27 @@ export class FakePrisma {
         return next;
       },
 
-      deleteMany: async ({ where }: { where: { id: string } }) => {
-        const existed = this.sessions.delete(where.id);
-        return { count: existed ? 1 : 0 };
+      findMany: async ({ where }: { where: { userId: string; expiresAt?: { gt: Date } } }) =>
+        [...this.sessions.values()]
+          .filter((session) => session.userId === where.userId)
+          .filter((session) => !where.expiresAt || session.expiresAt > where.expiresAt.gt)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+
+      deleteMany: async ({
+        where,
+      }: {
+        where: { id?: string | { not: string }; userId?: string };
+      }) => {
+        const doomed = [...this.sessions.values()].filter((session) => {
+          if (where.userId && session.userId !== where.userId) return false;
+          if (typeof where.id === 'string') return session.id === where.id;
+          if (where.id) return session.id !== where.id.not;
+
+          return true;
+        });
+
+        doomed.forEach((session) => this.sessions.delete(session.id));
+        return { count: doomed.length };
       },
     },
   };

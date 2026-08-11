@@ -10,8 +10,14 @@ export class PublicUserDto implements PublicUser {
   @ApiProperty({ example: 'ada' })
   username!: string;
 
+  @ApiProperty({ example: 'Ada L.', nullable: true, type: String })
+  displayName!: string | null;
+
   @ApiProperty({ nullable: true, type: String })
   avatarUrl!: string | null;
+
+  @ApiProperty({ example: '#e0234e', nullable: true, type: String })
+  accentColor!: string | null;
 
   @ApiProperty({ enum: ['ONLINE', 'IDLE', 'DO_NOT_DISTURB', 'OFFLINE'] })
   status!: PresenceStatus;

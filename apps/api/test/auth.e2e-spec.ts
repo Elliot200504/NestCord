@@ -95,7 +95,9 @@ describe('Auth routes', () => {
     expect(response.body.user).toEqual({
       id: expect.any(String),
       username: 'ada',
+      displayName: null,
       avatarUrl: null,
+      accentColor: null,
       status: 'OFFLINE',
     });
   });

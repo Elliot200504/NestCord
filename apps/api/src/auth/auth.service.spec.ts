@@ -56,7 +56,9 @@ describe('AuthService', () => {
       expect(issued.session.user).toEqual({
         id: expect.any(String),
         username: 'ada',
+        displayName: null,
         avatarUrl: null,
+        accentColor: null,
         status: 'OFFLINE',
       });
     });
@@ -185,13 +187,13 @@ describe('AuthService', () => {
       ).rejects.toMatchObject({ status: 401 });
     });
 
-    it('returns the user for a live session', async () => {
+    it('returns the user, tagged with the session the token came from', async () => {
       const issued = await auth.register(CREDENTIALS);
       const sessionId = issued.refreshToken.split('.')[0] ?? '';
 
       await expect(
         auth.findSessionUser({ sub: issued.session.user.id, sid: sessionId }),
-      ).resolves.toEqual(issued.session.user);
+      ).resolves.toEqual({ ...issued.session.user, sessionId });
     });
   });
 
