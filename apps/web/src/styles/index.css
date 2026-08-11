@@ -2,6 +2,8 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+/* The `soft` cut carries Fraunces' SOFT axis as well as weight — see below. */
+@import '@fontsource-variable/fraunces/soft.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -9,10 +11,11 @@
  * One palette, used everywhere — the landing page, the login page and the chat
  * shell all draw from these ramps, so the app looks like one product.
  *
- * `surface-*` are the near-blacks the chat shell layers itself out of; they line
- * up with the semantic variables further down (surface-900 is --background,
- * surface-800 is --card, surface-600 is --accent) so chrome and content agree.
- * Brand red is `nest-*`, reachable semantically as --primary.
+ * The neutrals are deliberately *warm* near-blacks: every one of them carries a
+ * little of the brand red, so the app reads like a lamp-lit room rather than a
+ * cold dashboard. They line up with the semantic variables further down
+ * (surface-900 is --background, surface-800 is --card, surface-600 is --accent)
+ * so chrome and content agree. Brand red is `nest-*`, semantically --primary.
  */
 @theme {
   /* Brand red, from the NestJS palette (#e0234e). */
@@ -21,21 +24,24 @@
   --color-nest-600: #b81b3f;
   --color-nest-700: #8f1531;
 
-  /* Near-blacks, darkest to lightest. The chat shell layers with these. */
-  --color-surface-900: #08080a;
-  --color-surface-800: #0e0e11;
-  --color-surface-700: #131317;
-  --color-surface-600: #1f1f25;
+  /* Warm near-blacks, darkest to lightest. The chat shell layers with these. */
+  --color-surface-900: #0c0908;
+  --color-surface-800: #14100f;
+  --color-surface-700: #1a1514;
+  --color-surface-600: #29201f;
 
   /* Text, brightest to dimmest. Matches --foreground / --muted-foreground. */
-  --color-content-100: #fafafa;
-  --color-content-300: #a1a1aa;
-  --color-content-500: #71717a;
+  --color-content-100: #f6f1ef;
+  --color-content-300: #b3a7a3;
+  --color-content-500: #82746f;
 
   /* Presence stays green/amber/red — status, not brand. */
   --color-online: #23a55a;
   --color-idle: #f0b232;
   --color-dnd: #f23f43;
+
+  /* Fraunces for anything that speaks; Geist for anything that labels. */
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
 }
 
 @layer base {
@@ -50,12 +56,32 @@
     @apply bg-background text-foreground;
   }
 
+  /*
+   * A whisper of paper grain over everything. Flat near-black looks synthetic;
+   * a little tooth in the surface is what makes it feel like a made thing.
+   */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
 
   html {
     @apply font-sans;
+  }
+
+  /* Fraunces has a `SOFT` axis. Turned up, it rounds off every stem end — the
+     difference between a headline that looks printed and one that looks typed. */
+  .font-display {
+    font-variation-settings: 'SOFT' 65;
   }
 
   ::-webkit-scrollbar {
@@ -76,7 +102,7 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --font-sans: 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -118,73 +144,75 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Light theme. The app ships dark (html.dark), so this is the fallback. */
+/* Light theme — warm paper, not white. The app ships dark, so this is fallback. */
 :root {
-  --background: #ffffff;
-  --foreground: #08080a;
+  --background: #fbf7f4;
+  --foreground: #0c0908;
   --card: #ffffff;
-  --card-foreground: #08080a;
+  --card-foreground: #0c0908;
   --popover: #ffffff;
-  --popover-foreground: #08080a;
+  --popover-foreground: #0c0908;
   --primary: #e0234e;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #62626b;
+  --secondary: #f3ece8;
+  --secondary-foreground: #1d1614;
+  --muted: #f3ece8;
+  --muted-foreground: #6b5b56;
   --accent: #fdecf0;
   --accent-foreground: #8f1531;
   --destructive: #dc2626;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
+  --border: #e6dcd6;
+  --input: #e6dcd6;
   --ring: #e0234e;
   --chart-1: #e0234e;
   --chart-2: #ff4d6d;
   --chart-3: #b81b3f;
   --chart-4: #8f1531;
-  --chart-5: #62626b;
-  --radius: 0.625rem;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #08080a;
+  --chart-5: #6b5b56;
+  /* Generous corners. Nothing in a home has a 4px radius. */
+  --radius: 0.875rem;
+  --sidebar: #f6f1ed;
+  --sidebar-foreground: #0c0908;
   --sidebar-primary: #e0234e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #e4e4e7;
+  --sidebar-accent: #f3ece8;
+  --sidebar-accent-foreground: #1d1614;
+  --sidebar-border: #e6dcd6;
   --sidebar-ring: #e0234e;
 }
 
-/* Black and red — the default look. */
+/* Warm black and red — the default look. */
 .dark {
-  --background: #08080a;
-  --foreground: #fafafa;
-  --card: #0e0e11;
-  --card-foreground: #fafafa;
-  --popover: #16161a;
-  --popover-foreground: #fafafa;
+  --background: #0c0908;
+  --foreground: #f6f1ef;
+  --card: #14100f;
+  --card-foreground: #f6f1ef;
+  --popover: #1a1514;
+  --popover-foreground: #f6f1ef;
   --primary: #e0234e;
   --primary-foreground: #ffffff;
-  --secondary: #16161a;
-  --secondary-foreground: #fafafa;
-  --muted: #16161a;
-  --muted-foreground: #a1a1aa;
-  --accent: #1f1f25;
-  --accent-foreground: #fafafa;
+  --secondary: #1a1514;
+  --secondary-foreground: #f6f1ef;
+  --muted: #1a1514;
+  --muted-foreground: #b3a7a3;
+  --accent: #29201f;
+  --accent-foreground: #f6f1ef;
   --destructive: #f23f43;
-  --border: rgb(255 255 255 / 8%);
-  --input: rgb(255 255 255 / 12%);
+  /* Warm-tinted hairlines. Pure white alpha reads as a spreadsheet grid. */
+  --border: rgb(255 222 210 / 9%);
+  --input: rgb(255 222 210 / 13%);
   --ring: #e0234e;
   --chart-1: #e0234e;
   --chart-2: #ff4d6d;
   --chart-3: #b81b3f;
   --chart-4: #ff7d97;
   --chart-5: #8f1531;
-  --sidebar: #0e0e11;
-  --sidebar-foreground: #fafafa;
+  --sidebar: #14100f;
+  --sidebar-foreground: #f6f1ef;
   --sidebar-primary: #e0234e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1f1f25;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-accent: #29201f;
+  --sidebar-accent-foreground: #f6f1ef;
+  --sidebar-border: rgb(255 222 210 / 9%);
   --sidebar-ring: #e0234e;
 }
