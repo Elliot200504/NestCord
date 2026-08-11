@@ -41,10 +41,10 @@ export const placeholderServers: PlaceholderServer[] = [
 ];
 
 export const placeholderChannels: PlaceholderChannel[] = [
-  { id: 'general', name: 'general', type: 'TEXT', category: 'Text Channels' },
-  { id: 'random', name: 'random', type: 'TEXT', category: 'Text Channels' },
-  { id: 'dev', name: 'dev', type: 'TEXT', category: 'Text Channels' },
-  { id: 'general-voice', name: 'General Voice', type: 'VOICE', category: 'Voice Channels' },
+  { id: 'general', name: 'general', type: 'TEXT', category: 'Conversations' },
+  { id: 'random', name: 'random', type: 'TEXT', category: 'Conversations' },
+  { id: 'dev', name: 'dev', type: 'TEXT', category: 'Conversations' },
+  { id: 'general-voice', name: 'Around the table', type: 'VOICE', category: 'Voice' },
 ];
 
 export const placeholderMembers: PlaceholderMember[] = [
@@ -56,23 +56,23 @@ export const placeholderMembers: PlaceholderMember[] = [
 ];
 
 export const placeholderMessages: PlaceholderMessage[] = [
-  { id: '1', author: 'ada', content: 'Morning everyone 👋', timestamp: '09:02' },
+  { id: '1', author: 'ada', content: 'morning, kettle is on ☕', timestamp: '09:02' },
   {
     id: '2',
     author: 'grace',
-    content: 'Has anyone looked at the new deploy?',
+    content: 'did anyone actually look at the deploy last night',
     timestamp: '09:04',
   },
   {
     id: '3',
     author: 'grace',
-    content: 'The health check is green on my machine.',
+    content: 'health check is green on my machine at least',
     timestamp: '09:04',
   },
   {
     id: '4',
     author: 'linus',
-    content: 'I pushed a fix for the login redirect.',
+    content: 'pushed a fix for the login redirect before bed, should be fine now',
     timestamp: '09:11',
   },
 ];

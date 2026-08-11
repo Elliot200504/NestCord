@@ -2,10 +2,11 @@ import { Bird } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
+/* Round, not rounded-rectangular — a nest has no corners. */
 const SIZES = {
-  sm: { tile: 'size-6 rounded-md', icon: 'size-4' },
-  md: { tile: 'size-8 rounded-lg', icon: 'size-5' },
-  lg: { tile: 'size-12 rounded-2xl', icon: 'size-7' },
+  sm: { tile: 'size-6', icon: 'size-3.5' },
+  md: { tile: 'size-8', icon: 'size-4.5' },
+  lg: { tile: 'size-12', icon: 'size-6' },
 } as const;
 
 interface BrandMarkProps {
@@ -21,7 +22,7 @@ export function BrandMark({ size = 'md', className }: BrandMarkProps) {
     <span
       aria-hidden
       className={cn(
-        'bg-primary text-primary-foreground grid shrink-0 place-items-center',
+        'bg-primary text-primary-foreground grid shrink-0 place-items-center rounded-full',
         tile,
         className,
       )}
