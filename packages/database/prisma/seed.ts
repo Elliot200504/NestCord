@@ -55,6 +55,10 @@ const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', 'db', 'postgres'];
 /**
  * The seed deletes every row in every table, so refuse to run against anything
  * that is not an obviously local development database.
+ *
+ * NestCord is a toy learning project that only ever runs locally, so this guard
+ * is not strictly needed here — it exists to demonstrate the pattern. A seed
+ * that can reach a real database should always have one.
  */
 function assertLocalDatabase(url: string): void {
   if (process.env.NODE_ENV === 'production') {
