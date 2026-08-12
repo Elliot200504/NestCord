@@ -6,7 +6,7 @@ import { create } from 'zustand';
 interface UiState {
   memberListOpen: boolean;
   channelSidebarOpen: boolean;
-  activeModal: 'create-server' | 'create-channel' | null;
+  activeModal: 'create-server' | 'create-channel' | 'invite' | 'server-settings' | null;
   toggleMemberList: () => void;
   toggleChannelSidebar: () => void;
   openModal: (modal: UiState['activeModal']) => void;

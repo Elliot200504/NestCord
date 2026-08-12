@@ -17,6 +17,12 @@ export default defineConfig({
     // without this the browser gets raw CJS and value imports have no named
     // exports. Type-only imports are erased and were never affected.
     include: ['@nestcord/shared'],
+    // Re-bundle on every dev start. Vite keys the cache on package.json and the
+    // lockfile, neither of which changes when shared's dist is rebuilt — so a
+    // server started before a new export was added serves a pre-bundle without
+    // it, and the import reads as undefined at runtime rather than failing loudly.
+    // `pnpm dev` builds shared first, so this only ever costs a second.
+    force: true,
   },
   server: {
     port: 5173,

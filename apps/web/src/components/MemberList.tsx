@@ -1,46 +1,100 @@
-import { placeholderMembers } from '../features/placeholder-data';
+import type { ServerMember, ServerRole } from '@nestcord/shared';
+
+import { useActiveServerId } from '@/features/servers/useActiveServer';
+import { useMembers, useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from './UserAvatar';
 
 export function MemberList() {
-  const online = placeholderMembers.filter((member) => member.status !== 'OFFLINE');
-  const offline = placeholderMembers.filter((member) => member.status === 'OFFLINE');
+  const serverId = useActiveServerId();
+
+  const { data: members, isPending, isError } = useMembers(serverId);
+  const { data: server } = useServer(serverId);
+
+  if (serverId === null) return null;
+
+  const online = members?.filter((member) => member.user.status !== 'OFFLINE') ?? [];
+  const offline = members?.filter((member) => member.user.status === 'OFFLINE') ?? [];
 
   return (
     <aside
       aria-label="Members"
       className="bg-surface-800 border-border hidden w-60 shrink-0 overflow-y-auto border-l px-2 py-4 lg:block"
     >
-      {[
-        { label: `Here now — ${online.length}`, members: online },
-        { label: `Away — ${offline.length}`, members: offline },
-      ].map((group) => (
-        <section key={group.label} className="mb-5">
-          <h2 className="text-content-500 px-2.5 pb-1.5 text-xs font-medium">{group.label}</h2>
-          <ul>
-            {group.members.map((member) => (
-              <li key={member.id}>
-                <button
-                  type="button"
-                  className={cn(
-                    'hover:bg-surface-700 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-opacity transition-colors',
-                    // Offline members stay listed but stop competing for attention.
-                    member.status === 'OFFLINE' && 'opacity-45 hover:opacity-100',
-                  )}
-                >
-                  <UserAvatar user={member} size="md" status={member.status} />
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {member.displayName ?? member.username}
-                  </span>
-                  {member.role !== 'Member' && (
-                    <span className="text-content-500 text-xs">{member.role}</span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {isPending && (
+        <ul aria-label="Loading members" className="space-y-2 px-2.5">
+          {[0, 1, 2, 3, 4].map((slot) => (
+            <li key={slot} className="flex items-center gap-2.5">
+              <span className="bg-surface-700/60 size-8 animate-pulse rounded-full" />
+              <span className="bg-surface-700/60 h-3 flex-1 animate-pulse rounded" />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {isError && (
+        <p role="alert" className="text-destructive px-2.5 text-sm">
+          Could not load the member list.
+        </p>
+      )}
+
+      {members &&
+        [
+          { label: `Here now — ${online.length}`, members: online },
+          { label: `Away — ${offline.length}`, members: offline },
+        ].map((group) => (
+          <section key={group.label} className="mb-5">
+            <h2 className="text-content-500 px-2.5 pb-1.5 text-xs font-medium">{group.label}</h2>
+            <ul>
+              {group.members.map((member) => (
+                <li key={member.user.id}>
+                  <MemberRow member={member} roles={server?.roles ?? []} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
     </aside>
+  );
+}
+
+function MemberRow({ member, roles }: { member: ServerMember; roles: ServerRole[] }) {
+  const topRole = highestRole(member, roles);
+  const name = member.nickname ?? member.user.displayName ?? member.user.username;
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        'hover:bg-surface-700 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors transition-opacity',
+        // Offline members stay listed but stop competing for attention.
+        member.user.status === 'OFFLINE' && 'opacity-45 hover:opacity-100',
+      )}
+    >
+      <UserAvatar user={member.user} size="md" status={member.user.status} />
+      <span
+        className="min-w-0 flex-1 truncate text-sm"
+        // A role colour is the member's colour — that is what makes the list readable.
+        style={topRole?.color ? { color: topRole.color } : undefined}
+      >
+        {name}
+      </span>
+      {topRole && !topRole.isDefault && (
+        <span className="text-content-500 text-xs">{topRole.name}</span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * The highest-positioned role the member actually holds. `@everyone` is the floor,
+ * so it only wins when there is nothing else.
+ */
+function highestRole(member: ServerMember, roles: ServerRole[]): ServerRole | null {
+  const held = roles.filter((role) => member.roleIds.includes(role.id));
+
+  return held.reduce<ServerRole | null>(
+    (highest, role) => (highest === null || role.position > highest.position ? role : highest),
+    null,
   );
 }
