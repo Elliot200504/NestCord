@@ -35,7 +35,9 @@ export function MessageReply({
       disabled={!onJump}
       aria-label={`Go to ${name}’s message`}
       className={cn(
-        'border-border mb-1 block w-full border-l-2 pl-2.5 text-left text-xs',
+        // `block` without `w-full`: with a left margin, a full width would overflow
+        // the container and put a horizontal scrollbar under the channel.
+        'border-border mb-1 block border-l-2 pl-2.5 text-left text-xs',
         onJump && 'hover:border-primary/60 cursor-pointer',
         className,
       )}

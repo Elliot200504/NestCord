@@ -34,7 +34,7 @@ export function MessageActions({
   return (
     <div
       className={cn(
-        'bg-surface-700 border-border absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border px-1 py-0.5 opacity-0 shadow-sm transition-opacity',
+        'bg-surface-700 border-border absolute -top-4 right-0 flex items-center gap-0.5 rounded-lg border px-1 py-0.5 opacity-0 shadow-sm transition-opacity',
         'group-hover/msg:opacity-100 focus-within:opacity-100',
         revealOnBlockHover && 'group-hover/block:opacity-100',
       )}

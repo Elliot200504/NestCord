@@ -84,8 +84,10 @@ export function MessageRow({
       // Addressable so a reply quote can scroll to it.
       id={messageAnchorId(message.id)}
       className={cn(
-        'group/msg relative scroll-mt-16 rounded-lg transition-shadow',
-        isFlashing && 'ring-primary/60 ring-2',
+        // The negative margin and matching padding are always on, so the tint has
+        // room to breathe without the text shifting when it appears.
+        'group/msg relative -mx-2 scroll-mt-16 rounded-lg px-2 transition-colors duration-500',
+        isFlashing && 'bg-primary/15',
       )}
     >
       {!isEditing && (
