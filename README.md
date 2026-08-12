@@ -94,6 +94,36 @@ categories **you** can see, with your own resolved permissions for each one.
 
 `/app/:serverId` with no channel redirects to the first text channel you can see.
 
+## Messages
+
+`GET /api/servers/:serverId/channels/:channelId/messages` returns one page of history, newest first.
+
+- **Pagination** is cursor-based: pass the previous response's `nextCursor` as `before`. A page is 50
+  messages and never a whole channel. Scrolling up loads older pages; a `null` cursor means you have
+  reached the start.
+- **Sending** needs `SEND_MESSAGES` in that channel. A message needs text or an attachment — an empty
+  one is refused. Your message appears immediately and is replaced by the stored row when the server
+  answers, or removed again if it refuses.
+- **Editing** is the author's alone. `MANAGE_MESSAGES` can delete anyone's message but can never
+  rewrite one, on the API as well as in the UI. An edited message is marked as such.
+- **Replies** quote one line of what they answer. Deleting the quoted message leaves the reply in
+  place rather than taking the conversation with it.
+- **Reactions** are one row per person per emoji, returned grouped with a count and whether you are
+  one of them. Reacting twice with the same emoji changes nothing, and you can only ever take back
+  your own.
+- **Markdown** — `**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``, ` ```code blocks``` `,
+  `> blockquotes` and `||spoilers||`. Content is stored exactly as typed and rendered as elements, so
+  a message containing HTML is text and stays text.
+- **Mentions** — `@username`, `@everyone` and `#channel`. They are stored as written; a mention that
+  matches nobody in the server renders as plain text rather than pretending to have notified someone.
+- **Attachments** go up first (`POST .../attachments`, needs `ATTACH_FILES`) and the returned id is
+  sent with the message. Images and PDFs up to 8 MB, decided by the file's own leading bytes rather
+  than its name — a renamed script does not get through. Files live in `apps/api/uploads/attachments`
+  (gitignored), can only be attached by their uploader and only once, and are deleted from disk with
+  the message that carried them.
+
+Realtime delivery arrives with the gateway; for now a channel shows what it had when you opened it.
+
 ## Commands
 
 | Command           | Purpose                      |
