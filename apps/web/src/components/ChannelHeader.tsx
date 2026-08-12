@@ -1,5 +1,6 @@
 import { Hash, Users } from 'lucide-react';
 
+import { NotificationBell } from '../features/notifications/NotificationBell';
 import { useUiStore } from '../stores/ui-store';
 import { ApiStatusBadge } from './ApiStatusBadge';
 
@@ -25,6 +26,7 @@ export function ChannelHeader({ channelName, topic }: ChannelHeaderProps) {
 
       <div className="ml-auto flex items-center gap-3">
         <ApiStatusBadge />
+        <NotificationBell />
         <button
           type="button"
           onClick={toggleMemberList}
