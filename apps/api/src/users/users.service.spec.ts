@@ -7,6 +7,8 @@ import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { FakePrisma } from '../common/testing/fake-prisma';
 import { AvatarStorage } from './avatar.storage';
+import { PresenceService } from '../gateway/presence.service';
+import { RealtimeService } from '../gateway/realtime.service';
 import { UsersService } from './users.service';
 
 const ENV: Record<string, string> = {
@@ -53,6 +55,10 @@ async function buildHarness(): Promise<Harness> {
       JwtService,
       { provide: PrismaService, useValue: prisma.asPrismaService() },
       { provide: AvatarStorage, useValue: avatars },
+      // Presence is in-memory and real here; the broadcast is recorded so a status
+      // change can be checked without a socket server.
+      PresenceService,
+      { provide: RealtimeService, useValue: { announcePresence: async () => {} } },
       { provide: ConfigService, useValue: { get: (key: string) => ENV[key] } },
     ],
   }).compile();

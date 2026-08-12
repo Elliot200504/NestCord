@@ -11,8 +11,10 @@ import { ChannelsModule } from './channels/channels.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
+import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
 import { MessagesModule } from './messages/messages.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { RolesModule } from './roles/roles.module';
 import { ServersModule } from './servers/servers.module';
 import { UsersModule } from './users/users.module';
@@ -35,6 +37,8 @@ import { UsersModule } from './users/users.module';
     ChannelsModule,
     MessagesModule,
     AttachmentsModule,
+    NotificationsModule,
+    GatewayModule,
     HealthModule,
   ],
   // Rate limiting runs first, then authentication. Authentication is global so a

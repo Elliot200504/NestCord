@@ -6,6 +6,7 @@ import { useChannel } from '../features/channels/use-channels';
 import { useCurrentUser } from '../features/auth/use-auth';
 import { MessageComposer } from '../features/messages/MessageComposer';
 import { MessageList } from '../features/messages/MessageList';
+import { TypingIndicator } from '../features/messages/TypingIndicator';
 import { useActiveServerId } from '../features/servers/useActiveServer';
 import { useUiStore } from '../stores/ui-store';
 import { appRoute } from './app';
@@ -30,6 +31,7 @@ function ChannelPage() {
         {serverId && channel && user ? (
           <>
             <MessageList serverId={serverId} channel={channel} viewerId={user.id} />
+            <TypingIndicator channelId={channel.id} viewerId={user.id} />
             <MessageComposer serverId={serverId} channel={channel} author={user} />
           </>
         ) : (

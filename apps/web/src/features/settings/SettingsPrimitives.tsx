@@ -190,3 +190,56 @@ export function ChoiceGroup<TValue extends string>({
     </fieldset>
   );
 }
+
+/**
+ * A row of colour swatches with a "None" escape hatch.
+ *
+ * Six choices rather than a colour input: a fixed palette keeps names readable
+ * against the app's near-black surfaces, which a free picker does not — and the API
+ * takes the same six-digit hex either way.
+ */
+export function ColorPicker({
+  label,
+  value,
+  colors,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  colors: readonly string[];
+  onChange: (color: string | null) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="text-content-300 mb-2 text-sm font-medium">{label}</legend>
+      <div className="flex flex-wrap items-center gap-2">
+        {colors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            aria-label={`${label} ${color}`}
+            aria-pressed={value === color}
+            onClick={() => onChange(color)}
+            style={{ backgroundColor: color }}
+            className={cn(
+              'size-8 rounded-full transition-transform hover:scale-110',
+              value === color && 'ring-content-100 ring-2 ring-offset-2 ring-offset-transparent',
+            )}
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          aria-pressed={value === null}
+          className={cn(
+            'border-border text-content-300 hover:text-content-100 rounded-full border px-3 py-1.5 text-xs transition-colors',
+            value === null && 'border-content-300 text-content-100',
+          )}
+        >
+          None
+        </button>
+      </div>
+    </fieldset>
+  );
+}

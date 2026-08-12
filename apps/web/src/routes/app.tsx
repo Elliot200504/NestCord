@@ -6,23 +6,26 @@ import { requireSession } from '../features/auth/require-auth';
 import { CreateServerDialog } from '../features/servers/CreateServerDialog';
 import { InviteDialog } from '../features/servers/InviteDialog';
 import { ServerSettingsDialog } from '../features/servers/ServerSettingsDialog';
+import { RealtimeProvider } from '../websocket/RealtimeProvider';
 import { rootRoute } from './root';
 
 /** The four-column shell: servers, channels, content, members. */
 function AppLayout() {
   return (
-    <div className="flex h-screen">
-      <ServerRail />
-      <ChannelSidebar />
-      <main className="bg-surface-700 flex min-w-0 flex-1">
-        <Outlet />
-      </main>
+    <RealtimeProvider>
+      <div className="flex h-screen">
+        <ServerRail />
+        <ChannelSidebar />
+        <main className="bg-surface-700 flex min-w-0 flex-1">
+          <Outlet />
+        </main>
 
-      {/* Mounted once for the whole shell; each one opens off the UI store. */}
-      <CreateServerDialog />
-      <InviteDialog />
-      <ServerSettingsDialog />
-    </div>
+        {/* Mounted once for the whole shell; each one opens off the UI store. */}
+        <CreateServerDialog />
+        <InviteDialog />
+        <ServerSettingsDialog />
+      </div>
+    </RealtimeProvider>
   );
 }
 

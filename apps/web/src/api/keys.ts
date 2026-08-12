@@ -17,6 +17,7 @@ export const keys = {
   invites: (serverId: string) => ['servers', serverId, 'invites'] as const,
   invitePreview: (code: string) => ['invites', code] as const,
   messages: (channelId: string) => ['messages', channelId] as const,
+  notifications: ['notifications'] as const,
   friends: ['friends'] as const,
   conversations: ['conversations'] as const,
 } as const;

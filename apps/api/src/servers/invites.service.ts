@@ -19,7 +19,9 @@ import {
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { RealtimeService } from '../gateway/realtime.service';
 import type { CreateInviteDto } from './dto/create-invite.dto';
+import { MembersService } from './members.service';
 import { ServersService } from './servers.service';
 
 const INVITE_SELECT = {
@@ -40,6 +42,8 @@ export class InvitesService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly servers: ServersService,
+    private readonly members: MembersService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /** Invites that could still be used, newest first. */
@@ -151,6 +155,11 @@ export class InvitesService {
     });
 
     const member = await this.permissions.requireMembership(serverId, userId);
+
+    // The member list is live for everyone already in the server.
+    const joined = await this.members.findOne(serverId, userId);
+
+    if (joined) this.realtime.memberJoined({ serverId, member: joined });
 
     return this.servers.findOne(serverId, member.permissions);
   }

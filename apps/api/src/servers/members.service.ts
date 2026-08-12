@@ -11,6 +11,7 @@ import { PUBLIC_USER_SELECT, toPublicUser } from '../auth/public-user';
 import { outranksMember, type MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { RealtimeService } from '../gateway/realtime.service';
 import type { UpdateMemberDto } from './dto/update-member.dto';
 
 const MEMBER_SELECT = {
@@ -25,6 +26,7 @@ export class MembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /**
@@ -39,6 +41,16 @@ export class MembersService {
     });
 
     return members.map(toServerMember);
+  }
+
+  /** One member, in the same shape the list returns. Null when they are not one. */
+  async findOne(serverId: string, userId: string): Promise<ServerMember | null> {
+    const member = await this.prisma.client.serverMember.findUnique({
+      where: { serverId_userId: { serverId, userId } },
+      select: MEMBER_SELECT,
+    });
+
+    return member ? toServerMember(member) : null;
   }
 
   /**
@@ -91,6 +103,8 @@ export class MembersService {
     }
 
     await this.prisma.client.serverMember.delete({ where: { id: target.memberId } });
+
+    this.realtime.memberLeft({ serverId: actor.serverId, userId: targetUserId });
   }
 }
 

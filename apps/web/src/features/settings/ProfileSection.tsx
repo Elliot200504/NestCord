@@ -12,8 +12,7 @@ import {
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { useRemoveAvatar, useUpdateProfile, useUploadAvatar } from '@/features/users/use-users';
-import { cn } from '@/lib/utils';
-import { FormStatus, SettingsSection, TextField } from './SettingsPrimitives';
+import { ColorPicker, FormStatus, SettingsSection, TextField } from './SettingsPrimitives';
 
 /** The palette offered in the picker. Any hex is accepted; these are the shortcuts. */
 const ACCENTS = ['#e0234e', '#ff4d6d', '#f0b232', '#23a55a', '#4c8bf5', '#a855f7'] as const;
@@ -188,38 +187,12 @@ function IdentitySettings({ user }: { user: CurrentUser }) {
           placeholder="A line or two about you."
         />
 
-        <fieldset>
-          <legend className="text-content-300 mb-2 text-sm font-medium">Accent colour</legend>
-          <div className="flex flex-wrap items-center gap-2">
-            {ACCENTS.map((colour) => (
-              <button
-                key={colour}
-                type="button"
-                aria-label={`Accent ${colour}`}
-                aria-pressed={accentColor === colour}
-                onClick={() => setAccentColor(colour)}
-                style={{ backgroundColor: colour }}
-                className={cn(
-                  'size-8 rounded-full transition-transform hover:scale-110',
-                  accentColor === colour &&
-                    'ring-content-100 ring-2 ring-offset-2 ring-offset-transparent',
-                )}
-              />
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setAccentColor(null)}
-              aria-pressed={accentColor === null}
-              className={cn(
-                'border-border text-content-300 hover:text-content-100 rounded-full border px-3 py-1.5 text-xs transition-colors',
-                accentColor === null && 'border-content-300 text-content-100',
-              )}
-            >
-              None
-            </button>
-          </div>
-        </fieldset>
+        <ColorPicker
+          label="Accent colour"
+          value={accentColor}
+          colors={ACCENTS}
+          onChange={setAccentColor}
+        />
 
         <div className="flex items-center gap-4">
           <button

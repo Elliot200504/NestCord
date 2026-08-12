@@ -10,13 +10,16 @@ import {
 } from '@nestcord/shared';
 
 import { Button } from '@/components/ui/button';
-import { FormStatus, TextField } from '@/features/settings/SettingsPrimitives';
+import { ColorPicker, FormStatus, TextField } from '@/features/settings/SettingsPrimitives';
 import { PERMISSION_LABELS } from '@/lib/permission-labels';
 import { cn } from '@/lib/utils';
 import { useCreateRole, useDeleteRole, useRoles, useUpdateRole } from './use-servers';
 
+/** The same palette the profile accent uses, so the app stays one palette. */
+const ROLE_COLORS = ['#e0234e', '#ff4d6d', '#f0b232', '#23a55a', '#4c8bf5', '#a855f7'] as const;
+
 /**
- * Roles and their permissions.
+ * Roles, their colour and their permissions.
  *
  * `ownPermissions` decides what this editor offers: a flag you do not hold is shown
  * disabled, because the API will refuse to grant it. That is a courtesy to the user,
@@ -108,11 +111,12 @@ function RoleForm({
   ownPermissions: number;
 }) {
   const [name, setName] = useState(role.name);
+  const [color, setColor] = useState(role.color);
   const [permissions, setPermissions] = useState(role.permissions);
   const update = useUpdateRole(serverId);
   const remove = useDeleteRole(serverId);
 
-  const isDirty = name !== role.name || permissions !== role.permissions;
+  const isDirty = name !== role.name || color !== role.color || permissions !== role.permissions;
 
   function toggle(flag: number) {
     setPermissions((current) => (current & flag ? current & ~flag : current | flag));
@@ -127,6 +131,13 @@ function RoleForm({
         maxLength={ROLE_NAME_MAX_LENGTH}
         // @everyone is the one role whose name is structural rather than chosen.
         disabled={role.isDefault || update.isPending}
+      />
+
+      <ColorPicker
+        label="Role colour"
+        value={color}
+        colors={ROLE_COLORS}
+        onChange={setColor}
       />
 
       <fieldset>
@@ -187,7 +198,7 @@ function RoleForm({
             type="button"
             size="lg"
             disabled={!isDirty || update.isPending}
-            onClick={() => update.mutate({ roleId: role.id, name, permissions })}
+            onClick={() => update.mutate({ roleId: role.id, name, color, permissions })}
           >
             Save role
           </Button>
