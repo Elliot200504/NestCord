@@ -49,12 +49,9 @@ export function MessageGroupBlock({
         isCompact ? 'py-1' : 'py-2',
       )}
     >
-      <UserAvatar
-        user={group.author}
-        size={isCompact ? 'md' : 'lg'}
-        status={group.author.status}
-        className="mt-0.5 shrink-0"
-      />
+      {/* No presence dot here: it belongs where you go to see who is around, not
+          repeated down every message in the channel. */}
+      <UserAvatar user={group.author} size={isCompact ? 'md' : 'lg'} className="mt-0.5 shrink-0" />
 
       <div className="min-w-0 flex-1">
         <p className="flex items-baseline gap-2">
