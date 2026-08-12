@@ -1,6 +1,7 @@
 import { placeholderMessages, type PlaceholderMessage } from '../features/placeholder-data';
-import { avatarTint } from '@/lib/avatar-tint';
+import { useAppearanceStore } from '@/stores/appearance-store';
 import { BrandMark } from './BrandMark';
+import { UserAvatar } from './UserAvatar';
 import { cn } from '@/lib/utils';
 
 interface MessageGroup {
@@ -27,6 +28,7 @@ function groupMessages(messages: PlaceholderMessage[]): MessageGroup[] {
 
 export function MessageList() {
   const groups = groupMessages(placeholderMessages);
+  const isCompact = useAppearanceStore((state) => state.density) === 'compact';
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-5">
@@ -44,23 +46,34 @@ export function MessageList() {
         {groups.map((group) => (
           <li
             key={`${group.author}-${group.timestamp}`}
-            className="hover:bg-surface-600/35 flex gap-3 rounded-xl px-3 py-2 transition-colors"
+            className={cn(
+              'hover:bg-surface-600/35 flex gap-3 rounded-xl px-3 transition-colors',
+              isCompact ? 'py-1' : 'py-2',
+            )}
           >
-            <div
-              className={cn(
-                'mt-0.5 grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold uppercase',
-                avatarTint(group.author),
-              )}
-            >
-              {group.author.slice(0, 2)}
-            </div>
+            <UserAvatar
+              user={{
+                username: group.author,
+                displayName: null,
+                avatarUrl: null,
+                accentColor: null,
+              }}
+              size={isCompact ? 'md' : 'lg'}
+              className="mt-0.5"
+            />
             <div className="min-w-0 flex-1">
               <p className="flex items-baseline gap-2">
                 <span className="font-medium">{group.author}</span>
                 <time className="text-content-500 text-xs">{group.timestamp}</time>
               </p>
               {group.messages.map((message) => (
-                <p key={message.id} className="text-content-100 leading-relaxed break-words">
+                <p
+                  key={message.id}
+                  className={cn(
+                    'text-content-100 break-words',
+                    isCompact ? 'leading-snug' : 'leading-relaxed',
+                  )}
+                >
                   {message.content}
                 </p>
               ))}

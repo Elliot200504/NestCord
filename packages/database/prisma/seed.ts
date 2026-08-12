@@ -24,17 +24,21 @@ const TEST_ACCOUNT = {
   password: 'password123',
 };
 
-const USERNAMES = [
-  'ada',
-  'grace',
-  'linus',
-  'margaret',
-  'dennis',
-  'barbara',
-  'ken',
-  'radia',
-  'alan',
+/** Enough of a profile that the profile card and member list have something to show. */
+const PEOPLE = [
+  { username: 'ada', displayName: 'Ada', bio: 'Writing the notes nobody asked for.' },
+  { username: 'grace', displayName: 'Grace H.', bio: 'Debugs by reading, not by printing.' },
+  { username: 'linus', displayName: null, bio: 'Ships on Fridays. Sorry.' },
+  { username: 'margaret', displayName: 'Margaret', bio: null },
+  { username: 'dennis', displayName: null, bio: null },
+  { username: 'barbara', displayName: 'Barb', bio: 'Long walks, short functions.' },
+  { username: 'ken', displayName: null, bio: 'Tea, then opinions.' },
+  { username: 'radia', displayName: 'Radia', bio: 'Somewhere between two routers.' },
+  { username: 'alan', displayName: null, bio: null },
 ] as const;
+
+/** Warm tones that sit comfortably against the app's near-black surfaces. */
+const ACCENTS = ['#e0234e', '#f0b232', '#23a55a', '#ff7d97', '#8f1531'] as const;
 
 const SAMPLE_MESSAGES = [
   'Morning everyone 👋',
@@ -122,17 +126,23 @@ async function main(): Promise<void> {
       username: TEST_ACCOUNT.username,
       email: TEST_ACCOUNT.email,
       passwordHash,
+      displayName: 'Test User',
+      bio: 'The account you develop against.',
+      accentColor: pick(ACCENTS, 0),
       status: 'ONLINE',
     },
   });
 
   const others = await Promise.all(
-    USERNAMES.map((username, index) =>
+    PEOPLE.map((person, index) =>
       prisma.user.create({
         data: {
-          username,
-          email: `${username}@nestcord.local`,
+          username: person.username,
+          email: `${person.username}@nestcord.local`,
           passwordHash,
+          displayName: person.displayName,
+          bio: person.bio,
+          accentColor: index % 2 === 0 ? pick(ACCENTS, index) : null,
           status: index % 3 === 0 ? 'ONLINE' : index % 3 === 1 ? 'IDLE' : 'OFFLINE',
         },
       }),

@@ -27,6 +27,12 @@ export default defineConfig({
         target: process.env.VITE_API_URL ?? 'http://localhost:3000',
         changeOrigin: true,
       },
+      // Uploaded avatars are served by the API off local disk. Proxying them
+      // keeps their URLs origin-relative, so nothing has to know the API's host.
+      '/uploads': {
+        target: process.env.VITE_API_URL ?? 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   test: {

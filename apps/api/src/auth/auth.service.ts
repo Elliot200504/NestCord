@@ -3,7 +3,6 @@ import { randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
 
 import type { User } from '@nestcord/database';
 import type { AuthSession, PublicUser } from '@nestcord/shared';
@@ -13,6 +12,8 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import type { Env } from '../config/env';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
+import { hashPassword, verifyPassword } from './password';
+import { PUBLIC_USER_SELECT, toPublicUser } from './public-user';
 
 /** Everything the caller needs after a successful auth: the body plus the cookie value. */
 export interface IssuedSession {
@@ -28,13 +29,13 @@ export interface AccessTokenPayload {
   sid: string;
 }
 
-/** Argon2id with defaults strong enough for a small app, tuned to stay under ~100ms. */
-const HASH_OPTIONS = {
-  type: argon2.argon2id,
-  memoryCost: 19_456,
-  timeCost: 2,
-  parallelism: 1,
-} as const satisfies argon2.HashOptions;
+/**
+ * What the guard attaches to the request: the public user plus the session the
+ * token came from, which routes need in order to talk about "this device".
+ */
+export interface RequestUser extends PublicUser {
+  sessionId: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -62,7 +63,7 @@ export class AuthService {
       data: {
         username: dto.username,
         email: dto.email,
-        passwordHash: await argon2.hash(dto.password, HASH_OPTIONS),
+        passwordHash: await hashPassword(dto.password),
       },
     });
 
@@ -75,11 +76,11 @@ export class AuthService {
     // Hash a throwaway value when the user does not exist so that a missing
     // account and a wrong password take roughly the same time to answer.
     if (!user) {
-      await argon2.hash(dto.password, HASH_OPTIONS);
+      await hashPassword(dto.password);
       throw new UnauthorizedException('Incorrect email or password');
     }
 
-    if (!(await argon2.verify(user.passwordHash, dto.password))) {
+    if (!(await verifyPassword(user.passwordHash, dto.password))) {
       throw new UnauthorizedException('Incorrect email or password');
     }
 
@@ -105,7 +106,7 @@ export class AuthService {
       throw new UnauthorizedException('Session has expired');
     }
 
-    if (!(await argon2.verify(session.refreshTokenHash, secret))) {
+    if (!(await verifyPassword(session.refreshTokenHash, secret))) {
       // The session id was real but the secret was not: either a stolen cookie or
       // a replayed old token. Either way the session cannot be trusted any more.
       this.logger.warn(`Refresh token mismatch for session ${sessionId} — revoking it`);
@@ -119,7 +120,7 @@ export class AuthService {
     await this.prisma.client.session.update({
       where: { id: sessionId },
       data: {
-        refreshTokenHash: await argon2.hash(secretNext, HASH_OPTIONS),
+        refreshTokenHash: await hashPassword(secretNext),
         expiresAt: new Date(Date.now() + maxAge),
         userAgent: userAgent ?? session.userAgent,
       },
@@ -146,7 +147,7 @@ export class AuthService {
   async findPublicUser(userId: string): Promise<PublicUser> {
     const user = await this.prisma.client.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, avatarUrl: true, status: true },
+      select: PUBLIC_USER_SELECT,
     });
 
     if (!user) throw new UnauthorizedException('Account no longer exists');
@@ -158,13 +159,10 @@ export class AuthService {
    * Called by the guard on every authenticated request: the JWT alone is not
    * enough, the session row must still exist or logout would not take effect.
    */
-  async findSessionUser(payload: AccessTokenPayload): Promise<PublicUser> {
+  async findSessionUser(payload: AccessTokenPayload): Promise<RequestUser> {
     const session = await this.prisma.client.session.findUnique({
       where: { id: payload.sid },
-      select: {
-        expiresAt: true,
-        user: { select: { id: true, username: true, avatarUrl: true, status: true } },
-      },
+      select: { expiresAt: true, user: { select: PUBLIC_USER_SELECT } },
     });
 
     if (!session || session.user.id !== payload.sub) {
@@ -175,7 +173,7 @@ export class AuthService {
       throw new UnauthorizedException('Session has expired');
     }
 
-    return toPublicUser(session.user);
+    return { ...toPublicUser(session.user), sessionId: payload.sid };
   }
 
   private async issueSession(user: User, userAgent?: string): Promise<IssuedSession> {
@@ -185,7 +183,7 @@ export class AuthService {
     const session = await this.prisma.client.session.create({
       data: {
         userId: user.id,
-        refreshTokenHash: await argon2.hash(secret, HASH_OPTIONS),
+        refreshTokenHash: await hashPassword(secret),
         expiresAt: new Date(Date.now() + maxAge),
         userAgent: userAgent ?? null,
       },
@@ -227,17 +225,4 @@ function parseRefreshToken(value: string | undefined): { sessionId: string; secr
   if (!sessionId || !secret) throw new UnauthorizedException('Missing refresh token');
 
   return { sessionId, secret };
-}
-
-/**
- * The one place a user row becomes a response. Takes the fields it needs and
- * builds a new object, so a forgotten `select` can never leak `passwordHash`.
- */
-function toPublicUser(user: PublicUser): PublicUser {
-  return {
-    id: user.id,
-    username: user.username,
-    avatarUrl: user.avatarUrl,
-    status: user.status,
-  };
 }

@@ -5,6 +5,12 @@ import { hasAccessToken, refreshAccessToken } from '@/api/client';
 /** Where a visitor lands once they are signed in, until real servers arrive. */
 export const DEFAULT_APP_PATH = '/app/hq/general';
 
+/** The same destination in the form TanStack Router type-checks links against. */
+export const DEFAULT_APP_ROUTE = {
+  to: '/app/$serverId/$channelId',
+  params: { serverId: 'hq', channelId: 'general' },
+} as const;
+
 /**
  * Guard for authenticated routes. On a fresh page load there is no access token
  * in memory yet, so the refresh cookie gets one chance to produce one before the

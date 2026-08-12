@@ -42,6 +42,7 @@
     "@swc/core": "^1.15.47",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.2.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.2.1",

@@ -1,20 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
-import type { AuthSession, PublicUser } from '@nestcord/shared';
+import type { AuthSession } from '@nestcord/shared';
 
 import { setAccessToken } from '@/api/client';
 import { keys } from '@/api/keys';
+import { usersApi } from '@/features/users/api';
 import { authApi, type LoginInput, type RegisterInput } from './api';
 
 /**
  * The signed-in user. Only meaningful under the `/app` guard, which has already
  * established a session by the time any component renders.
+ *
+ * One query, one cache entry: the chat shell and the settings pages read the same
+ * `keys.me`, so editing your profile updates the sidebar without a refetch.
  */
 export function useCurrentUser() {
   return useQuery({
     queryKey: keys.me,
-    queryFn: authApi.me,
+    queryFn: usersApi.me,
     staleTime: Number.POSITIVE_INFINITY,
   });
 }
@@ -39,8 +43,9 @@ function useAuthMutation<TInput extends LoginInput | RegisterInput>(
     mutationFn,
     onSuccess: async (session) => {
       setAccessToken(session.accessToken);
-      // Seeding the cache saves an immediate /auth/me round trip.
-      queryClient.setQueryData<PublicUser>(keys.me, session.user);
+      // The login response carries the public user, not the full profile, so the
+      // cache is invalidated rather than seeded — `useCurrentUser` fetches once.
+      queryClient.removeQueries({ queryKey: keys.me });
       await navigate({ to: redirectTo });
     },
   });

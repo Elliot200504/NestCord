@@ -4,7 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 
 import { router } from './router';
+import { startAppearanceSync } from './stores/appearance-store';
 import './styles/index.css';
+
+// Before the first render, so the app never paints in the wrong theme.
+startAppearanceSync();
 
 const queryClient = new QueryClient({
   defaultOptions: {

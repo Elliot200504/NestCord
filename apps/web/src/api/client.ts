@@ -50,11 +50,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 async function send(path: string, init: RequestInit): Promise<Response> {
+  // File uploads must let the browser set Content-Type itself — it has to append
+  // the multipart boundary, which we could not know here.
+  const isUpload = init.body instanceof FormData;
+
   return fetch(`/api${path}`, {
     ...init,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isUpload ? {} : { 'Content-Type': 'application/json' }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...init.headers,
     },
