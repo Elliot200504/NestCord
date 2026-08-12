@@ -5,6 +5,8 @@ import { DEFAULT_EVERYONE_PERMISSIONS, Permission } from '@nestcord/shared';
 
 import { AttachmentsService } from '../attachments/attachments.service';
 import type { AttachmentStorage } from '../attachments/attachment.storage';
+import type { RealtimeService } from '../gateway/realtime.service';
+import type { NotificationsService } from '../notifications/notifications.service';
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import type { PrismaService } from '../common/prisma/prisma.service';
@@ -76,8 +78,15 @@ function message(overrides: Partial<StubMessage> = {}): StubMessage {
   };
 }
 
+/** What was broadcast, so a test can assert the room and payload without a socket. */
+interface Broadcast {
+  event: string;
+  payload: unknown;
+}
+
 interface Harness {
   messages: MessagesService;
+  broadcasts: Broadcast[];
   rows: StubMessage[];
   reactions: StubReaction[];
   attachments: StubAttachment[];
@@ -314,10 +323,31 @@ function buildHarness(options: {
     },
   } as unknown as AttachmentStorage;
 
+  const broadcasts: Broadcast[] = [];
+  const record = (event: string) => (payload: unknown) => broadcasts.push({ event, payload });
+
+  const realtime = {
+    messageCreated: record('message:create'),
+    messageUpdated: record('message:update'),
+    messageDeleted: record('message:delete'),
+    reactionAdded: record('reaction:add'),
+    reactionRemoved: record('reaction:remove'),
+  } as unknown as RealtimeService;
+
+  /** Mentions are covered where they are resolved, not here. */
+  const notifications = { notifyMentions: async () => {} } as unknown as NotificationsService;
+
   const permissions = new PermissionsService(prisma);
 
   return {
-    messages: new MessagesService(prisma, permissions, new AttachmentsService(prisma, storage)),
+    messages: new MessagesService(
+      prisma,
+      permissions,
+      new AttachmentsService(prisma, storage),
+      realtime,
+      notifications,
+    ),
+    broadcasts,
     rows,
     reactions,
     attachments,

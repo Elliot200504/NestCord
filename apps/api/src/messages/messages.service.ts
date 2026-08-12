@@ -15,6 +15,8 @@ import {
 } from '@nestcord/shared';
 
 import { AttachmentsService } from '../attachments/attachments.service';
+import { RealtimeService } from '../gateway/realtime.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -29,6 +31,8 @@ export class MessagesService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly attachments: AttachmentsService,
+    private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -105,7 +109,18 @@ export class MessagesService {
       select: MESSAGE_SELECT,
     });
 
-    return toMessage(message, member.userId);
+    const sent = toMessage(message, member.userId);
+
+    // Written first, then broadcast: nobody is told about a message that failed to
+    // persist. The payload is the same shape the route returns, so a listener can put
+    // it straight into the cache this channel is already reading.
+    this.realtime.messageCreated(sent);
+
+    // Mentions notify after the broadcast: the channel seeing the message matters more
+    // than the mention landing, and a notification failure must not fail the send.
+    await this.notifications.notifyMentions(sent, member.serverId);
+
+    return sent;
   }
 
   /**
@@ -136,7 +151,11 @@ export class MessagesService {
       select: MESSAGE_SELECT,
     });
 
-    return toMessage(message, member.userId);
+    const edited = toMessage(message, member.userId);
+
+    this.realtime.messageUpdated(edited);
+
+    return edited;
   }
 
   /**
@@ -160,6 +179,8 @@ export class MessagesService {
 
     await this.prisma.client.message.delete({ where: { id: messageId } });
 
+    this.realtime.messageDeleted({ channelId, messageId });
+
     // The rows went with the message by cascade; the files on disk are ours to clean.
     await this.attachments.removeFiles(existing.attachments.map((attachment) => attachment.url));
   }
@@ -180,6 +201,8 @@ export class MessagesService {
       create: { messageId, userId: member.userId, emoji },
     });
 
+    this.realtime.reactionAdded({ channelId, messageId, emoji, userId: member.userId });
+
     return this.reactions(messageId, member.userId);
   }
 
@@ -199,6 +222,8 @@ export class MessagesService {
     await this.prisma.client.reaction.deleteMany({
       where: { messageId, userId: member.userId, emoji },
     });
+
+    this.realtime.reactionRemoved({ channelId, messageId, emoji, userId: member.userId });
 
     return this.reactions(messageId, member.userId);
   }
