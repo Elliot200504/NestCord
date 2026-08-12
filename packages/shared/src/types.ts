@@ -59,6 +59,44 @@ export interface ServerRole {
   isDefault: boolean;
 }
 
+/**
+ * One channel or category in a server.
+ *
+ * Categories are channels with `type: 'CATEGORY'`; the channels inside one point at
+ * it with `parentId`. That is one table and one sidebar loop instead of two.
+ */
+export interface Channel {
+  id: string;
+  serverId: string;
+  name: string;
+  type: ChannelType;
+  topic: string | null;
+  /** Lower first, within the same parent. */
+  position: number;
+  /** The category this sits in, or null for a top-level channel. */
+  parentId: string | null;
+  /**
+   * The requesting member's permissions *in this channel*, overrides applied and
+   * resolved on the server. For rendering only — every route re-resolves it.
+   */
+  permissions: number;
+}
+
+/**
+ * A channel-level permission override for one role or one member.
+ *
+ * `allow` and `deny` are bitfields; a flag in neither is inherited from the server.
+ */
+export interface ChannelOverride {
+  type: 'ROLE' | 'MEMBER';
+  /** Set when `type` is `ROLE`. */
+  roleId: string | null;
+  /** Set when `type` is `MEMBER`. */
+  userId: string | null;
+  allow: number;
+  deny: number;
+}
+
 /** A server as the rail shows it: enough to draw an icon and a tooltip. */
 export interface ServerSummary {
   id: string;
@@ -137,6 +175,10 @@ export const ROLE_NAME_MAX_LENGTH = 32;
 export const DEFAULT_ROLE_NAME = '@everyone';
 /** The text channel created alongside a new server, so it is never empty. */
 export const DEFAULT_CHANNEL_NAME = 'general';
+
+export const CHANNEL_NAME_MAX_LENGTH = 32;
+/** Two lines in the channel header — a sentence about the channel, not an essay. */
+export const CHANNEL_TOPIC_MAX_LENGTH = 512;
 
 /**
  * Invite codes. Eight characters from an unambiguous alphabet — no O/0 or I/l/1 —
