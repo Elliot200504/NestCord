@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { has, resolvePermissions, type PermissionFlag } from '@nestcord/shared';
+import { has, Permission, resolvePermissions, type PermissionFlag } from '@nestcord/shared';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { OVERRIDE_CONTEXT_SELECT, resolveChannelPermissions } from './channel-overrides';
@@ -115,6 +115,61 @@ export class PermissionsService {
     }
 
     return permissions;
+  }
+
+  /**
+   * Everyone who can currently see a channel, resolved in two queries rather than one
+   * per member.
+   *
+   * Needed for anything addressed to a whole channel — an `@everyone` mention, say.
+   * Doing it by calling `findMemberContext` per member would be a query each, so the
+   * rows are fetched once and the resolution happens in memory, still through the one
+   * shared implementation.
+   */
+  async findChannelViewers(channelId: string): Promise<string[]> {
+    const channel = await this.prisma.client.channel.findUnique({
+      where: { id: channelId },
+      select: {
+        serverId: true,
+        server: { select: { ownerId: true } },
+        overrides: { select: OVERRIDE_CONTEXT_SELECT },
+      },
+    });
+
+    if (!channel) return [];
+
+    const members = await this.prisma.client.serverMember.findMany({
+      where: { serverId: channel.serverId },
+      select: MEMBER_CONTEXT_SELECT,
+    });
+
+    return members
+      .map((member) => {
+        const isOwner = channel.server.ownerId === member.userId;
+        const roles = member.roles.map((entry) => entry.role);
+
+        const context: MemberContext = {
+          serverId: member.serverId,
+          memberId: member.id,
+          userId: member.userId,
+          isOwner,
+          permissions: resolvePermissions({
+            isOwner,
+            roleBits: roles.map((role) => role.permissions),
+          }),
+          roleIds: roles.map((role) => role.id),
+          highestPosition: isOwner
+            ? OWNER_POSITION
+            : roles.reduce((highest, role) => Math.max(highest, role.position), NO_ROLE_POSITION),
+        };
+
+        return {
+          userId: member.userId,
+          permissions: resolveChannelPermissions(context, channel.overrides),
+        };
+      })
+      .filter((entry) => has(entry.permissions, Permission.VIEW_CHANNEL))
+      .map((entry) => entry.userId);
   }
 
   /** The owner's own row, used where only the owner may act. */
