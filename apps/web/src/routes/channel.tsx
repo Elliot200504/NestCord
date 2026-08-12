@@ -2,9 +2,10 @@ import { createRoute, useParams } from '@tanstack/react-router';
 
 import { ChannelHeader } from '../components/ChannelHeader';
 import { MemberList } from '../components/MemberList';
-import { MessageComposer } from '../components/MessageComposer';
-import { MessageList } from '../components/MessageList';
 import { useChannel } from '../features/channels/use-channels';
+import { useCurrentUser } from '../features/auth/use-auth';
+import { MessageComposer } from '../features/messages/MessageComposer';
+import { MessageList } from '../features/messages/MessageList';
 import { useActiveServerId } from '../features/servers/useActiveServer';
 import { useUiStore } from '../stores/ui-store';
 import { appRoute } from './app';
@@ -14,6 +15,7 @@ function ChannelPage() {
   const memberListOpen = useUiStore((state) => state.memberListOpen);
   const serverId = useActiveServerId();
   const { data: channel, isPending } = useChannel(serverId, channelId);
+  const { data: user } = useCurrentUser();
 
   // The sidebar has the same query, so this is the cached channel rather than a
   // second request. Falling back to the id keeps the header from going blank.
@@ -23,8 +25,22 @@ function ChannelPage() {
     <>
       <div className="flex min-w-0 flex-1 flex-col">
         <ChannelHeader channelName={channelName} topic={channel?.topic ?? undefined} />
-        <MessageList />
-        <MessageComposer channelName={channelName} />
+
+        {/* Messages need the channel's resolved permissions, so they wait for it. */}
+        {serverId && channel && user ? (
+          <>
+            <MessageList serverId={serverId} channel={channel} viewerId={user.id} />
+            <MessageComposer serverId={serverId} channel={channel} author={user} />
+          </>
+        ) : (
+          <div className="flex-1 px-6 py-8">
+            {!isPending && !channel && (
+              <p role="alert" className="text-destructive text-sm">
+                That channel is not here, or you cannot see it.
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {memberListOpen && <MemberList />}
     </>

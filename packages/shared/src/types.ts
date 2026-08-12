@@ -97,6 +97,56 @@ export interface ChannelOverride {
   deny: number;
 }
 
+/** One uploaded file hanging off a message. The bytes live on disk (PLAN.MD §9). */
+export interface MessageAttachment {
+  id: string;
+  /** The uploader's original filename, kept for display only — never used as a path. */
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
+}
+
+/**
+ * One emoji's reactions on a message, already grouped.
+ *
+ * The client needs a count and whether it should render its own button as pressed;
+ * it never needs the full list of reactors, so the API does not send one.
+ */
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  /** True when the requesting user is one of the reactors. */
+  me: boolean;
+}
+
+/**
+ * The message a reply points at, as the single quoted line above the reply.
+ *
+ * Null when the message is not a reply *or* when the message it replied to has been
+ * deleted — the reply survives its target, and both cases render the same way.
+ */
+export interface MessageReference {
+  id: string;
+  author: PublicUser;
+  content: string;
+}
+
+/** A message in a channel, with everything needed to render it in one object. */
+export interface Message {
+  id: string;
+  channelId: string;
+  author: PublicUser;
+  /** Raw text as it was typed: markdown and mentions are resolved at render time. */
+  content: string;
+  createdAt: string;
+  /** Set once the author has edited it, so the UI can mark it. */
+  editedAt: string | null;
+  replyTo: MessageReference | null;
+  attachments: MessageAttachment[];
+  reactions: MessageReaction[];
+}
+
 /** A server as the rail shows it: enough to draw an icon and a tooltip. */
 export interface ServerSummary {
   id: string;
@@ -148,6 +198,14 @@ export interface Paginated<T> {
 
 export const MESSAGE_MAX_LENGTH = 2000;
 export const MESSAGE_PAGE_SIZE = 50;
+/** One screenful is 50; asking for more than this at once is refused. */
+export const MESSAGE_MAX_PAGE_SIZE = 100;
+export const MESSAGE_MAX_ATTACHMENTS = 10;
+/**
+ * An emoji is a handful of code points once skin tones and ZWJ sequences are in
+ * play, so this is generous — it is a sanity cap, not a validation rule.
+ */
+export const REACTION_EMOJI_MAX_LENGTH = 32;
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 32;
 /** Letters, digits, underscore and dot — no spaces, so mentions stay unambiguous. */
@@ -165,6 +223,16 @@ export const ACCENT_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 export const IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 export const SERVER_ICON_MAX_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Message attachments: images plus PDF (PLAN.MD §9).
+ *
+ * Every type here is one the API can recognise from the file's own leading bytes,
+ * because the uploader's declared MIME type is only a claim. Widening the list means
+ * adding a signature to `apps/api/src/common/storage/`, not just a string here.
+ */
+export const ATTACHMENT_MIME_TYPES = [...IMAGE_MIME_TYPES, 'application/pdf'] as const;
+export const ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
 
 export const SERVER_NAME_MIN_LENGTH = 2;
 export const SERVER_NAME_MAX_LENGTH = 100;

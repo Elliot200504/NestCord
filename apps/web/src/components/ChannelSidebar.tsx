@@ -154,6 +154,7 @@ function ChannelList({
               channel={category}
               onEdit={() => onEdit(category)}
               onCreateInside={() => onCreate(category.id)}
+              trigger="click"
             >
               <button
                 type="button"

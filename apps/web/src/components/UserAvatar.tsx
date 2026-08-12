@@ -4,9 +4,11 @@ import { avatarTint } from '@/lib/avatar-tint';
 import { cn } from '@/lib/utils';
 import { PresenceDot } from './PresenceDot';
 
-type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 const SIZES: Record<AvatarSize, string> = {
+  /** Small enough to sit inline in a line of text, as the reply quote needs. */
+  xs: 'size-4 text-[0.5rem]',
   sm: 'size-6 text-[0.6rem]',
   md: 'size-8 text-xs',
   lg: 'size-10 text-sm',
@@ -15,6 +17,7 @@ const SIZES: Record<AvatarSize, string> = {
 
 /** Nudges the dot inward on the big sizes so it sits on the circle, not off it. */
 const DOT_POSITION: Record<AvatarSize, string> = {
+  xs: '-right-0.5 -bottom-0.5',
   sm: '-right-0.5 -bottom-0.5',
   md: '-right-0.5 -bottom-0.5',
   lg: 'right-0 bottom-0',
@@ -22,6 +25,7 @@ const DOT_POSITION: Record<AvatarSize, string> = {
 };
 
 const DOT_SIZE: Record<AvatarSize, string> = {
+  xs: 'size-2',
   sm: 'size-2.5',
   md: 'size-3',
   lg: 'size-3.5',
@@ -52,7 +56,7 @@ export function UserAvatar({ user, size = 'md', status, className }: UserAvatarP
           src={user.avatarUrl}
           alt=""
           className={cn('rounded-full object-cover', SIZES[size])}
-          style={ringStyle(user.accentColor)}
+          style={size === 'xs' ? undefined : ringStyle(user.accentColor)}
         />
       ) : (
         <span
@@ -62,7 +66,7 @@ export function UserAvatar({ user, size = 'md', status, className }: UserAvatarP
             SIZES[size],
             avatarTint(user.username),
           )}
-          style={ringStyle(user.accentColor)}
+          style={size === 'xs' ? undefined : ringStyle(user.accentColor)}
         >
           {initials(name)}
         </span>
@@ -78,7 +82,8 @@ export function UserAvatar({ user, size = 'md', status, className }: UserAvatarP
   );
 }
 
-/** Drawn outside the circle so it never eats into the image. */
+/** Drawn outside the circle so it never eats into the image. Skipped at `xs`, where
+ * a 3.5px ring around a 16px circle reads as a smudge rather than an accent. */
 function ringStyle(accentColor: string | null): React.CSSProperties | undefined {
   if (!accentColor) return undefined;
 
