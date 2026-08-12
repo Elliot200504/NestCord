@@ -2,11 +2,9 @@ import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { Env } from '../config/env';
-import { AVATAR_SUBDIRECTORY, AvatarStorage } from './avatar.storage';
+import { ImageStorage } from './image.storage';
 
 /** Bytes that make a file look like each format we accept. */
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -14,18 +12,19 @@ const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
 const GIF = Buffer.from('GIF89a');
 const WEBP = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP')]);
 
+const SUBDIRECTORY = 'icons';
+
 function upload(buffer: Buffer): Express.Multer.File {
   return { buffer } as Express.Multer.File;
 }
 
-describe('AvatarStorage', () => {
+describe('ImageStorage', () => {
   let directory: string;
-  let storage: AvatarStorage;
+  let storage: ImageStorage;
 
   beforeEach(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'nestcord-avatars-'));
-    // The storage only ever reads UPLOAD_DIR, so a one-key stand-in is honest.
-    storage = new AvatarStorage({ get: () => directory } as unknown as ConfigService<Env, true>);
+    directory = await mkdtemp(join(tmpdir(), 'nestcord-images-'));
+    storage = new ImageStorage(directory, SUBDIRECTORY);
   });
 
   it.each([
@@ -37,7 +36,13 @@ describe('AvatarStorage', () => {
     const url = await storage.save(upload(bytes));
 
     expect(url.endsWith(extension)).toBe(true);
-    await expect(readdir(join(directory, AVATAR_SUBDIRECTORY))).resolves.toHaveLength(1);
+    await expect(readdir(join(directory, SUBDIRECTORY))).resolves.toHaveLength(1);
+  });
+
+  it('serves from the subdirectory it was given', async () => {
+    const url = await storage.save(upload(PNG));
+
+    expect(url.startsWith(`/uploads/${SUBDIRECTORY}/`)).toBe(true);
   });
 
   it('rejects a file that is not an image, whatever it claims to be', async () => {
@@ -61,7 +66,7 @@ describe('AvatarStorage', () => {
 
     await storage.remove(url);
 
-    await expect(readdir(join(directory, AVATAR_SUBDIRECTORY))).resolves.toHaveLength(0);
+    await expect(readdir(join(directory, SUBDIRECTORY))).resolves.toHaveLength(0);
   });
 
   it('refuses to delete anything outside its own directory', async () => {
@@ -72,5 +77,15 @@ describe('AvatarStorage', () => {
     await storage.remove('../important.txt');
 
     await expect(readFile(bystander, 'utf8')).resolves.toBe('do not delete me');
+  });
+
+  it('will not delete a file stored under a different subdirectory', async () => {
+    const other = new ImageStorage(directory, 'avatars');
+    const url = await other.save(upload(PNG));
+
+    // Same filename, different prefix — the prefix check is what stops it.
+    await storage.remove(url);
+
+    await expect(readdir(join(directory, 'avatars'))).resolves.toHaveLength(1);
   });
 });
