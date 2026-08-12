@@ -3,23 +3,41 @@ import { CornerLeftUp } from 'lucide-react';
 import type { MessageReference } from '@nestcord/shared';
 
 import { UserAvatar } from '@/components/UserAvatar';
+import { cn } from '@/lib/utils';
 
 /**
- * The one line above a reply showing what it answers.
+ * What a reply is answering, quoted above the whole reply — above the responder's own
+ * avatar and name, not tucked beside their words.
  *
- * Only a line of it: a reply that reprinted the whole quoted message would bury the
- * reply itself. The text is deliberately unformatted — markdown in a one-line preview
- * is noise, and it is already rendered properly further up the channel.
+ * Who said it goes on its own line above the words they said, so the quote reads as a
+ * small message rather than a run-on sentence starting with a name. The name takes the
+ * author's accent colour, which separates it from the quoted text and matches how they
+ * appear everywhere else.
  */
-export function MessageReply({ replyTo }: { replyTo: MessageReference }) {
+export function MessageReply({
+  replyTo,
+  className,
+}: {
+  replyTo: MessageReference;
+  className?: string;
+}) {
+  const name = replyTo.author.displayName ?? replyTo.author.username;
+
   return (
-    <p className="text-content-400 mb-0.5 flex items-center gap-1.5 text-xs">
-      <CornerLeftUp className="size-3.5 shrink-0" aria-hidden />
-      <UserAvatar user={replyTo.author} size="sm" className="size-4 text-[0.5rem]" />
-      <span className="text-content-200 font-medium">
-        {replyTo.author.displayName ?? replyTo.author.username}
-      </span>
-      <span className="truncate">{replyTo.content || 'sent an attachment'}</span>
-    </p>
+    <div className={cn('border-border mb-1 border-l-2 pl-2.5 text-xs', className)}>
+      <p className="flex items-center gap-1.5">
+        <CornerLeftUp className="text-content-500 size-3.5 shrink-0" aria-hidden />
+        <UserAvatar user={replyTo.author} size="xs" />
+        <span
+          className="text-primary font-medium"
+          style={replyTo.author.accentColor ? { color: replyTo.author.accentColor } : undefined}
+        >
+          {name}
+        </span>
+      </p>
+      <p className="text-content-400 truncate pl-[1.4rem]">
+        {replyTo.content || 'sent an attachment'}
+      </p>
+    </div>
   );
 }

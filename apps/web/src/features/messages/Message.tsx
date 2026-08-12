@@ -12,15 +12,12 @@ import { MessageActions } from './MessageActions';
 import { MessageAttachments } from './MessageAttachments';
 import { MessageContent } from './MessageContent';
 import { MessageReactions } from './MessageReactions';
-import { MessageReply } from './MessageReply';
 
 export interface MessageProps {
   message: Message;
   serverId: string;
   members: ServerMember[];
   channels: Channel[];
-  /** True for the first message under a heading, which is where the reply line goes. */
-  isLeading: boolean;
   canReply: boolean;
   canReact: boolean;
   canEdit: boolean;
@@ -41,7 +38,6 @@ export function MessageRow({
   serverId,
   members,
   channels,
-  isLeading,
   canReply,
   canReact,
   canEdit,
@@ -81,8 +77,6 @@ export function MessageRow({
           onCopy={() => void navigator.clipboard?.writeText(message.content)}
         />
       )}
-
-      {isLeading && message.replyTo && <MessageReply replyTo={message.replyTo} />}
 
       {isEditing ? (
         <div className="py-0.5">
