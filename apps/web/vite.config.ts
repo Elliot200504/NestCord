@@ -33,6 +33,14 @@ export default defineConfig({
         target: process.env.VITE_API_URL ?? 'http://localhost:3000',
         changeOrigin: true,
       },
+      // The websocket, same reasoning as /api: one origin in development, so the
+      // handshake carries cookies and needs no CORS exception. `ws` is what makes
+      // Vite forward the upgrade request rather than only the polling fallback.
+      '/socket.io': {
+        target: process.env.VITE_API_URL ?? 'http://localhost:3000',
+        changeOrigin: true,
+        ws: true,
+      },
       // Uploaded avatars are served by the API off local disk. Proxying them
       // keeps their URLs origin-relative, so nothing has to know the API's host.
       '/uploads': {
