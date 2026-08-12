@@ -5,8 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { ALL_PERMISSIONS, type ServerRole } from '@nestcord/shared';
+import { type ServerRole } from '@nestcord/shared';
 
+import { grantablePermissions } from '../common/permissions/grantable';
 import {
   outranksMember,
   outranksPosition,
@@ -52,7 +53,7 @@ export class RolesService {
     }
 
     // Checked before the write, so a rejected escalation attempt creates nothing.
-    const permissions = this.grantablePermissions(actor, dto.permissions ?? 0);
+    const permissions = grantablePermissions(actor.permissions, dto.permissions ?? 0);
 
     const role = await this.prisma.client.role.create({
       data: {
@@ -93,7 +94,7 @@ export class RolesService {
         ...(dto.position === undefined ? {} : { position: dto.position }),
         ...(dto.permissions === undefined
           ? {}
-          : { permissions: this.grantablePermissions(actor, dto.permissions) }),
+          : { permissions: grantablePermissions(actor.permissions, dto.permissions) }),
       },
       select: ROLE_SELECT,
     });
@@ -173,23 +174,5 @@ export class RolesService {
     if (!outranksPosition(actor, position)) {
       throw new ForbiddenException('That role is at or above your highest role');
     }
-  }
-
-  /**
-   * You cannot grant what you do not hold. Without this, MANAGE_ROLES alone would be
-   * enough to mint an ADMINISTRATOR role and take the server.
-   *
-   * Unknown bits are masked off rather than rejected, so a client sending a flag we
-   * do not have cannot store a permission nothing can later revoke.
-   */
-  private grantablePermissions(actor: MemberContext, requested: number): number {
-    const known = requested & ALL_PERMISSIONS;
-    const ungrantable = known & ~actor.permissions;
-
-    if (ungrantable !== 0) {
-      throw new ForbiddenException('You cannot grant a permission you do not have yourself');
-    }
-
-    return known;
   }
 }
