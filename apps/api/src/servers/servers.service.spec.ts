@@ -13,6 +13,7 @@ import {
   type MemberContext,
 } from '../common/permissions/member-context';
 import type { PrismaService } from '../common/prisma/prisma.service';
+import type { RealtimeService } from '../gateway/realtime.service';
 import type { ServerIconStorage } from './server-icon.storage';
 import { ServersService } from './servers.service';
 
@@ -33,6 +34,7 @@ function member(overrides: Partial<MemberContext> = {}): MemberContext {
 
 interface Harness {
   servers: ServersService;
+  broadcasts: Array<{ event: string; payload: unknown }>;
   rolesCreated: Record<string, unknown>[];
   channelsCreated: Record<string, unknown>[];
   membersCreated: Record<string, unknown>[];
@@ -111,8 +113,15 @@ function buildHarness(): Harness {
     },
   } as unknown as ServerIconStorage;
 
+  // Broadcasts are recorded so a test can assert what the server told everyone.
+  const broadcasts: Array<{ event: string; payload: unknown }> = [];
+  const realtime = {
+    memberLeft: (payload: unknown) => broadcasts.push({ event: 'member:leave', payload }),
+  } as unknown as RealtimeService;
+
   return {
-    servers: new ServersService(prisma, icons),
+    servers: new ServersService(prisma, icons, realtime),
+    broadcasts,
     rolesCreated,
     channelsCreated,
     membersCreated,

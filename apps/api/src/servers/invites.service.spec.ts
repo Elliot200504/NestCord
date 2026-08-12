@@ -5,7 +5,9 @@ import { DEFAULT_EVERYONE_PERMISSIONS, INVITE_CODE_PATTERN } from '@nestcord/sha
 import { NO_ROLE_POSITION, type MemberContext } from '../common/permissions/member-context';
 import type { PermissionsService } from '../common/permissions/permissions.service';
 import type { PrismaService } from '../common/prisma/prisma.service';
+import type { RealtimeService } from '../gateway/realtime.service';
 import { InvitesService } from './invites.service';
+import type { MembersService } from './members.service';
 import type { ServersService } from './servers.service';
 
 const SERVER = 'server-1';
@@ -54,6 +56,7 @@ interface HarnessOptions {
 
 interface Harness {
   invites: InvitesService;
+  broadcasts: Array<{ event: string; payload: unknown }>;
   joined: { serverId: string; userId: string }[];
   incremented: string[];
   createdCodes: string[];
@@ -167,8 +170,18 @@ function buildHarness(options: HarnessOptions): Harness {
     }),
   } as unknown as ServersService;
 
+  const broadcasts: Array<{ event: string; payload: unknown }> = [];
+  const realtime = {
+    memberJoined: (payload: unknown) => broadcasts.push({ event: 'member:join', payload }),
+  } as unknown as RealtimeService;
+
+  // The join broadcast reads the member back; the list shape itself is tested where
+  // MembersService is.
+  const membersService = { findOne: async () => null } as unknown as MembersService;
+
   return {
-    invites: new InvitesService(prisma, permissions, servers),
+    invites: new InvitesService(prisma, permissions, servers, membersService, realtime),
+    broadcasts,
     joined,
     incremented,
     createdCodes,

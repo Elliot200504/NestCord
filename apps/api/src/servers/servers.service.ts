@@ -16,6 +16,7 @@ import {
 
 import type { MemberContext } from '../common/permissions/member-context';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { RealtimeService } from '../gateway/realtime.service';
 import { ROLE_SELECT, toServerRole } from '../roles/role-response';
 import type { UpdateServerDto } from './dto/update-server.dto';
 import { ServerIconStorage } from './server-icon.storage';
@@ -34,6 +35,7 @@ export class ServersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly icons: ServerIconStorage,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /**
@@ -175,6 +177,8 @@ export class ServersService {
     }
 
     await this.prisma.client.serverMember.delete({ where: { id: member.memberId } });
+
+    this.realtime.memberLeft({ serverId: member.serverId, userId: member.userId });
   }
 }
 
