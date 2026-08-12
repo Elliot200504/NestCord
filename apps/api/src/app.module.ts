@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
+import { ChannelsModule } from './channels/channels.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
@@ -29,6 +30,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     ServersModule,
     RolesModule,
+    ChannelsModule,
     HealthModule,
   ],
   // Rate limiting runs first, then authentication. Authentication is global so a
