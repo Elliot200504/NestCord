@@ -17,6 +17,8 @@ import type {
 import { hashPassword, verifyPassword } from '../auth/password';
 import { PUBLIC_USER_SELECT, toPublicUser } from '../auth/public-user';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { PresenceService } from '../gateway/presence.service';
+import { RealtimeService } from '../gateway/realtime.service';
 // A value import, not `import type`: the decorator metadata Nest injects from
 // only exists if the class survives compilation.
 import { AvatarStorage } from './avatar.storage';
@@ -41,6 +43,8 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly avatars: AvatarStorage,
+    private readonly presence: PresenceService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /** Anyone signed in may look at anyone's profile card — but never their email. */
@@ -85,12 +89,22 @@ export class UsersService {
     return toCurrentUser(user);
   }
 
+  /**
+   * The status a user picked. Stored, because it is theirs until they change it —
+   * unlike presence itself, which is a fact about live connections and lives in memory.
+   *
+   * Picking Invisible stores OFFLINE, so it survives a reconnect and reads as offline
+   * to everyone while the sockets stay open.
+   */
   async updateStatus(userId: string, status: PresenceStatus): Promise<CurrentUser> {
     const user = await this.prisma.client.user.update({
       where: { id: userId },
       data: { status },
       select: CURRENT_USER_SELECT,
     });
+
+    this.presence.choose(userId, status);
+    await this.realtime.announcePresence(userId);
 
     return toCurrentUser(user);
   }
