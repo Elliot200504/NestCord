@@ -6,6 +6,7 @@ import { landingRoute } from './routes/landing';
 import { loginRoute } from './routes/login';
 import { registerRoute } from './routes/register';
 import { rootRoute } from './routes/root';
+import { serverRoute } from './routes/server';
 import { settingsRouteTree } from './routes/settings';
 
 /**
@@ -17,7 +18,7 @@ export const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   settingsRouteTree,
-  appRoute.addChildren([channelRoute]),
+  appRoute.addChildren([serverRoute, channelRoute]),
 ]);
 
 export const router = createRouter({
