@@ -51,6 +51,12 @@ describe('ImageStorage', () => {
     });
   });
 
+  it('rejects a PDF, which only attachment storage accepts', async () => {
+    await expect(storage.save(upload(Buffer.from('%PDF-1.7')))).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
   it('ignores the uploader’s filename entirely', async () => {
     const url = await storage.save({
       buffer: PNG,
