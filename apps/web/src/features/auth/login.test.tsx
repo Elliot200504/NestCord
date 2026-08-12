@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setAccessToken } from '@/api/client';
+import { DEFAULT_APP_PATH } from '@/features/auth/require-auth';
 import { routeTree } from '@/router';
 
 const USER = {
@@ -81,7 +82,7 @@ describe('login flow', () => {
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.click(screen.getByRole('button', { name: 'Log in' }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/app/hq/general'));
+    await waitFor(() => expect(router.state.location.pathname).toBe(DEFAULT_APP_PATH));
 
     const call = fetchMock.mock.calls.find(([path]) => path === '/api/auth/login');
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({
@@ -107,10 +108,10 @@ describe('login flow', () => {
 
   it('sends an unauthenticated visitor from /app to the login page', async () => {
     stubApi();
-    const router = await renderAt('/app/hq/general');
+    const router = await renderAt(DEFAULT_APP_PATH);
 
     expect(router.state.location.pathname).toBe('/login');
-    expect(router.state.location.search).toEqual({ redirect: '/app/hq/general' });
+    expect(router.state.location.search).toEqual({ redirect: DEFAULT_APP_PATH });
   });
 
   it('returns the visitor to where they were headed after logging in', async () => {
@@ -134,6 +135,6 @@ describe('login flow', () => {
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.click(screen.getByRole('button', { name: 'Log in' }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/app/hq/general'));
+    await waitFor(() => expect(router.state.location.pathname).toBe(DEFAULT_APP_PATH));
   });
 });

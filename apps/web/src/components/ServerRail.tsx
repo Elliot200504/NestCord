@@ -1,8 +1,6 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { Compass, Plus } from 'lucide-react';
 
-import { DEFAULT_CHANNEL_NAME } from '@nestcord/shared';
-
 import { serverInitials, useServers } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '../stores/ui-store';
@@ -59,8 +57,8 @@ export function ServerRail() {
         {servers?.map((server) => (
           <li key={server.id}>
             <Link
-              to="/app/$serverId/$channelId"
-              params={{ serverId: server.id, channelId: DEFAULT_CHANNEL_NAME }}
+              to="/app/$serverId"
+              params={{ serverId: server.id }}
               title={server.name}
               className={cn(DOOR, IDLE_DOOR, activeServerId === server.id && ACTIVE_DOOR)}
             >

@@ -74,10 +74,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
     const server = await create.mutateAsync(name.trim());
 
     onDone();
-    await navigate({
-      to: '/app/$serverId/$channelId',
-      params: { serverId: server.id, channelId: DEFAULT_CHANNEL_NAME },
-    });
+    await navigate({ to: '/app/$serverId', params: { serverId: server.id } });
   }
 
   return (
@@ -115,10 +112,7 @@ function JoinForm({ onDone }: { onDone: () => void }) {
     const server = await join.mutateAsync(code.trim());
 
     onDone();
-    await navigate({
-      to: '/app/$serverId/$channelId',
-      params: { serverId: server.id, channelId: DEFAULT_CHANNEL_NAME },
-    });
+    await navigate({ to: '/app/$serverId', params: { serverId: server.id } });
   }
 
   return (

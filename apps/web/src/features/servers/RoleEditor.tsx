@@ -6,31 +6,14 @@ import {
   Permission,
   PERMISSION_NAMES,
   ROLE_NAME_MAX_LENGTH,
-  type PermissionName,
   type ServerRole,
 } from '@nestcord/shared';
 
 import { Button } from '@/components/ui/button';
 import { FormStatus, TextField } from '@/features/settings/SettingsPrimitives';
+import { PERMISSION_LABELS } from '@/lib/permission-labels';
 import { cn } from '@/lib/utils';
 import { useCreateRole, useDeleteRole, useRoles, useUpdateRole } from './use-servers';
-
-/** Readable labels for the flags. The bitfield names are for code, not for people. */
-const PERMISSION_LABELS: Record<PermissionName, string> = {
-  VIEW_CHANNEL: 'View channels',
-  SEND_MESSAGES: 'Send messages',
-  MANAGE_MESSAGES: 'Manage messages',
-  ATTACH_FILES: 'Attach files',
-  ADD_REACTIONS: 'Add reactions',
-  CONNECT: 'Join voice',
-  SPEAK: 'Speak in voice',
-  MANAGE_CHANNELS: 'Manage channels',
-  MANAGE_SERVER: 'Manage server',
-  MANAGE_ROLES: 'Manage roles',
-  KICK_MEMBERS: 'Kick members',
-  BAN_MEMBERS: 'Ban members',
-  ADMINISTRATOR: 'Administrator',
-};
 
 /**
  * Roles and their permissions.

@@ -73,6 +73,27 @@ Settings live at http://localhost:5173/settings — account, profile and appeara
   Changing your password ends every other session automatically.
 - **Appearance** — theme and message density, kept in this browser rather than on the account.
 
+## Channels
+
+Each server's sidebar is real data: `GET /api/servers/:serverId/channels` returns the channels and
+categories **you** can see, with your own resolved permissions for each one.
+
+- **Categories** are channels of type `CATEGORY`; the channels inside one point at it with `parentId`.
+  Deleting a category leaves its channels at the top level rather than deleting them.
+- **Text and voice channels** carry a name, topic, position and category. Names are stored as
+  `#like-this` — what you type is slugified, and the dialog shows the name it will be saved under.
+  Voice channels can be created and arranged; talking in one arrives with the gateway.
+- **Channel permissions** are per-role overrides of the server-wide flags: allow, inherit or deny.
+  They are stored as two bitfields and resolved server-side on every request, in the order owner →
+  roles → `ADMINISTRATOR` → `@everyone` override → role overrides → member override. Losing
+  `VIEW_CHANNEL` clears everything else, which is what hides a channel from the sidebar.
+- Creating or editing a channel needs `MANAGE_CHANNELS`, and editing its overrides needs
+  `MANAGE_ROLES` — both checked _in that channel_, so an override that takes the permission away is
+  respected. Nobody can grant a permission they do not hold themselves, or touch a role at or above
+  their own.
+
+`/app/:serverId` with no channel redirects to the first text channel you can see.
+
 ## Commands
 
 | Command           | Purpose                      |

@@ -3,6 +3,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { has, resolvePermissions, type PermissionFlag } from '@nestcord/shared';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { OVERRIDE_CONTEXT_SELECT, resolveChannelPermissions } from './channel-overrides';
 import { MemberContext, NO_ROLE_POSITION, OWNER_POSITION } from './member-context';
 
 /** Everything a `MemberContext` is built from, in one round trip. */
@@ -76,6 +77,44 @@ export class PermissionsService {
     }
 
     return member;
+  }
+
+  /**
+   * The member's permissions inside one channel, overrides applied.
+   *
+   * 404 for a channel in another server: a channel id from elsewhere should look
+   * missing rather than forbidden.
+   */
+  async resolveChannelPermissions(member: MemberContext, channelId: string): Promise<number> {
+    const channel = await this.prisma.client.channel.findFirst({
+      where: { id: channelId, serverId: member.serverId },
+      select: { overrides: { select: OVERRIDE_CONTEXT_SELECT } },
+    });
+
+    if (!channel) throw new NotFoundException('No such channel');
+
+    return resolveChannelPermissions(member, channel.overrides);
+  }
+
+  /**
+   * The channel equivalent of `requirePermission`. A channel override can take a
+   * permission away that the server grants, so anything acting on a single channel
+   * has to come through here rather than reading `member.permissions`.
+   */
+  async requireChannelPermission(
+    member: MemberContext,
+    channelId: string,
+    flag: PermissionFlag,
+  ): Promise<number> {
+    const permissions = await this.resolveChannelPermissions(member, channelId);
+
+    // Losing VIEW_CHANNEL clears every other bit, so a hidden channel fails this
+    // check whatever the flag was.
+    if (!has(permissions, flag)) {
+      throw new ForbiddenException('You do not have permission to do that in this channel');
+    }
+
+    return permissions;
   }
 
   /** The owner's own row, used where only the owner may act. */
