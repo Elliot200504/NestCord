@@ -51,6 +51,9 @@ const SAMPLE_MESSAGES = [
   'Careful, that endpoint is not paginated yet',
   'Ship it 🚀',
   'I will pick this up tomorrow',
+  '@everyone standup in five minutes',
+  'The bug was ||the cache all along||',
+  '> is the deploy green\n\nyes, see #general',
 ];
 
 /** Hosts we consider safe to wipe. */
@@ -234,6 +237,10 @@ async function main(): Promise<void> {
         },
       });
 
+      // Tracked so some of the history is replies, which is the one message shape
+      // that cannot be seeded without knowing what came before it.
+      let previousId: string | null = null;
+
       for (let i = 0; i < 12; i += 1) {
         const author = pick(memberUsers, i + channelIndex);
         const message = await prisma.message.create({
@@ -241,9 +248,12 @@ async function main(): Promise<void> {
             channelId: channel.id,
             authorId: author.id,
             content: pick(SAMPLE_MESSAGES, i + channelIndex),
+            replyToId: i % 5 === 4 ? previousId : null,
             createdAt: new Date(Date.now() - (12 - i) * 60_000),
           },
         });
+
+        previousId = message.id;
 
         if (i % 4 === 0) {
           await prisma.reaction.create({
