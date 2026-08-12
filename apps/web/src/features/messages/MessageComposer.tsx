@@ -14,6 +14,7 @@ import {
 } from '@nestcord/shared';
 
 import { useUiStore } from '@/stores/ui-store';
+import { useTyping } from '@/websocket/use-typing';
 import { useSendMessage, useUploadAttachment } from './use-messages';
 
 interface MessageComposerProps {
@@ -38,6 +39,7 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
   const cancelReply = useUiStore((state) => state.cancelReply);
 
   const send = useSendMessage(serverId, channel.id, author);
+  const { typing, stopTyping } = useTyping(channel.id);
   const upload = useUploadAttachment(serverId, channel.id);
 
   const canSend = has(channel.permissions, Permission.SEND_MESSAGES);
@@ -58,6 +60,7 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
     setDraft('');
     setPending([]);
     cancelReply(channel.id);
+    stopTyping();
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -159,7 +162,12 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
 
         <textarea
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            // Only while there is something to type about: clearing the box is not
+            // typing, and neither is pasting an empty string.
+            if (event.target.value.trim()) typing();
+          }}
           onKeyDown={handleKeyDown}
           rows={1}
           maxLength={MESSAGE_MAX_LENGTH}
