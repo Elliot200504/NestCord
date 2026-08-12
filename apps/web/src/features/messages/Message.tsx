@@ -7,6 +7,8 @@ import {
   type ServerMember,
 } from '@nestcord/shared';
 
+import { cn } from '@/lib/utils';
+import { messageAnchorId } from './message-anchor';
 import { formatFullTime } from './message-grouping';
 import { MessageActions } from './MessageActions';
 import { MessageAttachments } from './MessageAttachments';
@@ -18,6 +20,15 @@ export interface MessageProps {
   serverId: string;
   members: ServerMember[];
   channels: Channel[];
+  /**
+   * Reveals the actions when anything in the group block is hovered, not just this
+   * row — so hovering the reply quote or the author line shows them too. Only set for
+   * a group holding one message; with several, each row answers for itself, or every
+   * toolbar in the block would appear at once.
+   */
+  revealOnBlockHover: boolean;
+  /** Briefly ringed after someone travelled here from a reply quote. */
+  isFlashing: boolean;
   canReply: boolean;
   canReact: boolean;
   canEdit: boolean;
@@ -38,6 +49,8 @@ export function MessageRow({
   serverId,
   members,
   channels,
+  revealOnBlockHover,
+  isFlashing,
   canReply,
   canReact,
   canEdit,
@@ -67,9 +80,17 @@ export function MessageRow({
   }
 
   return (
-    <div className="group relative">
+    <div
+      // Addressable so a reply quote can scroll to it.
+      id={messageAnchorId(message.id)}
+      className={cn(
+        'group/msg relative scroll-mt-16 rounded-lg transition-shadow',
+        isFlashing && 'ring-primary/60 ring-2',
+      )}
+    >
       {!isEditing && (
         <MessageActions
+          revealOnBlockHover={revealOnBlockHover}
           onReply={canReply ? () => onReply(message) : undefined}
           onReact={canReact ? (emoji) => onReact(message, emoji) : undefined}
           onEdit={canEdit ? () => setDraft(message.content) : undefined}

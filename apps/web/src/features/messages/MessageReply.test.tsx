@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { MessageReference } from '@nestcord/shared';
 
@@ -22,11 +23,32 @@ function reference(overrides: Partial<MessageReference> = {}): MessageReference 
 }
 
 describe('MessageReply', () => {
+  it('travels to the quoted message when clicked', async () => {
+    const onJump = vi.fn();
+    render(<MessageReply replyTo={reference()} onJump={onJump} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Go to Grace H.’s message' }));
+
+    expect(onJump).toHaveBeenCalledOnce();
+  });
+
+  it('is inert when the quoted message is not loaded to travel to', () => {
+    render(<MessageReply replyTo={reference()} />);
+
+    expect(screen.getByRole('button', { name: 'Go to Grace H.’s message' })).toBeDisabled();
+  });
+
   it('shows who is being answered and what they said', () => {
     render(<MessageReply replyTo={reference()} />);
 
     expect(screen.getByText('Grace H.')).toBeInTheDocument();
     expect(screen.getByText('did anyone look at the deploy')).toBeInTheDocument();
+  });
+
+  it('points its arrow down, from the quoted message to the answer below', () => {
+    const { container } = render(<MessageReply replyTo={reference()} />);
+
+    expect(container.querySelector('.lucide-corner-left-down')).not.toBeNull();
   });
 
   it('puts the name above the quoted text rather than beside it', () => {
@@ -35,8 +57,9 @@ describe('MessageReply', () => {
     const name = screen.getByText('Grace H.');
     const quoted = screen.getByText('did anyone look at the deploy');
 
-    // Separate lines, so neither is a child of the other.
-    expect(name.closest('p')).not.toBe(quoted.closest('p'));
+    // Separate lines, so neither contains the other.
+    expect(name.contains(quoted)).toBe(false);
+    expect(quoted.contains(name)).toBe(false);
   });
 
   it('colours the name apart from the quoted text', () => {

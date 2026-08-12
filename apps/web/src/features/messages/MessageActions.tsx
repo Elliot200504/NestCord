@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '👀'] as const;
 
 export interface MessageActionsProps {
+  /** Also reveal when the surrounding group block is hovered, not only this row. */
+  revealOnBlockHover: boolean;
   /** Each action is absent, not disabled, when the reader may not take it. */
   onReply?: () => void;
   onReact?: (emoji: string) => void;
@@ -22,6 +24,7 @@ export interface MessageActionsProps {
  * tabbing to it.
  */
 export function MessageActions({
+  revealOnBlockHover,
   onReply,
   onReact,
   onEdit,
@@ -32,7 +35,8 @@ export function MessageActions({
     <div
       className={cn(
         'bg-surface-700 border-border absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border px-1 py-0.5 opacity-0 shadow-sm transition-opacity',
-        'group-hover:opacity-100 focus-within:opacity-100',
+        'group-hover/msg:opacity-100 focus-within:opacity-100',
+        revealOnBlockHover && 'group-hover/block:opacity-100',
       )}
     >
       {onReact &&

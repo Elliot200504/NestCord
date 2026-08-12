@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { has, Permission, type Channel, type Message } from '@nestcord/shared';
 
@@ -7,6 +7,7 @@ import { useChannels } from '@/features/channels/use-channels';
 import { useMembers } from '@/features/servers/use-servers';
 import { useAppearanceStore } from '@/stores/appearance-store';
 import { useUiStore } from '@/stores/ui-store';
+import { messageAnchorId } from './message-anchor';
 import {
   flattenMessages,
   useDeleteMessage,
@@ -45,9 +46,37 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
 
   const messages = flattenMessages(data?.pages);
   const groups = groupMessages(messages);
+  // Only a loaded message can be travelled to; the quote is inert for the rest.
+  const loadedIds = new Set(messages.map((message) => message.id));
   const newestId = messages.at(-1)?.id;
 
   const bottom = useRef<HTMLDivElement>(null);
+  const [flashingId, setFlashingId] = useState<string | null>(null);
+
+  /**
+   * Travels to the message a reply is answering.
+   *
+   * It is only reachable if it is already loaded — an older message the reader has not
+   * scrolled back to has nothing to scroll to yet, so the quote is left inert rather
+   * than fetching pages until it turns up.
+   */
+  function jumpTo(messageId: string) {
+    document.getElementById(messageAnchorId(messageId))?.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    });
+
+    setFlashingId(messageId);
+  }
+
+  // The ring is a nudge, not a state to sit in, so it clears itself.
+  useEffect(() => {
+    if (!flashingId) return;
+
+    const timer = setTimeout(() => setFlashingId(null), 1500);
+
+    return () => clearTimeout(timer);
+  }, [flashingId]);
 
   // Following the conversation is the whole point of a chat window, so a new message
   // scrolls it into view. Fetching older pages does not change the newest id, so
@@ -139,6 +168,9 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
             canReact={canReact}
             canManage={canManage}
             isCompact={isCompact}
+            flashingId={flashingId}
+            canJumpTo={(messageId) => loadedIds.has(messageId)}
+            onJump={jumpTo}
             onReply={(message: Message) =>
               startReply(channel.id, {
                 messageId: message.id,

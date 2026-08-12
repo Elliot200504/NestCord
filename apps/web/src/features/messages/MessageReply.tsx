@@ -1,4 +1,4 @@
-import { CornerLeftUp } from 'lucide-react';
+import { CornerLeftDown } from 'lucide-react';
 
 import type { MessageReference } from '@nestcord/shared';
 
@@ -13,20 +13,36 @@ import { cn } from '@/lib/utils';
  * small message rather than a run-on sentence starting with a name. The name takes the
  * author's accent colour, which separates it from the quoted text and matches how they
  * appear everywhere else.
+ *
+ * The whole quote is a button: clicking it travels to the message being answered.
  */
 export function MessageReply({
   replyTo,
+  onJump,
   className,
 }: {
   replyTo: MessageReference;
+  /** Scrolls to the quoted message. Absent when it is not on screen to travel to. */
+  onJump?: () => void;
   className?: string;
 }) {
   const name = replyTo.author.displayName ?? replyTo.author.username;
 
   return (
-    <div className={cn('border-border mb-1 border-l-2 pl-2.5 text-xs', className)}>
-      <p className="flex items-center gap-1.5">
-        <CornerLeftUp className="text-content-500 size-3.5 shrink-0" aria-hidden />
+    <button
+      type="button"
+      onClick={onJump}
+      disabled={!onJump}
+      aria-label={`Go to ${name}’s message`}
+      className={cn(
+        'border-border mb-1 block w-full border-l-2 pl-2.5 text-left text-xs',
+        onJump && 'hover:border-primary/60 cursor-pointer',
+        className,
+      )}
+    >
+      <span className="flex items-center gap-1.5">
+        {/* Pointing down, from the message being answered to the answer below it. */}
+        <CornerLeftDown className="text-content-500 size-3.5 shrink-0" aria-hidden />
         <UserAvatar user={replyTo.author} size="xs" />
         <span
           className="text-primary font-medium"
@@ -34,10 +50,10 @@ export function MessageReply({
         >
           {name}
         </span>
-      </p>
-      <p className="text-content-400 truncate pl-[1.4rem]">
+      </span>
+      <span className="text-content-400 block truncate pl-[1.4rem]">
         {replyTo.content || 'sent an attachment'}
-      </p>
-    </div>
+      </span>
+    </button>
   );
 }
