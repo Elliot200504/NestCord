@@ -3,8 +3,8 @@ import { Trash2, Upload } from 'lucide-react';
 
 import {
   AVATAR_MAX_BYTES,
-  AVATAR_MIME_TYPES,
   BIO_MAX_LENGTH,
+  IMAGE_MIME_TYPES,
   DISPLAY_NAME_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
   type CurrentUser,
@@ -117,7 +117,7 @@ function AvatarSettings({ user }: { user: CurrentUser }) {
         <input
           ref={fileInput}
           type="file"
-          accept={AVATAR_MIME_TYPES.join(',')}
+          accept={IMAGE_MIME_TYPES.join(',')}
           className="sr-only"
           onChange={(event) => {
             onFileChosen(event.target.files?.[0]);
@@ -156,7 +156,10 @@ function IdentitySettings({ user }: { user: CurrentUser }) {
   }
 
   return (
-    <SettingsSection title="About you" description="Names and colours. Change as often as you like.">
+    <SettingsSection
+      title="About you"
+      description="Names and colours. Change as often as you like."
+    >
       <form onSubmit={onSubmit} className="space-y-5">
         <TextField
           label="Username"
@@ -198,7 +201,8 @@ function IdentitySettings({ user }: { user: CurrentUser }) {
                 style={{ backgroundColor: colour }}
                 className={cn(
                   'size-8 rounded-full transition-transform hover:scale-110',
-                  accentColor === colour && 'ring-content-100 ring-2 ring-offset-2 ring-offset-transparent',
+                  accentColor === colour &&
+                    'ring-content-100 ring-2 ring-offset-2 ring-offset-transparent',
                 )}
               />
             ))}

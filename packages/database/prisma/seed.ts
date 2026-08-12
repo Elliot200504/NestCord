@@ -152,6 +152,8 @@ async function main(): Promise<void> {
   const users = [testUser, ...others];
 
   console.log('Creating servers, roles and channels...');
+  // Valid against INVITE_CODE_PATTERN: eight characters, no I/L/O, no 0/1.
+  const SEED_INVITE_CODES = ['nestcrd2', 'readerz3', 'gamenyt4'];
   const serverSpecs = [
     { name: 'NestCord HQ', channels: ['general', 'random', 'dev'] },
     { name: 'Book Club', channels: ['general', 'currently-reading'] },
@@ -258,6 +260,13 @@ async function main(): Promise<void> {
     await prisma.channel.create({
       data: { serverId: server.id, name: 'General Voice', type: 'VOICE', position: 10 },
     });
+
+    // A fixed, never-expiring code per server so joining can be exercised in dev
+    // without first digging one out of the database.
+    const seedCode = SEED_INVITE_CODES[serverIndex];
+    if (seedCode) {
+      await prisma.invite.create({ data: { code: seedCode, serverId: server.id } });
+    }
   }
 
   console.log('Creating friendships...');

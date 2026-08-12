@@ -47,6 +47,62 @@ export interface AuthSession {
   user: PublicUser;
 }
 
+/** A role's permissions are a bitfield — see `permissions.ts` for the flags. */
+export interface ServerRole {
+  id: string;
+  name: string;
+  color: string | null;
+  permissions: number;
+  /** Higher wins. Hierarchy decides who may manage whom. */
+  position: number;
+  /** True for the `@everyone` role, which cannot be deleted. */
+  isDefault: boolean;
+}
+
+/** A server as the rail shows it: enough to draw an icon and a tooltip. */
+export interface ServerSummary {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  ownerId: string;
+}
+
+/** One server in full, as the app shell needs it when you open the server. */
+export interface Server extends ServerSummary {
+  createdAt: string;
+  memberCount: number;
+  roles: ServerRole[];
+  /**
+   * The requesting member's own server-level permissions, resolved on the server.
+   * The client uses this to decide what to render and nothing else — every route
+   * re-resolves it from the database.
+   */
+  permissions: number;
+}
+
+export interface ServerMember {
+  user: PublicUser;
+  nickname: string | null;
+  joinedAt: string;
+  roleIds: string[];
+}
+
+export interface Invite {
+  code: string;
+  serverId: string;
+  uses: number;
+  maxUses: number | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+/** What someone holding a code sees before they commit to joining. */
+export interface InvitePreview {
+  code: string;
+  server: ServerSummary;
+  memberCount: number;
+}
+
 export interface Paginated<T> {
   items: T[];
   nextCursor: string | null;
@@ -67,6 +123,26 @@ export const BIO_MAX_LENGTH = 190;
 /** Six-digit hex, the form a colour input produces. */
 export const ACCENT_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
-/** Avatars: what the API accepts and what the browser should offer in its file picker. */
+/** Image uploads: what the API accepts and what a file picker should offer. */
+export const IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-export const AVATAR_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+export const SERVER_ICON_MAX_BYTES = 2 * 1024 * 1024;
+
+export const SERVER_NAME_MIN_LENGTH = 2;
+export const SERVER_NAME_MAX_LENGTH = 100;
+/** A per-server nickname, same budget as a display name. */
+export const NICKNAME_MAX_LENGTH = 32;
+export const ROLE_NAME_MAX_LENGTH = 32;
+/** The default role every server gets. Named after Discord's, and undeletable. */
+export const DEFAULT_ROLE_NAME = '@everyone';
+/** The text channel created alongside a new server, so it is never empty. */
+export const DEFAULT_CHANNEL_NAME = 'general';
+
+/**
+ * Invite codes. Eight characters from an unambiguous alphabet — no O/0 or I/l/1 —
+ * because these get read aloud and retyped.
+ */
+export const INVITE_CODE_LENGTH = 8;
+/** No I, L or O in either case, and no 0 or 1. */
+export const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+export const INVITE_CODE_PATTERN = /^[A-HJKMNP-Za-hjkmnp-z2-9]{8}$/;

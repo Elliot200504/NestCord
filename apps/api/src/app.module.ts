@@ -10,6 +10,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
 import { HealthModule } from './health/health.module';
+import { RolesModule } from './roles/roles.module';
+import { ServersModule } from './servers/servers.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -25,6 +27,8 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     AuthModule,
     UsersModule,
+    ServersModule,
+    RolesModule,
     HealthModule,
   ],
   // Rate limiting runs first, then authentication. Authentication is global so a
