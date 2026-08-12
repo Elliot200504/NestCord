@@ -5,12 +5,14 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { ChannelsModule } from './channels/channels.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
 import { HealthModule } from './health/health.module';
+import { MessagesModule } from './messages/messages.module';
 import { RolesModule } from './roles/roles.module';
 import { ServersModule } from './servers/servers.module';
 import { UsersModule } from './users/users.module';
@@ -31,6 +33,8 @@ import { UsersModule } from './users/users.module';
     ServersModule,
     RolesModule,
     ChannelsModule,
+    MessagesModule,
+    AttachmentsModule,
     HealthModule,
   ],
   // Rate limiting runs first, then authentication. Authentication is global so a
