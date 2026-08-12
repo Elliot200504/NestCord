@@ -200,6 +200,31 @@ export class AuthService {
     };
   }
 
+  /**
+   * Authenticates a raw access token, for the socket handshake.
+   *
+   * HTTP gets this from the Passport strategy, which only reads an `Authorization`
+   * header; a websocket carries its token in the handshake instead. Both end at
+   * `findSessionUser`, so a logged-out token is refused on either path.
+   */
+  async authenticateAccessToken(token: string | undefined): Promise<RequestUser> {
+    if (!token) throw new UnauthorizedException('Missing access token');
+
+    try {
+      const payload = await this.jwt.verifyAsync<AccessTokenPayload>(token, {
+        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+      });
+
+      return await this.findSessionUser(payload);
+    } catch (error) {
+      // A malformed or expired token and a revoked session are the same answer to
+      // the client: reconnect with a fresh token.
+      if (error instanceof UnauthorizedException) throw error;
+
+      throw new UnauthorizedException('Invalid access token');
+    }
+  }
+
   private async signAccessToken(userId: string, sessionId: string): Promise<string> {
     const payload: AccessTokenPayload = { sub: userId, sid: sessionId };
 
