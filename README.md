@@ -1,9 +1,19 @@
 # NestCord
 
-A Discord clone I built as a personal learning project. Not a product — one API process, one
-PostgreSQL database, local file storage, scoped for a few hundred users at most.
+A Discord clone, and a deliberate exercise in directing AI coding tools across a real codebase.
 
-Full spec: [PLAN.MD](./PLAN.MD).
+Scope is fixed and small: one API process, one PostgreSQL database, local file storage, a few hundred
+users.
+
+Those constraints are committed alongside the code: [PLAN.MD](./PLAN.MD) for what gets built and what
+deliberately does not, [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` for the standards every change
+is reviewed against.
+
+> **Read before running this anywhere real.** Most of the code here was written by AI tools under my
+> direction and review. It is a learning project: nothing in it has been audited or
+> penetration-tested, and the security-sensitive parts — authentication, authorization, file uploads
+> — are written to be sensible, not proven. Take it apart, learn from it, borrow from it. Do not put
+> it in front of real users and expect it to hold.
 
 ## Dependencies
 
