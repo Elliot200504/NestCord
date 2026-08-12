@@ -29,6 +29,11 @@ export function hasAccessToken(): boolean {
   return accessToken !== null;
 }
 
+/** The socket handshake needs the token itself, not just whether there is one. */
+export function getAccessToken(): string | null {
+  return accessToken;
+}
+
 interface RequestOptions extends RequestInit {
   /**
    * Whether a 401 should trigger a refresh-and-retry. Off for the auth routes
