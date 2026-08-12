@@ -2,13 +2,18 @@ import { redirect } from '@tanstack/react-router';
 
 import { hasAccessToken, refreshAccessToken } from '@/api/client';
 
-/** Where a visitor lands once they are signed in, until real servers arrive. */
-export const DEFAULT_APP_PATH = '/app/hq/general';
+/**
+ * Where a visitor lands once they are signed in.
+ *
+ * The direct-message route rather than a server: which servers someone is in is only
+ * known after the rail loads, and `@me` is always there.
+ */
+export const DEFAULT_APP_PATH = '/app/@me/friends';
 
 /** The same destination in the form TanStack Router type-checks links against. */
 export const DEFAULT_APP_ROUTE = {
   to: '/app/$serverId/$channelId',
-  params: { serverId: 'hq', channelId: 'general' },
+  params: { serverId: '@me', channelId: 'friends' },
 } as const;
 
 /**
