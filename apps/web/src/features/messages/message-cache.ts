@@ -33,21 +33,30 @@ export function writeMessages(
 /**
  * Adds a message that arrived over the socket, unless it is already here.
  *
- * The sender receives its own broadcast, so this is also the second copy of a message
- * that was shown optimistically. Ignoring an id already in the cache is what stops the
- * two racing into a duplicate.
+ * The sender receives its own broadcast, so for them this is a second copy of a
+ * message already on screen. It is matched two ways: by id, for a message the cache
+ * has seen, and by `nonce`, for one still showing under the provisional id the sender
+ * gave it. Matching by nonce is what keeps the sender's own message from appearing
+ * twice at all — collapsing the pair later would still have flashed a duplicate.
  */
 export function upsertMessage(queryClient: QueryClient, channelId: string, message: Message): void {
   const current = readMessages(queryClient, channelId);
 
   if (!current) return;
 
-  const known = current.pages.some((page) =>
-    page.items.some((existing) => existing.id === message.id),
-  );
+  const has = (id: string) =>
+    current.pages.some((page) => page.items.some((existing) => existing.id === id));
 
-  if (known) {
+  if (has(message.id)) {
     replaceMessage(queryClient, channelId, message.id, message);
+
+    return;
+  }
+
+  // Our own send, answered by the broadcast before the request came back. Replacing
+  // the provisional copy leaves the message where it already is on screen.
+  if (message.nonce && has(message.nonce)) {
+    replaceMessage(queryClient, channelId, message.nonce, message);
 
     return;
   }
