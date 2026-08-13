@@ -145,6 +145,18 @@ export interface Message {
   replyTo: MessageReference | null;
   attachments: MessageAttachment[];
   reactions: MessageReaction[];
+  /**
+   * The provisional id the sender gave this message before it was stored, echoed
+   * back on the copy that answers their send and on its broadcast.
+   *
+   * It exists so the sender can recognise its own message coming back: the optimistic
+   * copy is already on screen under this id, so the broadcast replaces it in place
+   * instead of arriving as a second message and being collapsed a moment later.
+   *
+   * Absent on history, on edits, and on anything the reader did not send. The
+   * broadcast carries it to the whole channel, where it simply matches nothing.
+   */
+  nonce?: string;
 }
 
 /** A server as the rail shows it: enough to draw an icon and a tooltip. */
