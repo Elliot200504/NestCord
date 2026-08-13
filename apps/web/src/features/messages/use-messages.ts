@@ -42,11 +42,14 @@ export function flattenMessages(pages: Array<{ items: Message[] }> | undefined):
  * The optimistic copy is a real `Message` with a generated id, so nothing downstream
  * has to know it is provisional; when the server answers, it is swapped for the row
  * that was actually stored. A failure takes it back out and surfaces the error.
+ *
+ * Call `submit` rather than `mutate`: it mints the nonce that ties the three copies of
+ * this message together — the optimistic one, the response, and the broadcast.
  */
 export function useSendMessage(serverId: string, channelId: string, author: PublicUser) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (input: SendMessageInput) => messagesApi.send(serverId, channelId, input),
 
     onMutate: (input) => {
@@ -64,6 +67,18 @@ export function useSendMessage(serverId: string, channelId: string, author: Publ
       if (context) removeMessage(queryClient, channelId, context.pendingId);
     },
   });
+
+  return {
+    ...mutation,
+    /**
+     * Shows the message and sends it under a fresh nonce.
+     *
+     * The nonce is minted here rather than at the call site so the composer does not
+     * have to know the protocol, and once rather than per copy so the optimistic
+     * message, the response and the broadcast all agree on one id.
+     */
+    submit: (input: SendMessageInput) => mutation.mutate({ ...input, nonce: crypto.randomUUID() }),
+  };
 }
 
 export function useEditMessage(serverId: string, channelId: string) {
@@ -147,7 +162,9 @@ function optimisticMessage(
   author: PublicUser,
 ): Message {
   return {
-    id: crypto.randomUUID(),
+    // The nonce, so the broadcast of this message finds the copy already on screen.
+    // Absent only if something called `mutate` directly, where a plain id is fine.
+    id: input.nonce ?? crypto.randomUUID(),
     channelId,
     author,
     content: input.content ?? '',
