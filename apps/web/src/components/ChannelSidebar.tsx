@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { ChevronDown, Hash, Plus, Volume2 } from 'lucide-react';
+import { ChevronDown, Hash, Plus, Users, Volume2 } from 'lucide-react';
 
 import { has, Permission, type Channel } from '@nestcord/shared';
 
@@ -8,6 +8,7 @@ import { ChannelMenu } from '@/features/channels/ChannelMenu';
 import { ChannelSettingsDialog } from '@/features/channels/ChannelSettingsDialog';
 import { CreateChannelDialog } from '@/features/channels/CreateChannelDialog';
 import { groupByCategory, useChannels } from '@/features/channels/use-channels';
+import { incomingCount, useFriends } from '@/features/friends/use-friends';
 import { ServerMenu } from '@/features/servers/ServerMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useServer } from '@/features/servers/use-servers';
@@ -52,9 +53,7 @@ export function ChannelSidebar() {
       )}
 
       {activeServerId === null ? (
-        <p className="text-content-500 flex-1 px-4 py-4 text-sm">
-          Direct messages arrive in a later phase.
-        </p>
+        <DirectMessagesPanel />
       ) : (
         <ChannelList
           query={channels}
@@ -89,6 +88,40 @@ export function ChannelSidebar() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The `@me` sidebar: Friends today, the conversation list alongside it once DMs land.
+ *
+ * The badge counts requests waiting on you, so an incoming request is visible from
+ * anywhere in the app rather than only on the page itself.
+ */
+function DirectMessagesPanel() {
+  const { data: friends } = useFriends();
+  const waiting = incomingCount(friends ?? []);
+
+  return (
+    <nav aria-label="Direct messages" className="flex-1 px-2 py-4">
+      <Link
+        to="/app/@me/friends"
+        activeProps={{ className: 'bg-surface-600 text-content-100' }}
+        className="text-content-300 hover:bg-surface-700 hover:text-content-100 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
+      >
+        <Users className="text-content-500 size-4 shrink-0" aria-hidden />
+        <span className="flex-1 truncate">Friends</span>
+
+        {waiting > 0 && (
+          <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-xs">
+            {waiting}
+          </span>
+        )}
+      </Link>
+
+      <p className="text-content-500 px-2.5 pt-4 text-xs">
+        Direct message conversations arrive in the next slice.
+      </p>
+    </nav>
   );
 }
 

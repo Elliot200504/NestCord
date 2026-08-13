@@ -95,7 +95,7 @@ describe('MessageComposer', () => {
     await userEvent.type(screen.getByLabelText('Message #general'), 'hello there{Enter}');
 
     await waitFor(() => expect(calls).toHaveLength(1));
-    expect(calls[0]?.body).toEqual({ content: 'hello there' });
+    expect(calls[0]?.body).toEqual({ content: 'hello there', nonce: expect.any(String) });
   });
 
   it('clears the box after sending', async () => {
@@ -140,7 +140,11 @@ describe('MessageComposer', () => {
     await userEvent.type(screen.getByLabelText('Message #general'), 'answering{Enter}');
 
     await waitFor(() => expect(calls).toHaveLength(1));
-    expect(calls[0]?.body).toEqual({ content: 'answering', replyToId: 'message-7' });
+    expect(calls[0]?.body).toEqual({
+      content: 'answering',
+      replyToId: 'message-7',
+      nonce: expect.any(String),
+    });
   });
 
   it('forgets the reply once it has been sent', async () => {

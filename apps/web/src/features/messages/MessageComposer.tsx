@@ -51,7 +51,7 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
     event?.preventDefault();
     if (!isSendable) return;
 
-    send.mutate({
+    send.submit({
       ...(trimmed ? { content: trimmed } : {}),
       ...(replyTarget ? { replyToId: replyTarget.messageId } : {}),
       ...(pending.length > 0 ? { attachmentIds: pending.map((attachment) => attachment.id) } : {}),

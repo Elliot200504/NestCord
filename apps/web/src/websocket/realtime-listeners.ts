@@ -101,6 +101,12 @@ export function registerRealtimeListeners(
       payload,
       ...(current ?? []),
     ]);
+
+    // A friend request changes the friends list too, and the notification is the only
+    // event that says so — so the list is re-read rather than given an event of its own.
+    if (payload.type === 'FRIEND_REQUEST') {
+      void queryClient.invalidateQueries({ queryKey: keys.friends });
+    }
   };
 
   /**
@@ -112,6 +118,7 @@ export function registerRealtimeListeners(
     void queryClient.invalidateQueries({ queryKey: ['messages'] });
     void queryClient.invalidateQueries({ queryKey: ['servers'] });
     void queryClient.invalidateQueries({ queryKey: keys.notifications });
+    void queryClient.invalidateQueries({ queryKey: keys.friends });
   };
 
   const onDisconnect = () => {

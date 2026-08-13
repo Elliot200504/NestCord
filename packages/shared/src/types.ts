@@ -145,6 +145,18 @@ export interface Message {
   replyTo: MessageReference | null;
   attachments: MessageAttachment[];
   reactions: MessageReaction[];
+  /**
+   * The provisional id the sender gave this message before it was stored, echoed
+   * back on the copy that answers their send and on its broadcast.
+   *
+   * It exists so the sender can recognise its own message coming back: the optimistic
+   * copy is already on screen under this id, so the broadcast replaces it in place
+   * instead of arriving as a second message and being collapsed a moment later.
+   *
+   * Absent on history, on edits, and on anything the reader did not send. The
+   * broadcast carries it to the whole channel, where it simply matches nothing.
+   */
+  nonce?: string;
 }
 
 /** A server as the rail shows it: enough to draw an icon and a tooltip. */
@@ -189,6 +201,34 @@ export interface InvitePreview {
   code: string;
   server: ServerSummary;
   memberCount: number;
+}
+
+/**
+ * Which way round a friendship is, from the asking user's point of view.
+ *
+ * One row covers both people, so the row alone cannot say whether you sent the
+ * request or received it — this is that answer, resolved per viewer.
+ */
+export type FriendDirection = 'INCOMING' | 'OUTGOING';
+
+/**
+ * One entry on the friends page: the other person, plus where you stand.
+ *
+ * Always relative to whoever asked. The same stored row is an incoming request to
+ * one person and an outgoing one to the other, so the API resolves that rather than
+ * making the client work out which side of the pair it is looking at.
+ */
+export interface Friend {
+  /** The friendship row. Actions address the *user*, so this is for keys and links. */
+  id: string;
+  user: PublicUser;
+  status: FriendshipStatus;
+  /**
+   * Meaningful for `PENDING` (who asked) and `BLOCKED` (who blocked). On `ACCEPTED`
+   * it is history: it says who originally asked, which nothing renders.
+   */
+  direction: FriendDirection;
+  createdAt: string;
 }
 
 export interface Paginated<T> {

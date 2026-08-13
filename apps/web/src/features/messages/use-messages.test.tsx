@@ -99,7 +99,7 @@ describe('useSendMessage', () => {
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
     const { result } = renderHook(() => useSendMessage(SERVER, CHANNEL, AUTHOR), { wrapper });
-    result.current.mutate({ content: 'hi there' });
+    result.current.submit({ content: 'hi there' });
 
     await waitFor(() => expect(messages()).toHaveLength(1));
     expect(messages()[0]?.content).toBe('hi there');
@@ -110,7 +110,7 @@ describe('useSendMessage', () => {
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
     const { result } = renderHook(() => useSendMessage(SERVER, CHANNEL, AUTHOR), { wrapper });
-    result.current.mutate({ content: 'hi there' });
+    result.current.submit({ content: 'hi there' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(messages().map((item) => item.id)).toEqual(['stored']);
@@ -121,7 +121,7 @@ describe('useSendMessage', () => {
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
     const { result } = renderHook(() => useSendMessage(SERVER, CHANNEL, AUTHOR), { wrapper });
-    result.current.mutate({ content: 'not allowed' });
+    result.current.submit({ content: 'not allowed' });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(messages()).toHaveLength(0);
@@ -132,7 +132,7 @@ describe('useSendMessage', () => {
     const { wrapper } = harness({ items: [], nextCursor: null });
 
     const { result } = renderHook(() => useSendMessage(SERVER, CHANNEL, AUTHOR), { wrapper });
-    result.current.mutate({ content: 'answer', replyToId: 'message-1', attachmentIds: ['file-1'] });
+    result.current.submit({ content: 'answer', replyToId: 'message-1', attachmentIds: ['file-1'] });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(calls[0]?.path).toBe(`/api/servers/${SERVER}/channels/${CHANNEL}/messages`);
@@ -140,7 +140,42 @@ describe('useSendMessage', () => {
       content: 'answer',
       replyToId: 'message-1',
       attachmentIds: ['file-1'],
+      // Minted by `submit`, so the broadcast can be matched to this send.
+      nonce: expect.any(String),
     });
+  });
+
+  /**
+   * The provisional copy has to be findable by the nonce for the whole time the
+   * request is in flight — that is the window the broadcast can arrive in. The
+   * response is held open here so that window is the whole test.
+   */
+  it('shows the message under the nonce it sent, so the broadcast can find it', async () => {
+    const calls: Call[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({
+          path: String(input),
+          method: init?.method,
+          body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {},
+        });
+
+        // Never resolves: the send stays in flight.
+        return new Promise<Response>(() => {});
+      }),
+    );
+
+    const { wrapper, messages } = harness({ items: [], nextCursor: null });
+    const { result } = renderHook(() => useSendMessage(SERVER, CHANNEL, AUTHOR), { wrapper });
+    result.current.submit({ content: 'hi there' });
+
+    await waitFor(() => expect(messages()).toHaveLength(1));
+
+    const nonce = calls[0]?.body.nonce;
+
+    expect(nonce).toBeTruthy();
+    expect(messages()[0]?.id).toBe(nonce);
   });
 });
 

@@ -463,6 +463,46 @@ describe('MessagesService.create', () => {
     expect(sent.editedAt).toBeNull();
   });
 
+  /**
+   * The sender shows the message before it is stored and needs to recognise its own
+   * copy coming back — on the response and on the broadcast, since either can arrive
+   * first. Without the echo the sender sees the message twice.
+   */
+  it('echoes the nonce on both the response and the broadcast', async () => {
+    const { messages, broadcasts } = buildHarness({});
+
+    const sent = await messages.create(member(), CHANNEL, {
+      content: 'hello there',
+      nonce: 'nonce-1',
+    });
+
+    expect(sent.nonce).toBe('nonce-1');
+    expect(broadcasts[0]?.payload).toMatchObject({ nonce: 'nonce-1' });
+  });
+
+  it('leaves the nonce off a message sent without one', async () => {
+    const { messages } = buildHarness({});
+
+    const sent = await messages.create(member(), CHANNEL, { content: 'hello there' });
+
+    expect(sent.nonce).toBeUndefined();
+  });
+
+  it('does not store the nonce', async () => {
+    const { messages } = buildHarness({});
+
+    const sent = await messages.create(member(), CHANNEL, {
+      content: 'hello there',
+      nonce: 'nonce-1',
+    });
+
+    // Read back through history, where a nonce would be meaningless.
+    const [listed] = (await messages.list(member(), CHANNEL, {})).items;
+
+    expect(listed?.id).toBe(sent.id);
+    expect(listed?.nonce).toBeUndefined();
+  });
+
   it('trims the content', async () => {
     const { messages } = buildHarness({});
 

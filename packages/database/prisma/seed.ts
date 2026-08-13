@@ -9,7 +9,12 @@ import { resolve } from 'node:path';
 import * as argon2 from 'argon2';
 import { config as loadEnv } from 'dotenv';
 
-import { ALL_PERMISSIONS, DEFAULT_EVERYONE_PERMISSIONS, Permission } from '@nestcord/shared';
+import {
+  ALL_PERMISSIONS,
+  DEFAULT_EVERYONE_PERMISSIONS,
+  friendshipPair,
+  Permission,
+} from '@nestcord/shared';
 
 import { createPrismaClient } from '../src/index.js';
 
@@ -280,29 +285,28 @@ async function main(): Promise<void> {
   }
 
   console.log('Creating friendships...');
+  // `friendshipPair` puts each pair in the canonical order the API looks rows up by,
+  // so a seeded friendship can be accepted, removed and blocked like any other.
+  // `requestedBy` is what carries the direction.
   await prisma.friendship.createMany({
     data: [
       {
-        userId: testUser.id,
-        friendId: pick(others, 0).id,
+        ...friendshipPair(testUser.id, pick(others, 0).id),
         status: 'ACCEPTED',
         requestedBy: testUser.id,
       },
       {
-        userId: testUser.id,
-        friendId: pick(others, 1).id,
+        ...friendshipPair(testUser.id, pick(others, 1).id),
         status: 'ACCEPTED',
         requestedBy: pick(others, 1).id,
       },
       {
-        userId: pick(others, 2).id,
-        friendId: testUser.id,
+        ...friendshipPair(pick(others, 2).id, testUser.id),
         status: 'PENDING',
         requestedBy: pick(others, 2).id,
       },
       {
-        userId: testUser.id,
-        friendId: pick(others, 3).id,
+        ...friendshipPair(testUser.id, pick(others, 3).id),
         status: 'BLOCKED',
         requestedBy: testUser.id,
       },

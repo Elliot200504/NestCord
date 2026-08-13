@@ -33,21 +33,30 @@ export function writeMessages(
 /**
  * Adds a message that arrived over the socket, unless it is already here.
  *
- * The sender receives its own broadcast, so this is also the second copy of a message
- * that was shown optimistically. Ignoring an id already in the cache is what stops the
- * two racing into a duplicate.
+ * The sender receives its own broadcast, so for them this is a second copy of a
+ * message already on screen. It is matched two ways: by id, for a message the cache
+ * has seen, and by `nonce`, for one still showing under the provisional id the sender
+ * gave it. Matching by nonce is what keeps the sender's own message from appearing
+ * twice at all — collapsing the pair later would still have flashed a duplicate.
  */
 export function upsertMessage(queryClient: QueryClient, channelId: string, message: Message): void {
   const current = readMessages(queryClient, channelId);
 
   if (!current) return;
 
-  const known = current.pages.some((page) =>
-    page.items.some((existing) => existing.id === message.id),
-  );
+  const has = (id: string) =>
+    current.pages.some((page) => page.items.some((existing) => existing.id === id));
 
-  if (known) {
+  if (has(message.id)) {
     replaceMessage(queryClient, channelId, message.id, message);
+
+    return;
+  }
+
+  // Our own send, answered by the broadcast before the request came back. Replacing
+  // the provisional copy leaves the message where it already is on screen.
+  if (message.nonce && has(message.nonce)) {
+    replaceMessage(queryClient, channelId, message.nonce, message);
 
     return;
   }
@@ -80,6 +89,9 @@ export function prependMessage(
  *
  * Any other copy of the incoming message is dropped: swapping a provisional message
  * for the stored one has to collapse the two if the broadcast already delivered it.
+ * The broadcast copy is prepended above the provisional one, so which of the two comes
+ * first in the page decides nothing — the first slot either meets keeps the message and
+ * every later copy of it goes.
  */
 export function replaceMessage(
   queryClient: QueryClient,
@@ -90,21 +102,21 @@ export function replaceMessage(
   const current = readMessages(queryClient, channelId);
   if (!current) return;
 
-  let replaced = false;
+  let kept = false;
 
   writeMessages(queryClient, channelId, {
     ...current,
     pages: current.pages.map((page) => ({
       ...page,
       items: page.items.flatMap((message) => {
-        if (message.id === messageId) {
-          replaced = true;
+        // Neither the message being replaced nor a duplicate of what replaces it.
+        if (message.id !== messageId && message.id !== next.id) return [message];
 
-          return [next];
-        }
+        if (kept) return [];
 
-        // A duplicate of what we are inserting, from the socket having got here first.
-        return message.id === next.id && replaced ? [] : [message];
+        kept = true;
+
+        return [next];
       }),
     })),
   });
@@ -198,9 +210,7 @@ export function applyReaction(
       count === 0
         ? message.reactions.filter((reaction) => reaction.emoji !== emoji)
         : message.reactions.map((reaction) =>
-            reaction.emoji === emoji
-              ? { emoji, count, me: mine ? false : reaction.me }
-              : reaction,
+            reaction.emoji === emoji ? { emoji, count, me: mine ? false : reaction.me } : reaction,
           ),
   };
 }
