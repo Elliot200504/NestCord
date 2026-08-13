@@ -5,8 +5,10 @@ import {
   mentionsEveryone,
   type Message,
   type NotificationPayload,
+  type PublicUser,
 } from '@nestcord/shared';
 
+import { PUBLIC_USER_SELECT } from '../auth/public-user';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RealtimeService } from '../gateway/realtime.service';
@@ -73,6 +75,34 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Tells someone they have a friend request (PLAN.MD §20).
+   *
+   * `sourceId` is the friendship row, and the actor travels in the payload, so a
+   * connected client can render the request without a follow-up fetch.
+   */
+  async notifyFriendRequest(
+    recipientId: string,
+    friendshipId: string,
+    actor: PublicUser,
+  ): Promise<void> {
+    const notification = await this.prisma.client.notification.create({
+      data: { userId: recipientId, type: 'FRIEND_REQUEST', sourceId: friendshipId },
+      select: NOTIFICATION_SELECT,
+    });
+
+    this.realtime.notify(recipientId, {
+      id: notification.id,
+      type: 'FRIEND_REQUEST',
+      sourceId: friendshipId,
+      createdAt: notification.createdAt.toISOString(),
+      actor,
+      serverId: null,
+      channelId: null,
+      preview: null,
+    });
+  }
+
   /** Your unread notifications, newest first. */
   async list(userId: string): Promise<NotificationPayload[]> {
     const notifications = await this.prisma.client.notification.findMany({
@@ -83,24 +113,29 @@ export class NotificationsService {
     });
 
     const messages = await this.mentionedMessages(notifications);
+    const requesters = await this.friendRequestActors(notifications);
 
     return notifications
       .filter((notification) => {
-        // A mention whose message has been deleted has nowhere to send you and nothing
-        // to show, so it is not worth listing.
-        if (notification.type !== 'MENTION') return true;
+        if (notification.sourceId === null) return true;
 
-        return notification.sourceId !== null && messages.has(notification.sourceId);
+        // A notification whose subject is gone — the message was deleted, the request
+        // was withdrawn — has nowhere to send you and nothing to show.
+        if (notification.type === 'MENTION') return messages.has(notification.sourceId);
+        if (notification.type === 'FRIEND_REQUEST') return requesters.has(notification.sourceId);
+
+        return true;
       })
       .map((notification) => {
         const source = notification.sourceId ? messages.get(notification.sourceId) : undefined;
+        const requester = notification.sourceId ? requesters.get(notification.sourceId) : undefined;
 
         return {
           id: notification.id,
           type: notification.type,
           sourceId: notification.sourceId,
           createdAt: notification.createdAt.toISOString(),
-          actor: source?.author ?? null,
+          actor: source?.author ?? requester ?? null,
           serverId: source?.channel?.serverId ?? null,
           channelId: source?.channelId ?? null,
           preview: source ? preview(source.content) : null,
@@ -171,6 +206,41 @@ export class NotificationsService {
     });
 
     return new Map(messages.map((message) => [message.id, message]));
+  }
+
+  /**
+   * Who sent each pending friend request in a page of notifications, in one query.
+   *
+   * A friendship row is symmetrical, so the sender is whichever side of the pair
+   * matches `requestedBy` — the same resolution the friends module does, but for one
+   * field, which is not worth a cross-module call.
+   */
+  private async friendRequestActors(
+    notifications: Array<{ type: string; sourceId: string | null }>,
+  ): Promise<Map<string, PublicUser>> {
+    const ids = notifications
+      .filter((notification) => notification.type === 'FRIEND_REQUEST')
+      .map((notification) => notification.sourceId)
+      .filter((sourceId): sourceId is string => sourceId !== null);
+
+    if (ids.length === 0) return new Map();
+
+    const friendships = await this.prisma.client.friendship.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        requestedBy: true,
+        user: { select: PUBLIC_USER_SELECT },
+        friend: { select: PUBLIC_USER_SELECT },
+      },
+    });
+
+    return new Map(
+      friendships.map((friendship) => [
+        friendship.id,
+        friendship.user.id === friendship.requestedBy ? friendship.user : friendship.friend,
+      ]),
+    );
   }
 }
 
