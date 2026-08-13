@@ -29,9 +29,8 @@ export function ServerRail() {
       className="bg-surface-900 flex w-[68px] shrink-0 flex-col items-center gap-2.5 py-4"
     >
       <Link
-        to="/app/$serverId/$channelId"
-        params={{ serverId: '@me', channelId: 'friends' }}
-        aria-label="Direct messages"
+        to="/app/@me/friends"
+        aria-label="Friends and direct messages"
         className={cn(DOOR, IDLE_DOOR, activeServerId === '@me' && ACTIVE_DOOR)}
       >
         <Compass className="size-5" aria-hidden />
