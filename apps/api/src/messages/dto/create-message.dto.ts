@@ -21,6 +21,16 @@ export class CreateMessageDto {
   replyToId?: string;
 
   @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      "The sender's provisional id for this message, echoed back on the response and " +
+      'its broadcast so the sender can match its own optimistic copy',
+  })
+  @IsOptional()
+  @IsUUID()
+  nonce?: string;
+
+  @ApiPropertyOptional({
     type: [String],
     format: 'uuid',
     maxItems: MESSAGE_MAX_ATTACHMENTS,
