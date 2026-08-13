@@ -6,6 +6,11 @@ export interface SendMessageInput {
   content?: string;
   replyToId?: string;
   attachmentIds?: string[];
+  /**
+   * The id the optimistic copy is already showing under. The server echoes it back,
+   * which is how the broadcast is recognised as this send rather than a new message.
+   */
+  nonce?: string;
 }
 
 function channelPath(serverId: string, channelId: string): string {
