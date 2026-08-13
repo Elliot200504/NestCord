@@ -80,6 +80,9 @@ export function prependMessage(
  *
  * Any other copy of the incoming message is dropped: swapping a provisional message
  * for the stored one has to collapse the two if the broadcast already delivered it.
+ * The broadcast copy is prepended above the provisional one, so which of the two comes
+ * first in the page decides nothing — the first slot either meets keeps the message and
+ * every later copy of it goes.
  */
 export function replaceMessage(
   queryClient: QueryClient,
@@ -90,21 +93,21 @@ export function replaceMessage(
   const current = readMessages(queryClient, channelId);
   if (!current) return;
 
-  let replaced = false;
+  let kept = false;
 
   writeMessages(queryClient, channelId, {
     ...current,
     pages: current.pages.map((page) => ({
       ...page,
       items: page.items.flatMap((message) => {
-        if (message.id === messageId) {
-          replaced = true;
+        // Neither the message being replaced nor a duplicate of what replaces it.
+        if (message.id !== messageId && message.id !== next.id) return [message];
 
-          return [next];
-        }
+        if (kept) return [];
 
-        // A duplicate of what we are inserting, from the socket having got here first.
-        return message.id === next.id && replaced ? [] : [message];
+        kept = true;
+
+        return [next];
       }),
     })),
   });
@@ -198,9 +201,7 @@ export function applyReaction(
       count === 0
         ? message.reactions.filter((reaction) => reaction.emoji !== emoji)
         : message.reactions.map((reaction) =>
-            reaction.emoji === emoji
-              ? { emoji, count, me: mine ? false : reaction.me }
-              : reaction,
+            reaction.emoji === emoji ? { emoji, count, me: mine ? false : reaction.me } : reaction,
           ),
   };
 }
