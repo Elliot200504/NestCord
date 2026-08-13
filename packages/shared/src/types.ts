@@ -191,6 +191,34 @@ export interface InvitePreview {
   memberCount: number;
 }
 
+/**
+ * Which way round a friendship is, from the asking user's point of view.
+ *
+ * One row covers both people, so the row alone cannot say whether you sent the
+ * request or received it — this is that answer, resolved per viewer.
+ */
+export type FriendDirection = 'INCOMING' | 'OUTGOING';
+
+/**
+ * One entry on the friends page: the other person, plus where you stand.
+ *
+ * Always relative to whoever asked. The same stored row is an incoming request to
+ * one person and an outgoing one to the other, so the API resolves that rather than
+ * making the client work out which side of the pair it is looking at.
+ */
+export interface Friend {
+  /** The friendship row. Actions address the *user*, so this is for keys and links. */
+  id: string;
+  user: PublicUser;
+  status: FriendshipStatus;
+  /**
+   * Meaningful for `PENDING` (who asked) and `BLOCKED` (who blocked). On `ACCEPTED`
+   * it is history: it says who originally asked, which nothing renders.
+   */
+  direction: FriendDirection;
+  createdAt: string;
+}
+
 export interface Paginated<T> {
   items: T[];
   nextCursor: string | null;
