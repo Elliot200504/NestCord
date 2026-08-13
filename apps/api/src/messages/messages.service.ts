@@ -109,7 +109,11 @@ export class MessagesService {
       select: MESSAGE_SELECT,
     });
 
-    const sent = toMessage(message, member.userId);
+    // The nonce is echoed, never stored: it means nothing after the send it belongs
+    // to, and its only job is letting the sender match the copy it already has on
+    // screen. Both the response and the broadcast carry it, because the broadcast is
+    // the one that can arrive first.
+    const sent = { ...toMessage(message, member.userId), ...(dto.nonce && { nonce: dto.nonce }) };
 
     // Written first, then broadcast: nobody is told about a message that failed to
     // persist. The payload is the same shape the route returns, so a listener can put
