@@ -71,6 +71,26 @@ describe('replaceMessage', () => {
     expect(ids()).toEqual(['stored', 'older']);
   });
 
+  /**
+   * The window between the two is what the reader actually sees. Collapsing only when
+   * the send resolves leaves both copies on screen until then — a visible flash.
+   */
+  it('never holds two copies while the send is still in flight', () => {
+    const { queryClient, ids } = harness([message({ id: 'pending' }), message({ id: 'older' })]);
+
+    upsertMessage(queryClient, CHANNEL, message({ id: 'stored', nonce: 'pending' }));
+
+    expect(ids()).toEqual(['stored', 'older']);
+  });
+
+  it('keeps the message in place rather than moving it to the top', () => {
+    const { queryClient, ids } = harness([message({ id: 'newer' }), message({ id: 'pending' })]);
+
+    upsertMessage(queryClient, CHANNEL, message({ id: 'stored', nonce: 'pending' }));
+
+    expect(ids()).toEqual(['newer', 'stored']);
+  });
+
   it('collapses a socket copy that arrived after the send resolved', () => {
     const { queryClient, ids } = harness([message({ id: 'pending' }), message({ id: 'older' })]);
 
@@ -104,6 +124,16 @@ describe('upsertMessage', () => {
     upsertMessage(queryClient, CHANNEL, message());
 
     expect(queryClient.getQueryData(keys.messages(CHANNEL))).toBeUndefined();
+  });
+
+  it("prepends someone else's message, nonce or not", () => {
+    const { queryClient, ids } = harness([message({ id: 'older' })]);
+
+    // A nonce nobody here is waiting on: every client in the channel receives the
+    // sender's nonce, and for everyone but the sender it matches nothing.
+    upsertMessage(queryClient, CHANNEL, message({ id: 'theirs', nonce: 'their-pending' }));
+
+    expect(ids()).toEqual(['theirs', 'older']);
   });
 
   it('does not add a message the cache already holds', () => {
