@@ -15,6 +15,7 @@ import {
 
 import { useUiStore } from '@/stores/ui-store';
 import { useTyping } from '@/websocket/use-typing';
+import { channelMessages } from './api';
 import { useSendMessage, useUploadAttachment } from './use-messages';
 
 interface MessageComposerProps {
@@ -38,9 +39,10 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
   const replyTarget = useUiStore((state) => state.replyTargets[channel.id]);
   const cancelReply = useUiStore((state) => state.cancelReply);
 
-  const send = useSendMessage(serverId, channel.id, author);
+  const transport = channelMessages(serverId, channel.id);
+  const send = useSendMessage(transport, author);
   const { typing, stopTyping } = useTyping(channel.id);
-  const upload = useUploadAttachment(serverId, channel.id);
+  const upload = useUploadAttachment(transport);
 
   const canSend = has(channel.permissions, Permission.SEND_MESSAGES);
   const canAttach = has(channel.permissions, Permission.ATTACH_FILES);
