@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -23,13 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
-import {
-  Permission,
-  REACTION_EMOJI_MAX_LENGTH,
-  type Message,
-  type MessageReaction,
-  type Paginated,
-} from '@nestcord/shared';
+import { Permission, type Message, type MessageReaction, type Paginated } from '@nestcord/shared';
 
 import type { MemberContext } from '../common/permissions/member-context';
 import { Member } from '../common/permissions/member.decorator';
@@ -37,6 +30,7 @@ import { RequirePermission } from '../common/permissions/require-permission.deco
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ListMessagesDto } from './dto/list-messages.dto';
 import { MessageDto, MessagePageDto, MessageReactionDto } from './dto/message.dto';
+import { requireEmoji } from './message-reactions';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessagesService } from './messages.service';
 
@@ -144,18 +138,4 @@ export class ReactionsController {
   ): Promise<MessageReaction[]> {
     return this.messages.removeReaction(member, channelId, messageId, requireEmoji(emoji));
   }
-}
-
-/**
- * A path parameter gets no DTO validation, so the one rule it has is applied here:
- * short enough to be an emoji rather than a paragraph used as a label.
- */
-function requireEmoji(emoji: string): string {
-  const trimmed = emoji.trim();
-
-  if (!trimmed || [...trimmed].length > REACTION_EMOJI_MAX_LENGTH) {
-    throw new BadRequestException('That is not an emoji');
-  }
-
-  return trimmed;
 }
