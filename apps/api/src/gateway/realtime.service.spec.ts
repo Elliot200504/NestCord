@@ -19,6 +19,7 @@ function message(): Message {
   return {
     id: 'message-1',
     channelId: CHANNEL,
+    conversationId: null,
     author: {
       id: 'user-ada',
       username: 'ada',
@@ -69,12 +70,12 @@ describe('RealtimeService', () => {
   it('sends a deletion with only the ids needed to patch a cache', () => {
     const { realtime, sent } = buildHarness();
 
-    realtime.messageDeleted({ channelId: CHANNEL, messageId: 'message-1' });
+    realtime.messageDeleted({ channelId: CHANNEL, conversationId: null, messageId: 'message-1' });
 
     expect(sent[0]).toEqual({
       room: `channel:${CHANNEL}`,
       event: SocketEvent.MESSAGE_DELETE,
-      payload: { channelId: CHANNEL, messageId: 'message-1' },
+      payload: { channelId: CHANNEL, conversationId: null, messageId: 'message-1' },
     });
   });
 
@@ -85,6 +86,7 @@ describe('RealtimeService', () => {
 
     realtime.reactionAdded({
       channelId: CHANNEL,
+      conversationId: null,
       messageId: 'message-1',
       emoji: '👍',
       userId: 'user-ada',
@@ -92,6 +94,7 @@ describe('RealtimeService', () => {
 
     expect(sent[0]?.payload).toEqual({
       channelId: CHANNEL,
+      conversationId: null,
       messageId: 'message-1',
       emoji: '👍',
       userId: 'user-ada',
@@ -109,6 +112,7 @@ describe('RealtimeService', () => {
       actor: null,
       serverId: 'server-1',
       channelId: CHANNEL,
+      conversationId: null,
       preview: 'hey',
     });
 
