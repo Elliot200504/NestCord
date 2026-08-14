@@ -23,6 +23,7 @@ function message(overrides: Partial<Message> & { at?: number } = {}): Message {
   return {
     id: `message-${at}`,
     channelId: 'channel-1',
+    conversationId: null,
     author: ADA,
     content: 'hello',
     createdAt: new Date(START + at).toISOString(),
