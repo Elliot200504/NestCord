@@ -2,6 +2,7 @@ import { createRouter } from '@tanstack/react-router';
 
 import { appRoute } from './routes/app';
 import { channelRoute } from './routes/channel';
+import { conversationRoute } from './routes/conversation';
 import { friendsRoute } from './routes/friends';
 import { landingRoute } from './routes/landing';
 import { loginRoute } from './routes/login';
@@ -19,8 +20,9 @@ export const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   settingsRouteTree,
-  // `friendsRoute` is static and so wins over `channelRoute`'s parameters.
-  appRoute.addChildren([friendsRoute, serverRoute, channelRoute]),
+  // `friendsRoute` is fully static and so wins over both parameterised routes;
+  // `conversationRoute` sits under the static `@me` and so wins over `channelRoute`.
+  appRoute.addChildren([friendsRoute, conversationRoute, serverRoute, channelRoute]),
 ]);
 
 export const router = createRouter({
