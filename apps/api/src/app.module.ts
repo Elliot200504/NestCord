@@ -11,6 +11,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
+import { DmsModule } from './dms/dms.module';
 import { FriendsModule } from './friends/friends.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module';
     MessagesModule,
     AttachmentsModule,
     FriendsModule,
+    DmsModule,
     NotificationsModule,
     GatewayModule,
     HealthModule,
