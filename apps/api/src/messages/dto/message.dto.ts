@@ -53,8 +53,21 @@ export class MessageDto implements Message {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ format: 'uuid' })
-  channelId!: string;
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description: 'Set on a channel message; null on a DM',
+  })
+  channelId!: string | null;
+
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description: 'Set on a DM; null on a channel message',
+  })
+  conversationId!: string | null;
 
   @ApiProperty({ type: PublicUserDto })
   author!: PublicUserDto;
