@@ -29,6 +29,14 @@ export class NotificationDto implements NotificationPayload {
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   channelId!: string | null;
 
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description: 'Set on a DM notification',
+  })
+  conversationId!: string | null;
+
   @ApiProperty({ nullable: true, type: String, description: 'One line of the message' })
   preview!: string | null;
 }
