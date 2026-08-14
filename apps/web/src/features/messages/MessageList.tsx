@@ -7,6 +7,7 @@ import { useChannels } from '@/features/channels/use-channels';
 import { useMembers } from '@/features/servers/use-servers';
 import { useAppearanceStore } from '@/stores/appearance-store';
 import { useUiStore } from '@/stores/ui-store';
+import { channelMessages } from './api';
 import { messageAnchorId } from './message-anchor';
 import {
   flattenMessages,
@@ -32,17 +33,18 @@ interface MessageListProps {
  * the top of a reversed list very much can.
  */
 export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
+  const transport = channelMessages(serverId, channel.id);
   const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useMessages(serverId, channel.id);
+    useMessages(transport);
 
   const { data: members } = useMembers(serverId);
   const { data: channels } = useChannels(serverId);
   const isCompact = useAppearanceStore((state) => state.density) === 'compact';
   const startReply = useUiStore((state) => state.startReply);
 
-  const toggleReaction = useToggleReaction(serverId, channel.id);
-  const editMessage = useEditMessage(serverId, channel.id);
-  const deleteMessage = useDeleteMessage(serverId, channel.id);
+  const toggleReaction = useToggleReaction(transport);
+  const editMessage = useEditMessage(transport);
+  const deleteMessage = useDeleteMessage(transport);
 
   const messages = flattenMessages(data?.pages);
   const groups = groupMessages(messages);
