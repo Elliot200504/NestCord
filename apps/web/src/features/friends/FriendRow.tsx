@@ -1,9 +1,11 @@
-import { Ban, Check, UserMinus, X } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { Ban, Check, MessageSquare, UserMinus, X } from 'lucide-react';
 
 import type { Friend } from '@nestcord/shared';
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/button';
+import { useOpenConversation } from '@/features/dms/use-conversations';
 import {
   useAcceptFriendRequest,
   useBlockUser,
@@ -19,14 +21,39 @@ import {
  * and reject wherever it appears, and a friend never offers "accept".
  */
 export function FriendRow({ friend }: { friend: Friend }) {
+  const navigate = useNavigate();
   const accept = useAcceptFriendRequest();
   const remove = useRemoveFriend();
   const block = useBlockUser();
   const unblock = useUnblockUser();
+  const openConversation = useOpenConversation();
 
   const name = friend.user.displayName ?? friend.user.username;
-  const isPending = accept.isPending || remove.isPending || block.isPending || unblock.isPending;
-  const error = accept.error ?? remove.error ?? block.error ?? unblock.error;
+  const isPending =
+    accept.isPending ||
+    remove.isPending ||
+    block.isPending ||
+    unblock.isPending ||
+    openConversation.isPending;
+  const error =
+    accept.error ?? remove.error ?? block.error ?? unblock.error ?? openConversation.error;
+
+  /**
+   * Opening a DM that already exists returns the existing one, so this needs no
+   * "do we already have one" check — the id it resolves to is the one to open.
+   */
+  function message() {
+    openConversation.mutate(
+      { userIds: [friend.user.id] },
+      {
+        onSuccess: (conversation) =>
+          void navigate({
+            to: '/app/@me/$conversationId',
+            params: { conversationId: conversation.id },
+          }),
+      },
+    );
+  }
 
   return (
     <li className="border-border/60 border-b last:border-b-0">
@@ -39,6 +66,18 @@ export function FriendRow({ friend }: { friend: Friend }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {friend.status === 'ACCEPTED' && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Message ${name}`}
+              disabled={isPending}
+              onClick={message}
+            >
+              <MessageSquare aria-hidden />
+            </Button>
+          )}
+
           {friend.status === 'PENDING' && friend.direction === 'INCOMING' && (
             <Button
               size="icon-sm"
