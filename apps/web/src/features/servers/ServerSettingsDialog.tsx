@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { FormStatus, TextField } from '@/features/settings/SettingsPrimitives';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
+import { AuditLogPanel } from './AuditLogPanel';
+import { BanList } from './BanList';
 import { RoleEditor } from './RoleEditor';
 import { useActiveServerId } from './useActiveServer';
 import {
@@ -26,7 +28,7 @@ import {
   useUploadServerIcon,
 } from './use-servers';
 
-type Tab = 'overview' | 'roles';
+type Tab = 'overview' | 'roles' | 'bans' | 'audit-log';
 
 export function ServerSettingsDialog() {
   const activeModal = useUiStore((state) => state.activeModal);
@@ -53,10 +55,15 @@ function SettingsBody({ server }: { server: Server }) {
 
   const canManageServer = has(server.permissions, Permission.MANAGE_SERVER);
   const canManageRoles = has(server.permissions, Permission.MANAGE_ROLES);
+  const canBan = has(server.permissions, Permission.BAN_MEMBERS);
 
   const tabs: ReadonlyArray<{ id: Tab; label: string; enabled: boolean }> = [
     { id: 'overview', label: 'Overview', enabled: canManageServer },
     { id: 'roles', label: 'Roles', enabled: canManageRoles },
+    { id: 'bans', label: 'Bans', enabled: canBan },
+    // The log spans channels, roles, messages and members, so reading it is the
+    // administrative permission rather than any single moderation one.
+    { id: 'audit-log', label: 'Audit log', enabled: canManageServer },
   ];
 
   const available = tabs.filter((entry) => entry.enabled);
@@ -101,6 +108,8 @@ function SettingsBody({ server }: { server: Server }) {
         {activeTab === 'roles' && (
           <RoleEditor serverId={server.id} ownPermissions={server.permissions} />
         )}
+        {activeTab === 'bans' && <BanList serverId={server.id} />}
+        {activeTab === 'audit-log' && <AuditLogPanel serverId={server.id} />}
       </div>
     </div>
   );
