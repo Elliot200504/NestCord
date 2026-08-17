@@ -9,6 +9,7 @@ import {
   type ServerRole,
 } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { Button } from '@/components/ui/button';
 import { ColorPicker, FormStatus, TextField } from '@/features/settings/SettingsPrimitives';
 import { PERMISSION_LABELS } from '@/lib/permission-labels';
@@ -32,7 +33,7 @@ export function RoleEditor({
   serverId: string;
   ownPermissions: number;
 }) {
-  const { data: roles, isPending, isError } = useRoles(serverId);
+  const { data: roles, isPending, isError, refetch } = useRoles(serverId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const create = useCreateRole(serverId);
 
@@ -41,11 +42,7 @@ export function RoleEditor({
   if (isPending) return <p className="text-content-500 text-sm">Loading roles…</p>;
 
   if (isError) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        Could not load the roles for this server.
-      </p>
-    );
+    return <QueryError what="the roles for this server" onRetry={() => void refetch()} />;
   }
 
   return (
