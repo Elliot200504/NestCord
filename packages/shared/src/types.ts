@@ -225,6 +225,48 @@ export interface InvitePreview {
 }
 
 /**
+ * Somebody who may not come back. Kept even after the account is gone from the
+ * member list, which is the whole point of a ban row.
+ */
+export interface ServerBan {
+  user: PublicUser;
+  /** Who banned them. Null when that account no longer exists. */
+  issuer: PublicUser | null;
+  reason: string | null;
+  bannedAt: string;
+}
+
+/**
+ * What an audit entry can record. Mirrors the `AuditAction` enum in the Prisma
+ * schema — the two must stay in step, and the API maps between them by name.
+ */
+export type AuditAction =
+  | 'MEMBER_KICK'
+  | 'MEMBER_BAN'
+  | 'MEMBER_UNBAN'
+  | 'MESSAGE_DELETE'
+  | 'CHANNEL_CREATE'
+  | 'CHANNEL_DELETE'
+  | 'ROLE_CREATE'
+  | 'ROLE_DELETE';
+
+/** One line in the audit log: who did what to whom, and why if they said. */
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  actor: PublicUser;
+  /**
+   * Who or what was acted on. A user for the member actions, otherwise the id of
+   * the message, channel or role — which may since have been deleted, so the UI
+   * shows the id rather than pretending to resolve it.
+   */
+  targetUser: PublicUser | null;
+  targetId: string | null;
+  reason: string | null;
+  createdAt: string;
+}
+
+/**
  * Which way round a friendship is, from the asking user's point of view.
  *
  * One row covers both people, so the row alone cannot say whether you sent the
@@ -322,6 +364,11 @@ export const ROLE_NAME_MAX_LENGTH = 32;
 export const DEFAULT_ROLE_NAME = '@everyone';
 /** The text channel created alongside a new server, so it is never empty. */
 export const DEFAULT_CHANNEL_NAME = 'general';
+
+/** A moderation reason: a sentence for the audit log, not a case file. */
+export const MODERATION_REASON_MAX_LENGTH = 512;
+/** One page of the audit log. It is browsed, not exported. */
+export const AUDIT_LOG_PAGE_SIZE = 50;
 
 /**
  * Group DMs, including whoever created it. Small on purpose: past a handful of
