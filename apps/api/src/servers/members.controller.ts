@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +23,7 @@ import { Permission, type ServerMember } from '@nestcord/shared';
 import type { MemberContext } from '../common/permissions/member-context';
 import { Member } from '../common/permissions/member.decorator';
 import { RequirePermission } from '../common/permissions/require-permission.decorator';
+import { KickMemberDto } from './dto/kick-member.dto';
 import { ServerMemberDto } from './dto/server.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { MembersService } from './members.service';
@@ -76,7 +78,8 @@ export class MembersController {
   kick(
     @Member() member: MemberContext,
     @Param('userId', ParseUUIDPipe) userId: string,
+    @Query() query: KickMemberDto,
   ): Promise<void> {
-    return this.members.kick(member, userId);
+    return this.members.kick(member, userId, query.reason);
   }
 }
