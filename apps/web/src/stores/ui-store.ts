@@ -11,9 +11,21 @@ export interface ReplyTarget {
   author: string;
 }
 
+/**
+ * Which side panel is overlaying the content on a narrow viewport.
+ *
+ * One slot rather than a flag per panel: below the shell breakpoint the panels are
+ * full-height overlays, so two of them open at once would simply cover each other.
+ */
+export type Drawer = 'channels' | 'members' | null;
+
 interface UiState {
+  /**
+   * Whether the member list gets a column of its own. Only consulted on a viewport
+   * wide enough to have one — narrow viewports use `drawer` instead.
+   */
   memberListOpen: boolean;
-  channelSidebarOpen: boolean;
+  drawer: Drawer;
   activeModal: 'create-server' | 'create-channel' | 'invite' | 'server-settings' | null;
   /**
    * Kept per channel: switching channels mid-reply and coming back should find the
@@ -22,7 +34,8 @@ interface UiState {
    */
   replyTargets: Record<string, ReplyTarget>;
   toggleMemberList: () => void;
-  toggleChannelSidebar: () => void;
+  openDrawer: (drawer: NonNullable<Drawer>) => void;
+  closeDrawer: () => void;
   openModal: (modal: UiState['activeModal']) => void;
   closeModal: () => void;
   startReply: (channelId: string, target: ReplyTarget) => void;
@@ -31,11 +44,12 @@ interface UiState {
 
 export const useUiStore = create<UiState>((set) => ({
   memberListOpen: true,
-  channelSidebarOpen: true,
+  drawer: null,
   activeModal: null,
   replyTargets: {},
   toggleMemberList: () => set((state) => ({ memberListOpen: !state.memberListOpen })),
-  toggleChannelSidebar: () => set((state) => ({ channelSidebarOpen: !state.channelSidebarOpen })),
+  openDrawer: (drawer) => set({ drawer }),
+  closeDrawer: () => set({ drawer: null }),
   openModal: (activeModal) => set({ activeModal }),
   closeModal: () => set({ activeModal: null }),
   startReply: (channelId, target) =>
