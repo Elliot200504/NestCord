@@ -7,6 +7,7 @@ import {
 
 import { type ServerRole } from '@nestcord/shared';
 
+import { AuditLogService } from '../common/audit/audit-log.service';
 import { grantablePermissions } from '../common/permissions/grantable';
 import {
   outranksMember,
@@ -30,6 +31,7 @@ export class RolesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
+    private readonly audit: AuditLogService,
   ) {}
 
   async list(serverId: string): Promise<ServerRole[]> {
@@ -65,6 +67,13 @@ export class RolesService {
         isDefault: false,
       },
       select: ROLE_SELECT,
+    });
+
+    await this.audit.record({
+      serverId: actor.serverId,
+      actorId: actor.userId,
+      action: 'ROLE_CREATE',
+      targetId: role.id,
     });
 
     return toServerRole(role);
@@ -113,6 +122,13 @@ export class RolesService {
     this.assertCanReachPosition(actor, role.position);
 
     await this.prisma.client.role.delete({ where: { id: role.id } });
+
+    await this.audit.record({
+      serverId: actor.serverId,
+      actorId: actor.userId,
+      action: 'ROLE_DELETE',
+      targetId: role.id,
+    });
   }
 
   async assign(actor: MemberContext, targetUserId: string, roleId: string): Promise<void> {
