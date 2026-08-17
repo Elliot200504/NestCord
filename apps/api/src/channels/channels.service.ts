@@ -14,6 +14,7 @@ import {
   type ChannelOverride,
 } from '@nestcord/shared';
 
+import { AuditLogService } from '../common/audit/audit-log.service';
 import { resolveChannelPermissions } from '../common/permissions/channel-overrides';
 import { grantablePermissions } from '../common/permissions/grantable';
 import { outranksMember, outranksPosition } from '../common/permissions/member-context';
@@ -35,6 +36,7 @@ export class ChannelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
+    private readonly audit: AuditLogService,
   ) {}
 
   /**
@@ -77,6 +79,13 @@ export class ChannelsService {
         position: await this.nextPosition(member.serverId, parentId),
       },
       select: CHANNEL_SELECT,
+    });
+
+    await this.audit.record({
+      serverId: member.serverId,
+      actorId: member.userId,
+      action: 'CHANNEL_CREATE',
+      targetId: channel.id,
     });
 
     // A brand new channel has no overrides, so the member's server-level
@@ -129,6 +138,13 @@ export class ChannelsService {
     await this.permissions.requireChannelPermission(member, channelId, Permission.MANAGE_CHANNELS);
 
     await this.prisma.client.channel.delete({ where: { id: channelId } });
+
+    await this.audit.record({
+      serverId: member.serverId,
+      actorId: member.userId,
+      action: 'CHANNEL_DELETE',
+      targetId: channelId,
+    });
   }
 
   /** The override list behind the channel's permission editor. */
