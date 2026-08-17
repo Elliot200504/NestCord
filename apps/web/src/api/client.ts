@@ -7,12 +7,18 @@
  * it is renewed from is an httpOnly cookie the browser handles for us.
  */
 
-import type { AuthSession } from '@nestcord/shared';
+import { type ApiErrorBody, type AuthSession, GENERIC_ERROR_MESSAGE } from '@nestcord/shared';
 
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /**
+     * The code the API sends with a failure it would not explain — the same code
+     * an admin looks up in the error log. Absent from the errors that explain
+     * themselves, which is most of them.
+     */
+    readonly reference?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -72,9 +78,14 @@ async function send(path: string, init: RequestInit): Promise<Response> {
 
 async function parse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string | string[] } | null;
-    const message = Array.isArray(body?.message) ? body?.message.join(', ') : body?.message;
-    throw new ApiError(response.status, message ?? `Request failed (${response.status})`);
+    // The API's exception filter guarantees `message` is safe to show a user. The
+    // array form is still handled: a 404 for a URL no route matches is answered by
+    // Express before the filter ever sees it.
+    const body = (await response.json().catch(() => null)) as
+      (Omit<ApiErrorBody, 'message'> & { message?: string | string[] }) | null;
+    const message = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+
+    throw new ApiError(response.status, message ?? GENERIC_ERROR_MESSAGE, body?.reference);
   }
 
   if (response.status === 204) return undefined as T;
