@@ -8,6 +8,7 @@ import {
   type ServerRole,
 } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { Button } from '@/components/ui/button';
 import { FormStatus } from '@/features/settings/SettingsPrimitives';
 import { CHANNEL_PERMISSION_NAMES, PERMISSION_LABELS } from '@/lib/permission-labels';
@@ -37,17 +38,18 @@ export function ChannelPermissionsEditor({
   roles: ServerRole[];
   ownPermissions: number;
 }) {
-  const { data: overrides, isPending, isError } = useChannelOverrides(serverId, channel.id);
+  const {
+    data: overrides,
+    isPending,
+    isError,
+    refetch,
+  } = useChannelOverrides(serverId, channel.id);
   const [roleId, setRoleId] = useState(roles[0]?.id ?? '');
 
   if (isPending) return <p className="text-content-500 text-sm">Loading permissions…</p>;
 
   if (isError || !overrides) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        Could not load this channel’s permissions.
-      </p>
-    );
+    return <QueryError what="this channel’s permissions" onRetry={() => void refetch()} />;
   }
 
   const selected = roles.find((role) => role.id === roleId) ?? roles[0];
