@@ -9,6 +9,9 @@ import { ServerSettingsDialog } from '../features/servers/ServerSettingsDialog';
 import { RealtimeProvider } from '../websocket/RealtimeProvider';
 import { rootRoute } from './root';
 
+/** Where the skip link lands, and what names the conversation for a screen reader. */
+const CONTENT_ID = 'shell-content';
+
 /**
  * The four-column shell: servers, channels, content, members.
  *
@@ -20,9 +23,23 @@ function AppLayout() {
   return (
     <RealtimeProvider>
       <div className="flex h-screen overflow-hidden">
+        {/* Every server and every channel sits between the top of the page and the
+            conversation, which is a long walk by keyboard. Off-screen until focused. */}
+        <a
+          href={`#${CONTENT_ID}`}
+          className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-lg focus:px-3 focus:py-2 focus:text-sm focus:font-medium"
+        >
+          Skip to the conversation
+        </a>
+
         <ServerRail />
         <ChannelSidebar />
-        <main className="bg-surface-700 flex min-w-0 flex-1">
+        <main
+          id={CONTENT_ID}
+          aria-label="Conversation"
+          tabIndex={-1}
+          className="bg-surface-700 flex min-w-0 flex-1"
+        >
           <Outlet />
         </main>
 
