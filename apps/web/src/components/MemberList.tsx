@@ -7,6 +7,7 @@ import { MemberMenu } from '@/features/servers/MemberMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useMembers, useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
+import { QueryError } from './QueryError';
 import { ShellPanel } from './ShellPanel';
 import { UserAvatar } from './UserAvatar';
 import { useUiStore } from '@/stores/ui-store';
@@ -14,7 +15,7 @@ import { useUiStore } from '@/stores/ui-store';
 export function MemberList() {
   const serverId = useActiveServerId();
 
-  const { data: members, isPending, isError } = useMembers(serverId);
+  const { data: members, isPending, isError, refetch } = useMembers(serverId);
   const { data: server } = useServer(serverId);
   const { data: me } = useCurrentUser();
 
@@ -57,9 +58,7 @@ export function MemberList() {
         )}
 
         {isError && (
-          <p role="alert" className="text-destructive px-2.5 text-sm">
-            Could not load the member list.
-          </p>
+          <QueryError what="the member list" onRetry={() => void refetch()} className="px-2.5" />
         )}
 
         {members &&
