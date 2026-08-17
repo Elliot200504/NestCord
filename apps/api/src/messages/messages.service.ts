@@ -20,7 +20,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { groupReactions, MESSAGE_SELECT, toMessage } from './message-response';
+import { reactionsOf } from './message-reactions';
+import { MESSAGE_SELECT, toMessage } from './message-response';
 import type { CreateMessageDto } from './dto/create-message.dto';
 import type { ListMessagesDto } from './dto/list-messages.dto';
 import type { UpdateMessageDto } from './dto/update-message.dto';
@@ -183,7 +184,7 @@ export class MessagesService {
 
     await this.prisma.client.message.delete({ where: { id: messageId } });
 
-    this.realtime.messageDeleted({ channelId, messageId });
+    this.realtime.messageDeleted({ channelId, conversationId: null, messageId });
 
     // The rows went with the message by cascade; the files on disk are ours to clean.
     await this.attachments.removeFiles(existing.attachments.map((attachment) => attachment.url));
@@ -205,9 +206,15 @@ export class MessagesService {
       create: { messageId, userId: member.userId, emoji },
     });
 
-    this.realtime.reactionAdded({ channelId, messageId, emoji, userId: member.userId });
+    this.realtime.reactionAdded({
+      channelId,
+      conversationId: null,
+      messageId,
+      emoji,
+      userId: member.userId,
+    });
 
-    return this.reactions(messageId, member.userId);
+    return reactionsOf(this.prisma, messageId, member.userId);
   }
 
   /**
@@ -227,19 +234,15 @@ export class MessagesService {
       where: { messageId, userId: member.userId, emoji },
     });
 
-    this.realtime.reactionRemoved({ channelId, messageId, emoji, userId: member.userId });
-
-    return this.reactions(messageId, member.userId);
-  }
-
-  private async reactions(messageId: string, viewerId: string): Promise<MessageReaction[]> {
-    const rows = await this.prisma.client.reaction.findMany({
-      where: { messageId },
-      select: { emoji: true, userId: true },
-      orderBy: { createdAt: 'asc' },
+    this.realtime.reactionRemoved({
+      channelId,
+      conversationId: null,
+      messageId,
+      emoji,
+      userId: member.userId,
     });
 
-    return groupReactions(rows, viewerId);
+    return reactionsOf(this.prisma, messageId, member.userId);
   }
 
   /**

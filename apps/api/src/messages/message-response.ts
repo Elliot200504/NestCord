@@ -19,6 +19,7 @@ import { PUBLIC_USER_SELECT, toPublicUser } from '../auth/public-user';
 export const MESSAGE_SELECT = {
   id: true,
   channelId: true,
+  conversationId: true,
   content: true,
   createdAt: true,
   editedAt: true,
@@ -38,6 +39,7 @@ export const MESSAGE_SELECT = {
 export interface MessageRow {
   id: string;
   channelId: string | null;
+  conversationId: string | null;
   content: string;
   createdAt: Date;
   editedAt: Date | null;
@@ -48,7 +50,7 @@ export interface MessageRow {
 }
 
 /**
- * The one place a message row becomes a response body.
+ * The one place a message row becomes a response body — for channels and DMs alike.
  *
  * `viewerId` is needed because a reaction is rendered differently for the person who
  * added it, so the answer to "did I react" is resolved here rather than by shipping
@@ -57,9 +59,10 @@ export interface MessageRow {
 export function toMessage(message: MessageRow, viewerId: string): Message {
   return {
     id: message.id,
-    // Non-null in practice: these routes only ever load channel messages, and a
-    // conversation message cannot be reached through them.
-    channelId: message.channelId ?? '',
+    // Exactly one of the two is set. Both travel, so a listener can tell a channel
+    // message from a DM without being told which route it came from.
+    channelId: message.channelId,
+    conversationId: message.conversationId,
     author: toPublicUser(message.author),
     content: message.content,
     createdAt: message.createdAt.toISOString(),

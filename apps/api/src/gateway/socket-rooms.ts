@@ -26,7 +26,7 @@ export class SocketRooms {
 
   /**
    * Every room this user may currently read: their own room, each server they are a
-   * member of, and each channel in those servers they can see.
+   * member of, each channel in those servers they can see, and each DM they are in.
    */
   async forUser(userId: string): Promise<string[]> {
     const memberships = await this.prisma.client.serverMember.findMany({
@@ -36,8 +36,27 @@ export class SocketRooms {
 
     const serverIds = memberships.map((membership) => membership.serverId);
     const channelIds = await this.visibleChannelIds(userId, serverIds);
+    const conversationIds = await this.conversationIdsOf(userId);
 
-    return [rooms.user(userId), ...serverIds.map(rooms.server), ...channelIds.map(rooms.channel)];
+    return [
+      rooms.user(userId),
+      ...serverIds.map(rooms.server),
+      ...channelIds.map(rooms.channel),
+      ...conversationIds.map(rooms.dm),
+    ];
+  }
+
+  /**
+   * The DMs this user is in. Participation *is* the permission here — there are no
+   * roles or overrides in a conversation, only who is in it.
+   */
+  async conversationIdsOf(userId: string): Promise<string[]> {
+    const participations = await this.prisma.client.conversationParticipant.findMany({
+      where: { userId },
+      select: { conversationId: true },
+    });
+
+    return participations.map((participation) => participation.conversationId);
   }
 
   /** The channels the user can see across the given servers. */

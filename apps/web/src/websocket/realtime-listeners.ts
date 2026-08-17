@@ -2,7 +2,9 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { Socket } from 'socket.io-client';
 
 import {
+  messageTargetId,
   SocketEvent,
+  type Conversation,
   type MemberJoinPayload,
   type MemberLeavePayload,
   type Message,
@@ -39,12 +41,26 @@ export function registerRealtimeListeners(
   queryClient: QueryClient,
   viewerId: string,
 ): () => void {
+  // Channel messages and DMs arrive on the same events and land in the same cache,
+  // keyed by whichever of the two ids the payload carries.
   const onMessageCreate = (message: Message) => {
-    upsertMessage(queryClient, message.channelId, message);
+    const listId = messageTargetId(message);
+    if (!listId) return;
+
+    upsertMessage(queryClient, listId, message);
+
+    // A DM moves its conversation to the top of the list, and the list is the only
+    // thing that knows the order — so it is re-read rather than reordered here.
+    if (message.conversationId) {
+      void queryClient.invalidateQueries({ queryKey: keys.conversations });
+    }
   };
 
   const onMessageUpdate = (message: Message) => {
-    patchMessage(queryClient, message.channelId, message.id, (current) => ({
+    const listId = messageTargetId(message);
+    if (!listId) return;
+
+    patchMessage(queryClient, listId, message.id, (current) => ({
       ...message,
       // The sender's own `me` flags are theirs; the broadcast cannot know them.
       reactions: current.reactions,
@@ -52,13 +68,31 @@ export function registerRealtimeListeners(
   };
 
   const onMessageDelete = (payload: MessageDeletePayload) => {
-    removeMessage(queryClient, payload.channelId, payload.messageId);
+    const listId = messageTargetId(payload);
+    if (!listId) return;
+
+    removeMessage(queryClient, listId, payload.messageId);
   };
 
   const onReaction = (added: boolean) => (payload: ReactionPayload) => {
-    patchMessage(queryClient, payload.channelId, payload.messageId, (current) =>
+    const listId = messageTargetId(payload);
+    if (!listId) return;
+
+    patchMessage(queryClient, listId, payload.messageId, (current) =>
       applyReaction(current, payload.emoji, payload.userId, viewerId, added),
     );
+  };
+
+  /**
+   * Someone opened a DM with you, or added you to a group.
+   *
+   * The server has already put this socket in the conversation's room, so messages
+   * will arrive from here on; this is what puts the conversation in the sidebar.
+   */
+  const onConversationCreate = (conversation: Conversation) => {
+    queryClient.setQueryData(keys.conversation(conversation.id), conversation);
+
+    void queryClient.invalidateQueries({ queryKey: keys.conversations });
   };
 
   const onTypingStart = (payload: TypingPayload) => {
@@ -119,6 +153,7 @@ export function registerRealtimeListeners(
     void queryClient.invalidateQueries({ queryKey: ['servers'] });
     void queryClient.invalidateQueries({ queryKey: keys.notifications });
     void queryClient.invalidateQueries({ queryKey: keys.friends });
+    void queryClient.invalidateQueries({ queryKey: keys.conversations });
   };
 
   const onDisconnect = () => {
@@ -138,6 +173,7 @@ export function registerRealtimeListeners(
   socket.on(SocketEvent.MEMBER_JOIN, onMemberJoin);
   socket.on(SocketEvent.MEMBER_LEAVE, onMemberLeave);
   socket.on(SocketEvent.NOTIFICATION_CREATE, onNotification);
+  socket.on(SocketEvent.CONVERSATION_CREATE, onConversationCreate);
   socket.on('connect', onConnect);
   socket.on('disconnect', onDisconnect);
 
@@ -153,6 +189,7 @@ export function registerRealtimeListeners(
     socket.off(SocketEvent.MEMBER_JOIN, onMemberJoin);
     socket.off(SocketEvent.MEMBER_LEAVE, onMemberLeave);
     socket.off(SocketEvent.NOTIFICATION_CREATE, onNotification);
+    socket.off(SocketEvent.CONVERSATION_CREATE, onConversationCreate);
     socket.off('connect', onConnect);
     socket.off('disconnect', onDisconnect);
   };

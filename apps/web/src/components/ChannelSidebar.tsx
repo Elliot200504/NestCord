@@ -4,10 +4,12 @@ import { ChevronDown, Hash, Plus, Users, Volume2 } from 'lucide-react';
 
 import { has, Permission, type Channel } from '@nestcord/shared';
 
+import { useCurrentUser } from '@/features/auth/use-auth';
 import { ChannelMenu } from '@/features/channels/ChannelMenu';
 import { ChannelSettingsDialog } from '@/features/channels/ChannelSettingsDialog';
 import { CreateChannelDialog } from '@/features/channels/CreateChannelDialog';
 import { groupByCategory, useChannels } from '@/features/channels/use-channels';
+import { DmList } from '@/features/dms/DmList';
 import { incomingCount, useFriends } from '@/features/friends/use-friends';
 import { ServerMenu } from '@/features/servers/ServerMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
@@ -23,6 +25,7 @@ export function ChannelSidebar() {
   const params = useParams({ strict: false });
   const routeServerId = 'serverId' in params ? (params.serverId ?? '@me') : '@me';
   const activeChannelId = 'channelId' in params ? params.channelId : undefined;
+  const activeConversationId = 'conversationId' in params ? params.conversationId : undefined;
 
   const activeServerId = useActiveServerId();
   const { data: server } = useServer(activeServerId);
@@ -53,7 +56,7 @@ export function ChannelSidebar() {
       )}
 
       {activeServerId === null ? (
-        <DirectMessagesPanel />
+        <DirectMessagesPanel activeConversationId={activeConversationId} />
       ) : (
         <ChannelList
           query={channels}
@@ -92,13 +95,18 @@ export function ChannelSidebar() {
 }
 
 /**
- * The `@me` sidebar: Friends today, the conversation list alongside it once DMs land.
+ * The `@me` sidebar: the Friends link, then your conversations (PLAN.MD §19).
  *
  * The badge counts requests waiting on you, so an incoming request is visible from
  * anywhere in the app rather than only on the page itself.
  */
-function DirectMessagesPanel() {
+function DirectMessagesPanel({
+  activeConversationId,
+}: {
+  activeConversationId: string | undefined;
+}) {
   const { data: friends } = useFriends();
+  const { data: user } = useCurrentUser();
   const waiting = incomingCount(friends ?? []);
 
   return (
@@ -118,9 +126,7 @@ function DirectMessagesPanel() {
         )}
       </Link>
 
-      <p className="text-content-500 px-2.5 pt-4 text-xs">
-        Direct message conversations arrive in the next slice.
-      </p>
+      {user && <DmList viewerId={user.id} activeConversationId={activeConversationId} />}
     </nav>
   );
 }

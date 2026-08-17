@@ -1,44 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { has, Permission, type Channel, type Message } from '@nestcord/shared';
+import type { Conversation, Message } from '@nestcord/shared';
 
 import { BrandMark } from '@/components/BrandMark';
-import { useChannels } from '@/features/channels/use-channels';
-import { useMembers } from '@/features/servers/use-servers';
-import { useAppearanceStore } from '@/stores/appearance-store';
-import { useUiStore } from '@/stores/ui-store';
-import { channelMessages } from './api';
-import { messageAnchorId } from './message-anchor';
+import { messageAnchorId } from '@/features/messages/message-anchor';
+import { groupMessages } from '@/features/messages/message-grouping';
+import { MessageGroupBlock } from '@/features/messages/MessageGroup';
 import {
   flattenMessages,
   useDeleteMessage,
   useEditMessage,
   useMessages,
   useToggleReaction,
-} from './use-messages';
-import { groupMessages } from './message-grouping';
-import { MessageGroupBlock } from './MessageGroup';
-
-interface MessageListProps {
-  serverId: string;
-  channel: Channel;
-  viewerId: string;
-}
+} from '@/features/messages/use-messages';
+import { useAppearanceStore } from '@/stores/appearance-store';
+import { useUiStore } from '@/stores/ui-store';
+import { conversationMessages } from './api';
+import { conversationTitle } from './conversation-title';
 
 /**
- * A channel's history (PLAN.MD §15).
+ * A conversation's history (PLAN.MD §19).
  *
- * Older messages are fetched on request rather than on scroll: a button is one line of
- * code and cannot fight the browser for the scroll position, which an auto-loader at
- * the top of a reversed list very much can.
+ * The messages themselves are rendered by the same components a channel uses — this
+ * differs only in what it is allowed to say about permissions. In a DM everyone in it
+ * may send and react, and nobody may touch anyone else's message, so the flags the
+ * group block takes are constants here rather than a resolved bitfield.
  */
-export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
-  const transport = channelMessages(serverId, channel.id);
+export function DmMessageList({
+  conversation,
+  viewerId,
+}: {
+  conversation: Conversation;
+  viewerId: string;
+}) {
+  const transport = conversationMessages(conversation.id);
   const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useMessages(transport);
 
-  const { data: members } = useMembers(serverId);
-  const { data: channels } = useChannels(serverId);
   const isCompact = useAppearanceStore((state) => state.density) === 'compact';
   const startReply = useUiStore((state) => state.startReply);
 
@@ -48,20 +46,12 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
 
   const messages = flattenMessages(data?.pages);
   const groups = groupMessages(messages);
-  // Only a loaded message can be travelled to; the quote is inert for the rest.
   const loadedIds = new Set(messages.map((message) => message.id));
   const newestId = messages.at(-1)?.id;
 
   const bottom = useRef<HTMLDivElement>(null);
   const [flashingId, setFlashingId] = useState<string | null>(null);
 
-  /**
-   * Travels to the message a reply is answering.
-   *
-   * It is only reachable if it is already loaded — an older message the reader has not
-   * scrolled back to has nothing to scroll to yet, so the quote is left inert rather
-   * than fetching pages until it turns up.
-   */
   function jumpTo(messageId: string) {
     document.getElementById(messageAnchorId(messageId))?.scrollIntoView({
       block: 'center',
@@ -71,7 +61,6 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
     setFlashingId(messageId);
   }
 
-  // The ring is a nudge, not a state to sit in, so it clears itself.
   useEffect(() => {
     if (!flashingId) return;
 
@@ -80,9 +69,6 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
     return () => clearTimeout(timer);
   }, [flashingId]);
 
-  // Following the conversation is the whole point of a chat window, so a new message
-  // scrolls it into view. Fetching older pages does not change the newest id, so
-  // scrolling up to read history is left alone.
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [newestId]);
@@ -109,7 +95,7 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
     return (
       <div className="flex-1 px-6 py-8">
         <p role="alert" className="text-destructive text-sm">
-          Could not load the messages in #{channel.name}.
+          Could not load this conversation.
         </p>
         <button
           type="button"
@@ -122,9 +108,7 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
     );
   }
 
-  const canSend = has(channel.permissions, Permission.SEND_MESSAGES);
-  const canReact = has(channel.permissions, Permission.ADD_REACTIONS);
-  const canManage = has(channel.permissions, Permission.MANAGE_MESSAGES);
+  const title = conversationTitle(conversation, viewerId);
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-5">
@@ -142,19 +126,17 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
       ) : (
         <div className="mb-8 px-3">
           <BrandMark size="lg" className="mb-4" />
-          <h2 className="font-display text-2xl font-semibold">
-            This is the start of #{channel.name}
-          </h2>
+          <h2 className="font-display text-2xl font-semibold">{title}</h2>
           <p className="text-content-300 mt-1 max-w-prose text-sm">
-            {channel.topic ?? 'Everything said here stays here.'}
+            {conversation.isGroup
+              ? 'This is the start of your group.'
+              : `This is the start of your conversation with ${title}.`}
           </p>
         </div>
       )}
 
       {messages.length === 0 && (
-        <p className="text-content-400 px-3 text-sm">
-          {canSend ? 'Say the first thing.' : 'Nothing has been said here yet.'}
-        </p>
+        <p className="text-content-400 px-3 text-sm">Say the first thing.</p>
       )}
 
       <ul>
@@ -162,19 +144,23 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
           <MessageGroupBlock
             key={group.id}
             group={group}
-            serverId={serverId}
-            members={members ?? []}
-            channels={channels ?? []}
+            // There is no server behind a DM, so mention links have nowhere to point.
+            // `@me` keeps the router happy and the empty lists mean nothing resolves.
+            serverId="@me"
+            members={[]}
+            channels={[]}
             viewerId={viewerId}
-            canSend={canSend}
-            canReact={canReact}
-            canManage={canManage}
+            canSend
+            canReact
+            // A DM has no moderator: only the author can remove their own message,
+            // which the message component already allows on top of this flag.
+            canManage={false}
             isCompact={isCompact}
             flashingId={flashingId}
             canJumpTo={(messageId) => loadedIds.has(messageId)}
             onJump={jumpTo}
             onReply={(message: Message) =>
-              startReply(channel.id, {
+              startReply(conversation.id, {
                 messageId: message.id,
                 author: message.author.displayName ?? message.author.username,
               })

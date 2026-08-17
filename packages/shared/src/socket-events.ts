@@ -5,7 +5,9 @@
  */
 
 import type {
+  Conversation,
   Message,
+  MessageTarget,
   PresenceStatus,
   PublicUser,
   ServerMember,
@@ -22,6 +24,7 @@ export const SocketEvent = {
   MEMBER_JOIN: 'member:join',
   MEMBER_LEAVE: 'member:leave',
   NOTIFICATION_CREATE: 'notification:create',
+  CONVERSATION_CREATE: 'conversation:create',
 } as const;
 
 export type SocketEventName = (typeof SocketEvent)[keyof typeof SocketEvent];
@@ -45,9 +48,8 @@ export const rooms = {
  * already reading from. The rest send the smallest fact that describes the change.
  */
 
-/** A message is gone. The channel is included so the listener knows which cache to patch. */
-export interface MessageDeletePayload {
-  channelId: string;
+/** A message is gone. The target is included so the listener knows which cache to patch. */
+export interface MessageDeletePayload extends MessageTarget {
   messageId: string;
 }
 
@@ -59,8 +61,7 @@ export interface MessageDeletePayload {
  * would tell each client that *they* had reacted. Each client applies the change
  * against its own identity instead.
  */
-export interface ReactionPayload {
-  channelId: string;
+export interface ReactionPayload extends MessageTarget {
   messageId: string;
   emoji: string;
   /** Who reacted. */
@@ -104,7 +105,23 @@ export interface NotificationPayload {
   actor: PublicUser | null;
   serverId: string | null;
   channelId: string | null;
+  /** Set on a DM notification, so clicking it can open the conversation. */
+  conversationId: string | null;
   preview: string | null;
+}
+
+/**
+ * The room a message event belongs in.
+ *
+ * One helper rather than a branch at each call site, so a DM broadcast can never be
+ * aimed at a channel room by accident. Null when the target names neither, which the
+ * database does not allow but the type does.
+ */
+export function messageRoom(target: MessageTarget): string | null {
+  if (target.channelId) return rooms.channel(target.channelId);
+  if (target.conversationId) return rooms.dm(target.conversationId);
+
+  return null;
 }
 
 /** Maps every event name to the payload it carries, for a typed client. */
@@ -120,6 +137,7 @@ export interface SocketEventPayloads {
   [SocketEvent.MEMBER_JOIN]: MemberJoinPayload;
   [SocketEvent.MEMBER_LEAVE]: MemberLeavePayload;
   [SocketEvent.NOTIFICATION_CREATE]: NotificationPayload;
+  [SocketEvent.CONVERSATION_CREATE]: Conversation;
 }
 
 /**

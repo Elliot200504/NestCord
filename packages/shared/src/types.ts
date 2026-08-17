@@ -132,10 +132,31 @@ export interface MessageReference {
   content: string;
 }
 
-/** A message in a channel, with everything needed to render it in one object. */
-export interface Message {
+/**
+ * Where a message lives. Exactly one of the two is set: a message is either in a
+ * server channel or in a DM conversation, never both and never neither.
+ *
+ * The pair travels together on every payload that has to say "which list changed",
+ * so one listener can patch either cache without a second shape to learn.
+ */
+export interface MessageTarget {
+  channelId: string | null;
+  conversationId: string | null;
+}
+
+/**
+ * The id of the list a message belongs to — a channel id or a conversation id.
+ *
+ * Both caches are keyed by this one string because the two id spaces are UUIDs and
+ * cannot collide, which is what lets DMs reuse the channel message cache wholesale.
+ */
+export function messageTargetId(target: MessageTarget): string | null {
+  return target.channelId ?? target.conversationId;
+}
+
+/** A message in a channel or a DM, with everything needed to render it in one object. */
+export interface Message extends MessageTarget {
   id: string;
-  channelId: string;
   author: PublicUser;
   /** Raw text as it was typed: markdown and mentions are resolved at render time. */
   content: string;
@@ -231,6 +252,24 @@ export interface Friend {
   createdAt: string;
 }
 
+/**
+ * One direct-message conversation: a pair, or a small group (PLAN.MD §19).
+ *
+ * `participants` includes the viewer. A one-to-one conversation has no stored name —
+ * the client titles it after the other person, so renaming a pair is not a thing you
+ * can do and there is nothing here to support it.
+ */
+export interface Conversation {
+  id: string;
+  /** Only ever set on a group. Null on a pair, and null on an unnamed group. */
+  name: string | null;
+  isGroup: boolean;
+  participants: PublicUser[];
+  createdAt: string;
+  /** When the newest message landed, for ordering the list. Null while empty. */
+  lastMessageAt: string | null;
+}
+
 export interface Paginated<T> {
   items: T[];
   nextCursor: string | null;
@@ -283,6 +322,14 @@ export const ROLE_NAME_MAX_LENGTH = 32;
 export const DEFAULT_ROLE_NAME = '@everyone';
 /** The text channel created alongside a new server, so it is never empty. */
 export const DEFAULT_CHANNEL_NAME = 'general';
+
+/**
+ * Group DMs, including whoever created it. Small on purpose: past a handful of
+ * people the right answer is a server, which this app already has (PLAN.MD §19).
+ */
+export const GROUP_DM_MAX_PARTICIPANTS = 10;
+/** A group DM's title, same budget as a server name. */
+export const CONVERSATION_NAME_MAX_LENGTH = 100;
 
 export const CHANNEL_NAME_MAX_LENGTH = 32;
 /** Two lines in the channel header — a sentence about the channel, not an essay. */

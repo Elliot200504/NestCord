@@ -16,8 +16,10 @@ export const keys = {
   roles: (serverId: string) => ['servers', serverId, 'roles'] as const,
   invites: (serverId: string) => ['servers', serverId, 'invites'] as const,
   invitePreview: (code: string) => ['invites', code] as const,
-  messages: (channelId: string) => ['messages', channelId] as const,
+  /** Keyed by a channel id or a conversation id — both are UUIDs, so they cannot collide. */
+  messages: (listId: string) => ['messages', listId] as const,
   notifications: ['notifications'] as const,
   friends: ['friends'] as const,
   conversations: ['conversations'] as const,
+  conversation: (conversationId: string) => ['conversations', conversationId] as const,
 } as const;

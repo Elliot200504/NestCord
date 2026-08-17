@@ -4,11 +4,15 @@ import type { Message, Paginated } from '@nestcord/shared';
 
 import { keys } from '@/api/keys';
 
-/** How `useInfiniteQuery` holds channel history: newest page first, newest item first. */
+/** How `useInfiniteQuery` holds history: newest page first, newest item first. */
 export type MessagePages = InfiniteData<Paginated<Message>, string | undefined>;
 
 /**
  * The cache edits every message mutation shares.
+ *
+ * `listId` is a channel id or a conversation id: both are UUIDs, so a DM and a
+ * channel share this cache space without any chance of collision, and every edit
+ * below works the same for either.
  *
  * Sending, editing, reacting and deleting all patch the pages in place rather than
  * invalidating them: an invalidation refetches every page the reader has scrolled
@@ -17,17 +21,17 @@ export type MessagePages = InfiniteData<Paginated<Message>, string | undefined>;
 
 export function readMessages(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
 ): MessagePages | undefined {
-  return queryClient.getQueryData<MessagePages>(keys.messages(channelId));
+  return queryClient.getQueryData<MessagePages>(keys.messages(listId));
 }
 
 export function writeMessages(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   pages: MessagePages | undefined,
 ): void {
-  queryClient.setQueryData(keys.messages(channelId), pages);
+  queryClient.setQueryData(keys.messages(listId), pages);
 }
 
 /**
@@ -39,8 +43,8 @@ export function writeMessages(
  * gave it. Matching by nonce is what keeps the sender's own message from appearing
  * twice at all — collapsing the pair later would still have flashed a duplicate.
  */
-export function upsertMessage(queryClient: QueryClient, channelId: string, message: Message): void {
-  const current = readMessages(queryClient, channelId);
+export function upsertMessage(queryClient: QueryClient, listId: string, message: Message): void {
+  const current = readMessages(queryClient, listId);
 
   if (!current) return;
 
@@ -48,7 +52,7 @@ export function upsertMessage(queryClient: QueryClient, channelId: string, messa
     current.pages.some((page) => page.items.some((existing) => existing.id === id));
 
   if (has(message.id)) {
-    replaceMessage(queryClient, channelId, message.id, message);
+    replaceMessage(queryClient, listId, message.id, message);
 
     return;
   }
@@ -56,27 +60,27 @@ export function upsertMessage(queryClient: QueryClient, channelId: string, messa
   // Our own send, answered by the broadcast before the request came back. Replacing
   // the provisional copy leaves the message where it already is on screen.
   if (message.nonce && has(message.nonce)) {
-    replaceMessage(queryClient, channelId, message.nonce, message);
+    replaceMessage(queryClient, listId, message.nonce, message);
 
     return;
   }
 
-  prependMessage(queryClient, channelId, message);
+  prependMessage(queryClient, listId, message);
 }
 
 /** Puts a message at the top of the newest page, where the newest message belongs. */
 export function prependMessage(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   message: Message,
 ): void {
-  const current = readMessages(queryClient, channelId);
+  const current = readMessages(queryClient, listId);
 
-  // No page loaded yet means nothing is rendering this channel; the first fetch
-  // will bring the message with it.
+  // No page loaded yet means nothing is rendering this list; the first fetch will
+  // bring the message with it.
   if (!current?.pages[0]) return;
 
-  writeMessages(queryClient, channelId, {
+  writeMessages(queryClient, listId, {
     ...current,
     pages: current.pages.map((page, index) =>
       index === 0 ? { ...page, items: [message, ...page.items] } : page,
@@ -95,16 +99,16 @@ export function prependMessage(
  */
 export function replaceMessage(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   messageId: string,
   next: Message,
 ): void {
-  const current = readMessages(queryClient, channelId);
+  const current = readMessages(queryClient, listId);
   if (!current) return;
 
   let kept = false;
 
-  writeMessages(queryClient, channelId, {
+  writeMessages(queryClient, listId, {
     ...current,
     pages: current.pages.map((page) => ({
       ...page,
@@ -124,13 +128,13 @@ export function replaceMessage(
 
 export function removeMessage(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   messageId: string,
 ): void {
-  const current = readMessages(queryClient, channelId);
+  const current = readMessages(queryClient, listId);
   if (!current) return;
 
-  writeMessages(queryClient, channelId, {
+  writeMessages(queryClient, listId, {
     ...current,
     pages: current.pages.map((page) => ({
       ...page,
@@ -142,24 +146,24 @@ export function removeMessage(
 /** Patches a single message through a function, for the optimistic paths. */
 export function patchMessage(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   messageId: string,
   patch: (message: Message) => Message,
 ): void {
-  mapMessages(queryClient, channelId, (message) =>
+  mapMessages(queryClient, listId, (message) =>
     message.id === messageId ? patch(message) : message,
   );
 }
 
 function mapMessages(
   queryClient: QueryClient,
-  channelId: string,
+  listId: string,
   map: (message: Message) => Message,
 ): void {
-  const current = readMessages(queryClient, channelId);
+  const current = readMessages(queryClient, listId);
   if (!current) return;
 
-  writeMessages(queryClient, channelId, {
+  writeMessages(queryClient, listId, {
     ...current,
     pages: current.pages.map((page) => ({ ...page, items: page.items.map(map) })),
   });

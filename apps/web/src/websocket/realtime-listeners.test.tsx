@@ -25,6 +25,7 @@ function message(overrides: Partial<Message> = {}): Message {
   return {
     id: 'message-1',
     channelId: CHANNEL,
+    conversationId: null,
     author: GRACE,
     content: 'hello',
     createdAt: '2026-08-12T09:00:00.000Z',

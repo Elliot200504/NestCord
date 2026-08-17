@@ -4,48 +4,44 @@ import { CirclePlus, Reply, Send, X } from 'lucide-react';
 import {
   ATTACHMENT_MAX_BYTES,
   ATTACHMENT_MIME_TYPES,
-  has,
   MESSAGE_MAX_ATTACHMENTS,
   MESSAGE_MAX_LENGTH,
-  Permission,
-  type Channel,
+  type Conversation,
   type MessageAttachment,
   type PublicUser,
 } from '@nestcord/shared';
 
+import { useSendMessage, useUploadAttachment } from '@/features/messages/use-messages';
 import { useUiStore } from '@/stores/ui-store';
-import { useTyping } from '@/websocket/use-typing';
-import { channelMessages } from './api';
-import { useSendMessage, useUploadAttachment } from './use-messages';
-
-interface MessageComposerProps {
-  serverId: string;
-  channel: Channel;
-  /** The sender, so the message can be shown before the server confirms it. */
-  author: PublicUser;
-}
+import { conversationMessages } from './api';
+import { conversationTitle } from './conversation-title';
 
 /**
- * The box you type in (PLAN.MD §15).
+ * The box you type in, in a DM.
  *
- * Files are uploaded as they are picked rather than on send, so the wait happens while
- * the message is still being written and pressing Enter is instant.
+ * Same behaviour as the channel composer — Enter sends, files upload as they are
+ * picked — without the permission questions, because being in a conversation is the
+ * only permission a DM has. No typing indicator: that is a channel feature today.
  */
-export function MessageComposer({ serverId, channel, author }: MessageComposerProps) {
+export function DmComposer({
+  conversation,
+  author,
+}: {
+  conversation: Conversation;
+  author: PublicUser;
+}) {
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<MessageAttachment[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const replyTarget = useUiStore((state) => state.replyTargets[channel.id]);
+  const replyTarget = useUiStore((state) => state.replyTargets[conversation.id]);
   const cancelReply = useUiStore((state) => state.cancelReply);
 
-  const transport = channelMessages(serverId, channel.id);
+  const transport = conversationMessages(conversation.id);
   const send = useSendMessage(transport, author);
-  const { typing, stopTyping } = useTyping(channel.id);
   const upload = useUploadAttachment(transport);
 
-  const canSend = has(channel.permissions, Permission.SEND_MESSAGES);
-  const canAttach = has(channel.permissions, Permission.ATTACH_FILES);
+  const title = conversationTitle(conversation, author.id);
   const trimmed = draft.trim();
   const isSendable = trimmed.length > 0 || pending.length > 0;
 
@@ -61,8 +57,7 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
 
     setDraft('');
     setPending([]);
-    cancelReply(channel.id);
-    stopTyping();
+    cancelReply(conversation.id);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -87,14 +82,6 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
     }
   }
 
-  if (!canSend) {
-    return (
-      <p className="text-content-400 px-4 pt-1 pb-6 text-sm">
-        You do not have permission to send messages in #{channel.name}.
-      </p>
-    );
-  }
-
   return (
     <form onSubmit={submit} className="px-4 pt-1 pb-6">
       {replyTarget && (
@@ -105,7 +92,7 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
           </span>
           <button
             type="button"
-            onClick={() => cancelReply(channel.id)}
+            onClick={() => cancelReply(conversation.id)}
             aria-label="Cancel reply"
             className="hover:text-content-100 ml-auto"
           >
@@ -140,41 +127,32 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
       )}
 
       <div className="bg-surface-600 border-border flex items-end gap-2.5 rounded-2xl border px-4 py-3">
-        {canAttach && (
-          <>
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              disabled={upload.isPending || pending.length >= MESSAGE_MAX_ATTACHMENTS}
-              aria-label="Add an attachment"
-              className="text-content-300 hover:text-content-100 mb-0.5 transition-colors disabled:opacity-40"
-            >
-              <CirclePlus className="size-5" aria-hidden />
-            </button>
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              accept={ATTACHMENT_MIME_TYPES.join(',')}
-              onChange={(event) => void handleFiles(event)}
-              className="hidden"
-            />
-          </>
-        )}
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={upload.isPending || pending.length >= MESSAGE_MAX_ATTACHMENTS}
+          aria-label="Add an attachment"
+          className="text-content-300 hover:text-content-100 mb-0.5 transition-colors disabled:opacity-40"
+        >
+          <CirclePlus className="size-5" aria-hidden />
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          accept={ATTACHMENT_MIME_TYPES.join(',')}
+          onChange={(event) => void handleFiles(event)}
+          className="hidden"
+        />
 
         <textarea
           value={draft}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            // Only while there is something to type about: clearing the box is not
-            // typing, and neither is pasting an empty string.
-            if (event.target.value.trim()) typing();
-          }}
+          onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
           maxLength={MESSAGE_MAX_LENGTH}
-          aria-label={`Message #${channel.name}`}
-          placeholder={`Say something in #${channel.name}…`}
+          aria-label={`Message ${title}`}
+          placeholder={`Message ${title}…`}
           className="placeholder:text-content-500 max-h-40 flex-1 resize-none bg-transparent py-0.5 leading-relaxed outline-none"
         />
 
