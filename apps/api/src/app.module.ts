@@ -9,6 +9,7 @@ import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { ChannelsModule } from './channels/channels.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { ErrorsModule } from './common/errors/errors.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
 import { DmsModule } from './dms/dms.module';
@@ -32,6 +33,8 @@ import { UsersModule } from './users/users.module';
     // In-memory rate limiting is enough for a few hundred users (PLAN.MD §23).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    // Early, so the global exception filter it registers covers everything below.
+    ErrorsModule,
     AuthModule,
     UsersModule,
     ServersModule,
