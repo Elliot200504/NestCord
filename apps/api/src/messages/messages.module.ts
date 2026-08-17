@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AttachmentsModule } from '../attachments/attachments.module';
+import { AuditModule } from '../common/audit/audit.module';
 import { PermissionsModule } from '../common/permissions/permissions.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -8,7 +9,7 @@ import { MessagesController, ReactionsController } from './messages.controller';
 import { MessagesService } from './messages.service';
 
 @Module({
-  imports: [PermissionsModule, AttachmentsModule, GatewayModule, NotificationsModule],
+  imports: [PermissionsModule, AttachmentsModule, GatewayModule, NotificationsModule, AuditModule],
   controllers: [MessagesController, ReactionsController],
   providers: [MessagesService],
   exports: [MessagesService],

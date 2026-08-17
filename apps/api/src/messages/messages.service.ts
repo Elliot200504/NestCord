@@ -15,6 +15,7 @@ import {
 } from '@nestcord/shared';
 
 import { AttachmentsService } from '../attachments/attachments.service';
+import { AuditLogService } from '../common/audit/audit-log.service';
 import { RealtimeService } from '../gateway/realtime.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { MemberContext } from '../common/permissions/member-context';
@@ -34,6 +35,7 @@ export class MessagesService {
     private readonly attachments: AttachmentsService,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditLogService,
   ) {}
 
   /**
@@ -185,6 +187,17 @@ export class MessagesService {
     await this.prisma.client.message.delete({ where: { id: messageId } });
 
     this.realtime.messageDeleted({ channelId, conversationId: null, messageId });
+
+    // Only a moderator's deletion is audited. Someone removing their own message is
+    // ordinary use of the app, and logging it would drown the entries that matter.
+    if (existing.authorId !== member.userId) {
+      await this.audit.record({
+        serverId: member.serverId,
+        actorId: member.userId,
+        action: 'MESSAGE_DELETE',
+        targetId: messageId,
+      });
+    }
 
     // The rows went with the message by cascade; the files on disk are ours to clean.
     await this.attachments.removeFiles(existing.attachments.map((attachment) => attachment.url));
