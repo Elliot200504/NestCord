@@ -1,5 +1,6 @@
 import { createRoute, redirect } from '@tanstack/react-router';
 
+import { ErrorLogSection } from '../features/admin/ErrorLogSection';
 import { requireSession } from '../features/auth/require-auth';
 import { useCurrentUser } from '../features/auth/use-auth';
 import { AccountSection } from '../features/settings/AccountSection';
@@ -45,11 +46,23 @@ const appearanceRoute = createRoute({
   component: AppearanceSection,
 });
 
+/**
+ * The admin error log. Not guarded in the route tree: the API refuses a non-admin
+ * on every request behind it, so the only thing a guard here would add is a
+ * redirect — and the section says plainly that it is not for you instead.
+ */
+const errorLogRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: 'errors',
+  component: ErrorLogSection,
+});
+
 export const settingsRouteTree = settingsRoute.addChildren([
   settingsIndexRoute,
   accountRoute,
   profileRoute,
   appearanceRoute,
+  errorLogRoute,
 ]);
 
 /**
