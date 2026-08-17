@@ -216,3 +216,21 @@
   --sidebar-border: rgb(255 222 210 / 9%);
   --sidebar-ring: #e0234e;
 }
+
+/*
+ * Honour the reader's motion preference (PLAN.MD §34, accessibility).
+ *
+ * The drawers, dialogs and hover transitions are all decoration — the layout is
+ * identical without them, so anyone who asks for less movement simply gets the end
+ * state immediately. `!important` because Tailwind sets these as utilities.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

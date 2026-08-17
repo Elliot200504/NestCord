@@ -9,11 +9,17 @@ import { ServerSettingsDialog } from '../features/servers/ServerSettingsDialog';
 import { RealtimeProvider } from '../websocket/RealtimeProvider';
 import { rootRoute } from './root';
 
-/** The four-column shell: servers, channels, content, members. */
+/**
+ * The four-column shell: servers, channels, content, members.
+ *
+ * `overflow-hidden` keeps the page itself from scrolling — the message list and the
+ * side panels scroll inside their own boxes, and a drawer sliding in from off-screen
+ * must not widen the document.
+ */
 function AppLayout() {
   return (
     <RealtimeProvider>
-      <div className="flex h-screen">
+      <div className="flex h-screen overflow-hidden">
         <ServerRail />
         <ChannelSidebar />
         <main className="bg-surface-700 flex min-w-0 flex-1">

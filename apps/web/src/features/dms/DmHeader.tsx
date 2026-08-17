@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import type { Conversation } from '@nestcord/shared';
 
 import { ApiStatusBadge } from '@/components/ApiStatusBadge';
+import { OpenChannelsButton } from '@/components/ShellButtons';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { conversationTitle, otherParticipants } from './conversation-title';
 import { useLeaveConversation } from './use-conversations';
@@ -27,21 +28,22 @@ export function DmHeader({
 
   return (
     <header className="border-border flex h-14 shrink-0 items-center gap-2 border-b px-4">
+      <OpenChannelsButton />
       {conversation.isGroup ? (
-        <UsersRound className="text-content-500 size-4.5" aria-hidden />
+        <UsersRound className="text-content-500 size-4.5 shrink-0" aria-hidden />
       ) : (
-        <AtSign className="text-content-500 size-4.5" aria-hidden />
+        <AtSign className="text-content-500 size-4.5 shrink-0" aria-hidden />
       )}
       <h1 className="font-display truncate text-base font-semibold">{title}</h1>
 
       {conversation.isGroup && (
-        <>
+        <span className="hidden min-w-0 items-center md:flex">
           <span className="bg-border mx-2.5 h-5 w-px" />
-          <p className="text-content-500 truncate text-sm">{others.length + 1} people</p>
-        </>
+          <span className="text-content-500 truncate text-sm">{others.length + 1} people</span>
+        </span>
       )}
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <ApiStatusBadge />
         <NotificationBell />
 

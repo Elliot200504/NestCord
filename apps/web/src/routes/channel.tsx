@@ -8,12 +8,10 @@ import { MessageComposer } from '../features/messages/MessageComposer';
 import { MessageList } from '../features/messages/MessageList';
 import { TypingIndicator } from '../features/messages/TypingIndicator';
 import { useActiveServerId } from '../features/servers/useActiveServer';
-import { useUiStore } from '../stores/ui-store';
 import { appRoute } from './app';
 
 function ChannelPage() {
   const { channelId } = useParams({ from: '/app/$serverId/$channelId' });
-  const memberListOpen = useUiStore((state) => state.memberListOpen);
   const serverId = useActiveServerId();
   const { data: channel, isPending } = useChannel(serverId, channelId);
   const { data: user } = useCurrentUser();
@@ -44,7 +42,8 @@ function ChannelPage() {
           </div>
         )}
       </div>
-      {memberListOpen && <MemberList />}
+      {/* The list decides for itself whether it is a column or an overlay. */}
+      <MemberList />
     </>
   );
 }

@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useParams, useRouterState } from '@tanstack/react-router';
 import { ChevronDown, Hash, Plus, Users, Volume2 } from 'lucide-react';
 
 import { has, Permission, type Channel } from '@nestcord/shared';
 
+import { useMediaQuery, SHELL_WIDE } from '@/hooks/useMediaQuery';
+import { useUiStore } from '@/stores/ui-store';
 import { useCurrentUser } from '@/features/auth/use-auth';
 import { ChannelMenu } from '@/features/channels/ChannelMenu';
 import { ChannelSettingsDialog } from '@/features/channels/ChannelSettingsDialog';
@@ -15,6 +17,7 @@ import { ServerMenu } from '@/features/servers/ServerMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
+import { ShellPanel } from './ShellPanel';
 import { UserPanel } from './UserPanel';
 
 /** Which dialog the sidebar has open, and what it is about. */
@@ -32,44 +35,70 @@ export function ChannelSidebar() {
   const channels = useChannels(activeServerId);
   const [dialog, setDialog] = useState<SidebarDialog>(null);
 
+  const wide = useMediaQuery(SHELL_WIDE);
+  const drawer = useUiStore((state) => state.drawer);
+  const closeDrawer = useUiStore((state) => state.closeDrawer);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const shownFor = useRef(pathname);
+
+  // Picking a channel on a phone should reveal it, not leave the drawer sitting over
+  // it. Keyed on the path so every link in here gets this for free — and compared
+  // against the last path rather than firing on mount, which would slam the drawer
+  // shut the moment it opened.
+  useEffect(() => {
+    if (shownFor.current === pathname) return;
+
+    shownFor.current = pathname;
+    closeDrawer();
+  }, [pathname, closeDrawer]);
+
   const canCreate = server ? has(server.permissions, Permission.MANAGE_CHANNELS) : false;
   const categories = (channels.data ?? []).filter((channel) => channel.type === 'CATEGORY');
 
   return (
-    <div className="bg-surface-800 flex w-60 shrink-0 flex-col">
-      {server ? (
-        <ServerMenu server={server}>
-          <button
-            type="button"
-            className="border-border hover:bg-surface-700 flex h-14 w-full items-center justify-between border-b px-4 text-left transition-colors"
-          >
-            <h1 className="font-display truncate text-base font-semibold">{server.name}</h1>
-            <ChevronDown className="text-content-500 size-4 shrink-0" aria-hidden />
-          </button>
-        </ServerMenu>
-      ) : (
-        <header className="border-border flex h-14 items-center border-b px-4">
-          <h1 className="font-display truncate text-base font-semibold">
-            {activeServerId === null ? 'Direct Messages' : 'Loading…'}
-          </h1>
-        </header>
-      )}
+    <>
+      <ShellPanel
+        side="left"
+        wide={wide}
+        visible={wide || drawer === 'channels'}
+        onClose={closeDrawer}
+        closeLabel="Close the channel list"
+      >
+        {server ? (
+          <ServerMenu server={server}>
+            <button
+              type="button"
+              className="border-border hover:bg-surface-700 flex h-14 w-full items-center justify-between border-b px-4 text-left transition-colors"
+            >
+              <h1 className="font-display truncate text-base font-semibold">{server.name}</h1>
+              <ChevronDown className="text-content-500 size-4 shrink-0" aria-hidden />
+            </button>
+          </ServerMenu>
+        ) : (
+          <header className="border-border flex h-14 items-center border-b px-4">
+            <h1 className="font-display truncate text-base font-semibold">
+              {activeServerId === null ? 'Direct Messages' : 'Loading…'}
+            </h1>
+          </header>
+        )}
 
-      {activeServerId === null ? (
-        <DirectMessagesPanel activeConversationId={activeConversationId} />
-      ) : (
-        <ChannelList
-          query={channels}
-          routeServerId={routeServerId}
-          activeChannelId={activeChannelId}
-          canCreate={canCreate}
-          onCreate={(parentId) => setDialog({ kind: 'create', parentId })}
-          onEdit={(channel) => setDialog({ kind: 'settings', channel })}
-        />
-      )}
+        {activeServerId === null ? (
+          <DirectMessagesPanel activeConversationId={activeConversationId} />
+        ) : (
+          <ChannelList
+            query={channels}
+            routeServerId={routeServerId}
+            activeChannelId={activeChannelId}
+            canCreate={canCreate}
+            onCreate={(parentId) => setDialog({ kind: 'create', parentId })}
+            onEdit={(channel) => setDialog({ kind: 'settings', channel })}
+          />
+        )}
 
-      <UserPanel />
+        <UserPanel />
+      </ShellPanel>
 
+      {/* Outside the panel: closing the drawer must not tear down an open dialog. */}
       {activeServerId !== null && dialog?.kind === 'create' && (
         <CreateChannelDialog
           open
@@ -90,7 +119,7 @@ export function ChannelSidebar() {
           onClose={() => setDialog(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 
