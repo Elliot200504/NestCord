@@ -127,8 +127,20 @@ export class RealtimeService {
     this.emit(rooms.server(payload.serverId), SocketEvent.MEMBER_JOIN, payload);
   }
 
+  /**
+   * Somebody is no longer a member — they left, or were kicked or banned.
+   *
+   * The people still there hear about it, and the departing user's sockets are put out
+   * of the server's rooms. Without that, room membership would keep saying they may
+   * read this server until they happen to reconnect, and moderation that leaves the
+   * removed member still receiving messages has not really removed them.
+   */
   memberLeft(payload: MemberLeavePayload): void {
     this.emit(rooms.server(payload.serverId), SocketEvent.MEMBER_LEAVE, payload);
+
+    // Deliberately not awaited: the removal itself is already committed, and the
+    // caller must not fail because a socket could not be moved.
+    void this.evictFromServer(payload.serverId, payload.userId);
   }
 
   /** Aimed at one person, on every device they have open. */
@@ -137,6 +149,27 @@ export class RealtimeService {
   }
 
   /** Drops the event when the target names neither a channel nor a conversation. */
+  /**
+   * Takes every socket this user has out of the server room and its channel rooms.
+   * Their own user room stays: it is how they are told anything at all.
+   */
+  private async evictFromServer(serverId: string, userId: string): Promise<void> {
+    if (!this.server) return;
+
+    try {
+      const channelIds = await this.rooms.channelIdsIn(serverId);
+
+      this.server
+        .in(rooms.user(userId))
+        .socketsLeave([rooms.server(serverId), ...channelIds.map(rooms.channel)]);
+    } catch (error) {
+      this.logger.error(
+        `Could not remove ${userId} from the rooms of server ${serverId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
   private emitToMessage(target: MessageTarget, event: string, payload: unknown): void {
     const room = messageRoom(target);
 
