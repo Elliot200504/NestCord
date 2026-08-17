@@ -172,6 +172,34 @@ describe('FriendsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No user by that name');
   });
 
+  it('recovers from a failed read when the retry is taken', async () => {
+    // Fails once, then answers. A dropped request must not cost the reader the page.
+    let attempts = 0;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        attempts += 1;
+
+        return Promise.resolve(
+          attempts === 1
+            ? new Response('{}', { status: 500, headers: { 'Content-Type': 'application/json' } })
+            : new Response(JSON.stringify([friend()]), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }),
+        );
+      }),
+    );
+
+    renderPage();
+
+    const retry = await screen.findByRole('button', { name: 'Try loading your friends again' });
+    await userEvent.click(retry);
+
+    expect(await screen.findByText('grace')).toBeInTheDocument();
+  });
+
   it('offers unblock, and nothing else, for someone you blocked', async () => {
     stubApi([friend({ status: 'BLOCKED', direction: 'OUTGOING' })]);
     renderPage();

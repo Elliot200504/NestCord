@@ -17,6 +17,7 @@ import { ServerMenu } from '@/features/servers/ServerMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
+import { QueryError } from './QueryError';
 import { ShellPanel } from './ShellPanel';
 import { UserPanel } from './UserPanel';
 
@@ -177,7 +178,7 @@ function ChannelList({
   onCreate: (parentId: string | null) => void;
   onEdit: (channel: Channel) => void;
 }) {
-  const { data: channels, isPending, isError } = query;
+  const { data: channels, isPending, isError, refetch } = query;
 
   if (isPending) {
     return (
@@ -189,9 +190,11 @@ function ChannelList({
 
   if (isError || !channels) {
     return (
-      <p className="text-destructive flex-1 px-4 py-4 text-sm" role="alert">
-        Could not load the channels for this server.
-      </p>
+      <QueryError
+        what="the channels for this server"
+        onRetry={() => void refetch()}
+        className="flex-1 px-4 py-4"
+      />
     );
   }
 

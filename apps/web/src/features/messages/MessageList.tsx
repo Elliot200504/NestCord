@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { has, Permission, type Channel, type Message } from '@nestcord/shared';
 
 import { BrandMark } from '@/components/BrandMark';
+import { QueryError } from '@/components/QueryError';
 import { useChannels } from '@/features/channels/use-channels';
 import { useMembers } from '@/features/servers/use-servers';
 import { useAppearanceStore } from '@/stores/appearance-store';
@@ -107,18 +108,11 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
 
   if (isError) {
     return (
-      <div className="flex-1 px-6 py-8">
-        <p role="alert" className="text-destructive text-sm">
-          Could not load the messages in #{channel.name}.
-        </p>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          className="text-primary mt-2 text-sm hover:underline"
-        >
-          Try again
-        </button>
-      </div>
+      <QueryError
+        what={`the messages in #${channel.name}`}
+        onRetry={() => void refetch()}
+        className="flex-1 px-6 py-8"
+      />
     );
   }
 

@@ -3,6 +3,7 @@ import { UserPlus } from 'lucide-react';
 
 import type { Friend } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { OpenChannelsButton } from '@/components/ShellButtons';
 import { cn } from '@/lib/utils';
 import { AddFriendForm } from './AddFriendForm';
@@ -34,7 +35,7 @@ type Panel = FriendTab | 'add';
  */
 export function FriendsPage() {
   const [panel, setPanel] = useState<Panel>('online');
-  const { data: friends, isPending, isError } = useFriends();
+  const { data: friends, isPending, isError, refetch } = useFriends();
 
   const waiting = incomingCount(friends ?? []);
 
@@ -97,11 +98,7 @@ export function FriendsPage() {
               </p>
             )}
 
-            {isError && (
-              <p role="alert" className="text-destructive text-sm">
-                Could not load your friends.
-              </p>
-            )}
+            {isError && <QueryError what="your friends" onRetry={() => void refetch()} />}
 
             {friends && <FriendList friends={friends} tab={panel} />}
           </>

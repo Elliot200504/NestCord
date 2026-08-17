@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Conversation, Message } from '@nestcord/shared';
 
 import { BrandMark } from '@/components/BrandMark';
+import { QueryError } from '@/components/QueryError';
 import { messageAnchorId } from '@/features/messages/message-anchor';
 import { groupMessages } from '@/features/messages/message-grouping';
 import { MessageGroupBlock } from '@/features/messages/MessageGroup';
@@ -93,18 +94,11 @@ export function DmMessageList({
 
   if (isError) {
     return (
-      <div className="flex-1 px-6 py-8">
-        <p role="alert" className="text-destructive text-sm">
-          Could not load this conversation.
-        </p>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          className="text-primary mt-2 text-sm hover:underline"
-        >
-          Try again
-        </button>
-      </div>
+      <QueryError
+        what="this conversation"
+        onRetry={() => void refetch()}
+        className="flex-1 px-6 py-8"
+      />
     );
   }
 

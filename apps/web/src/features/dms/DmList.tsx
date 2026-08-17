@@ -3,6 +3,7 @@ import { UsersRound } from 'lucide-react';
 
 import type { Conversation } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { conversationAvatar, conversationTitle } from './conversation-title';
@@ -21,7 +22,7 @@ export function DmList({
   viewerId: string;
   activeConversationId: string | undefined;
 }) {
-  const { data: conversations, isPending, isError } = useConversations();
+  const { data: conversations, isPending, isError, refetch } = useConversations();
 
   if (isPending) {
     return (
@@ -33,9 +34,11 @@ export function DmList({
 
   if (isError || !conversations) {
     return (
-      <p className="text-destructive px-2.5 pt-4 text-sm" role="alert">
-        Could not load your conversations.
-      </p>
+      <QueryError
+        what="your conversations"
+        onRetry={() => void refetch()}
+        className="px-2.5 pt-4"
+      />
     );
   }
 

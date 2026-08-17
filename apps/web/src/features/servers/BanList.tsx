@@ -1,5 +1,6 @@
 import type { ServerBan } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { UserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { FormStatus } from '@/features/settings/SettingsPrimitives';
@@ -7,7 +8,7 @@ import { useBans, useUnbanMember } from './use-servers';
 
 /** Everyone barred from the server, with the reason and a way to let them back in. */
 export function BanList({ serverId }: { serverId: string }) {
-  const { data: bans, isPending, isError } = useBans(serverId);
+  const { data: bans, isPending, isError, refetch } = useBans(serverId);
   const unban = useUnbanMember(serverId);
 
   if (isPending) {
@@ -21,11 +22,7 @@ export function BanList({ serverId }: { serverId: string }) {
   }
 
   if (isError) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        Could not load the ban list.
-      </p>
-    );
+    return <QueryError what="the ban list" onRetry={() => void refetch()} />;
   }
 
   if (bans.length === 0) {
