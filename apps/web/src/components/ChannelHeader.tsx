@@ -1,8 +1,8 @@
-import { Hash, Users } from 'lucide-react';
+import { Hash } from 'lucide-react';
 
 import { NotificationBell } from '../features/notifications/NotificationBell';
-import { useUiStore } from '../stores/ui-store';
 import { ApiStatusBadge } from './ApiStatusBadge';
+import { MemberListButton, OpenChannelsButton } from './ShellButtons';
 
 interface ChannelHeaderProps {
   channelName: string;
@@ -10,31 +10,24 @@ interface ChannelHeaderProps {
 }
 
 export function ChannelHeader({ channelName, topic }: ChannelHeaderProps) {
-  const toggleMemberList = useUiStore((state) => state.toggleMemberList);
-
   return (
     <header className="border-border flex h-14 shrink-0 items-center gap-2 border-b px-4">
-      <Hash className="text-content-500 size-4.5" aria-hidden />
-      <h1 className="font-display text-base font-semibold">{channelName}</h1>
+      <OpenChannelsButton />
+      <Hash className="text-content-500 size-4.5 shrink-0" aria-hidden />
+      <h1 className="font-display truncate text-base font-semibold">{channelName}</h1>
 
+      {/* The topic is the first thing to go when the bar gets narrow. */}
       {topic && (
-        <>
+        <span className="hidden min-w-0 items-center md:flex">
           <span className="bg-border mx-2.5 h-5 w-px" />
-          <p className="text-content-500 truncate text-sm">{topic}</p>
-        </>
+          <span className="text-content-500 truncate text-sm">{topic}</span>
+        </span>
       )}
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <ApiStatusBadge />
         <NotificationBell />
-        <button
-          type="button"
-          onClick={toggleMemberList}
-          aria-label="Toggle member list"
-          className="text-content-300 hover:text-content-100 transition-colors"
-        >
-          <Users className="size-5" aria-hidden />
-        </button>
+        <MemberListButton />
       </div>
     </header>
   );
