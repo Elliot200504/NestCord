@@ -121,7 +121,63 @@ export function useSetNickname(serverId: string) {
 }
 
 export function useKickMember(serverId: string) {
-  return useMemberMutation(serverId, (userId: string) => serversApi.kick(serverId, userId));
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ModerationInput) => serversApi.kick(serverId, input.userId, input.reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: keys.members(serverId) });
+      // The kick is now an audit entry, so a log left open is out of date.
+      void queryClient.invalidateQueries({ queryKey: keys.auditLog(serverId) });
+    },
+  });
+}
+
+/** Bans are read by moderators only, so the list is fetched where it is shown. */
+export function useBans(serverId: string | null) {
+  return useQuery({
+    queryKey: keys.bans(serverId ?? ''),
+    queryFn: () => serversApi.bans(serverId ?? ''),
+    enabled: serverId !== null,
+  });
+}
+
+export function useAuditLog(serverId: string | null) {
+  return useQuery({
+    queryKey: keys.auditLog(serverId ?? ''),
+    queryFn: () => serversApi.auditLog(serverId ?? ''),
+    enabled: serverId !== null,
+  });
+}
+
+export function useBanMember(serverId: string) {
+  return useBanMutation(serverId, (input: ModerationInput) =>
+    serversApi.ban(serverId, input.userId, input.reason),
+  );
+}
+
+export function useUnbanMember(serverId: string) {
+  return useBanMutation(serverId, (userId: string) => serversApi.unban(serverId, userId));
+}
+
+/**
+ * A ban moves three lists at once: the bans, the member list the banned user just
+ * left, and the audit log that now has an entry for it.
+ */
+function useBanMutation<TInput, TResult>(
+  serverId: string,
+  mutationFn: (input: TInput) => Promise<TResult>,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: keys.bans(serverId) });
+      void queryClient.invalidateQueries({ queryKey: keys.members(serverId) });
+      void queryClient.invalidateQueries({ queryKey: keys.auditLog(serverId) });
+    },
+  });
 }
 
 export function useAssignRole(serverId: string) {
@@ -134,6 +190,12 @@ export function useUnassignRole(serverId: string) {
   return useMemberMutation(serverId, (input: { userId: string; roleId: string }) =>
     serversApi.unassignRole(serverId, input.userId, input.roleId),
   );
+}
+
+/** Who a moderation action is about, and the reason that goes in the audit log. */
+export interface ModerationInput {
+  userId: string;
+  reason?: string;
 }
 
 /** Member changes are re-read rather than patched: role sets are the server's call. */

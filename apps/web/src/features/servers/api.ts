@@ -1,7 +1,9 @@
 import type {
+  AuditLogEntry,
   Invite,
   InvitePreview,
   Server,
+  ServerBan,
   ServerMember,
   ServerRole,
   ServerSummary,
@@ -55,8 +57,24 @@ export const serversApi = {
       body: JSON.stringify({ nickname }),
     }),
 
-  kick: (serverId: string, userId: string) =>
-    apiRequest<void>(`/servers/${serverId}/members/${userId}`, { method: 'DELETE' }),
+  kick: (serverId: string, userId: string, reason?: string) =>
+    apiRequest<void>(`/servers/${serverId}/members/${userId}${reasonQuery(reason)}`, {
+      method: 'DELETE',
+    }),
+
+  bans: (serverId: string) => apiRequest<ServerBan[]>(`/servers/${serverId}/bans`),
+
+  // PUT: the API treats banning the same person twice as the same request.
+  ban: (serverId: string, userId: string, reason?: string) =>
+    apiRequest<ServerBan>(`/servers/${serverId}/bans/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(reason === undefined ? {} : { reason }),
+    }),
+
+  unban: (serverId: string, userId: string) =>
+    apiRequest<void>(`/servers/${serverId}/bans/${userId}`, { method: 'DELETE' }),
+
+  auditLog: (serverId: string) => apiRequest<AuditLogEntry[]>(`/servers/${serverId}/audit-log`),
 
   invites: (serverId: string) => apiRequest<Invite[]>(`/servers/${serverId}/invites`),
 
@@ -98,3 +116,8 @@ export const serversApi = {
       method: 'DELETE',
     }),
 };
+
+/** A kick's reason travels in the query string, because DELETE has no body. */
+function reasonQuery(reason?: string): string {
+  return reason ? `?reason=${encodeURIComponent(reason)}` : '';
+}
