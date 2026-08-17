@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ALL_PERMISSIONS, DEFAULT_EVERYONE_PERMISSIONS, Permission } from '@nestcord/shared';
 
+import type { AuditLogService, AuditRecord } from '../common/audit/audit-log.service';
 import { NO_ROLE_POSITION, OWNER_POSITION } from '../common/permissions/member-context';
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
@@ -77,6 +78,7 @@ interface Harness {
   created: Record<string, unknown>[];
   updated: Record<string, unknown>[];
   deleted: string[];
+  audited: AuditRecord[];
 }
 
 /**
@@ -263,13 +265,21 @@ function buildHarness(rows: StubChannel[], overrides: StubOverride[], members: M
 
   const permissions = new PermissionsService(prisma);
 
+  const audited: AuditRecord[] = [];
+  const audit = {
+    record: async (entry: AuditRecord) => {
+      audited.push(entry);
+    },
+  } as unknown as AuditLogService;
+
   return {
-    channels: new ChannelsService(prisma, permissions),
+    channels: new ChannelsService(prisma, permissions, audit),
     rows,
     overrides,
     created,
     updated,
     deleted,
+    audited,
   } satisfies Harness;
 }
 
@@ -397,6 +407,19 @@ describe('ChannelsService', () => {
       });
 
       expect(created.name).toBe('Voice Rooms');
+    });
+
+    it('audits a new channel against its creator', async () => {
+      const created = await harness.channels.create(manager(), { name: 'bug-reports' });
+
+      expect(harness.audited).toEqual([
+        {
+          serverId: SERVER,
+          actorId: manager().userId,
+          action: 'CHANNEL_CREATE',
+          targetId: created.id,
+        },
+      ]);
     });
 
     it('rejects a name with nothing usable in it', async () => {
@@ -636,6 +659,14 @@ describe('ChannelsService', () => {
       await harness.channels.remove(owner, 'channel-staff');
 
       expect(harness.deleted).toEqual(['channel-staff']);
+      expect(harness.audited).toEqual([
+        {
+          serverId: SERVER,
+          actorId: 'owner-user',
+          action: 'CHANNEL_DELETE',
+          targetId: 'channel-staff',
+        },
+      ]);
     });
 
     it('rejects a delete from a member with no MANAGE_CHANNELS at all', async () => {

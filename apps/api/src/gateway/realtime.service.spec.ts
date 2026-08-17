@@ -37,23 +37,33 @@ function message(): Message {
   };
 }
 
-function buildHarness(options: { attach?: boolean; serverIds?: string[] } = {}) {
-  const { attach = true, serverIds = ['server-1', 'server-2'] } = options;
+function buildHarness(
+  options: { attach?: boolean; serverIds?: string[]; channelIds?: string[] } = {},
+) {
+  const { attach = true, serverIds = ['server-1', 'server-2'], channelIds = [CHANNEL] } = options;
   const sent: Sent[] = [];
+  const evictions: Array<{ from: string; rooms: string[] }> = [];
 
   const server = {
     to: (room: string) => ({
       emit: (event: string, payload: unknown) => sent.push({ room, event, payload }),
     }),
+    in: (from: string) => ({
+      socketsLeave: (left: string | string[]) =>
+        evictions.push({ from, rooms: Array.isArray(left) ? left : [left] }),
+    }),
   } as unknown as Server;
 
   const presence = new PresenceService();
-  const rooms = { serverIdsOf: async () => serverIds } as unknown as SocketRooms;
+  const rooms = {
+    serverIdsOf: async () => serverIds,
+    channelIdsIn: async () => channelIds,
+  } as unknown as SocketRooms;
   const realtime = new RealtimeService(presence, rooms);
 
   if (attach) realtime.attach(server);
 
-  return { realtime, presence, sent };
+  return { realtime, presence, sent, evictions };
 }
 
 describe('RealtimeService', () => {
@@ -144,6 +154,21 @@ describe('RealtimeService', () => {
     await realtime.announcePresence('user-ada');
 
     expect(sent).toEqual([]);
+  });
+
+  it('puts a departing member out of the server and channel rooms', async () => {
+    const { realtime, sent, evictions } = buildHarness();
+
+    realtime.memberLeft({ serverId: 'server-1', userId: 'user-ada' });
+
+    // The eviction is fire-and-forget, so it lands a tick after the broadcast.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sent[0]).toMatchObject({ room: 'server:server-1', event: SocketEvent.MEMBER_LEAVE });
+    expect(evictions).toEqual([
+      { from: 'user:user-ada', rooms: ['server:server-1', `channel:${CHANNEL}`] },
+    ]);
   });
 
   it('drops a broadcast rather than failing when no socket server is up', () => {

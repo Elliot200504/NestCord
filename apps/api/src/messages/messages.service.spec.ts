@@ -5,6 +5,7 @@ import { DEFAULT_EVERYONE_PERMISSIONS, Permission } from '@nestcord/shared';
 
 import { AttachmentsService } from '../attachments/attachments.service';
 import type { AttachmentStorage } from '../attachments/attachment.storage';
+import type { AuditLogService, AuditRecord } from '../common/audit/audit-log.service';
 import type { RealtimeService } from '../gateway/realtime.service';
 import type { NotificationsService } from '../notifications/notifications.service';
 import type { MemberContext } from '../common/permissions/member-context';
@@ -91,6 +92,7 @@ interface Harness {
   reactions: StubReaction[];
   attachments: StubAttachment[];
   removedFiles: string[];
+  audited: AuditRecord[];
 }
 
 /**
@@ -339,6 +341,13 @@ function buildHarness(options: {
 
   const permissions = new PermissionsService(prisma);
 
+  const audited: AuditRecord[] = [];
+  const audit = {
+    record: async (entry: AuditRecord) => {
+      audited.push(entry);
+    },
+  } as unknown as AuditLogService;
+
   return {
     messages: new MessagesService(
       prisma,
@@ -346,12 +355,14 @@ function buildHarness(options: {
       new AttachmentsService(prisma, storage),
       realtime,
       notifications,
+      audit,
     ),
     broadcasts,
     rows,
     reactions,
     attachments,
     removedFiles,
+    audited,
   };
 }
 
@@ -694,6 +705,33 @@ describe('MessagesService.remove', () => {
         'message-1',
       ),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('audits a moderator’s deletion, naming the message', async () => {
+    const { messages, audited } = buildHarness({ rows: [message()] });
+
+    await messages.remove(
+      member({ userId: BYSTANDER, permissions: MODERATOR_PERMISSIONS }),
+      CHANNEL,
+      'message-1',
+    );
+
+    expect(audited).toEqual([
+      {
+        serverId: SERVER,
+        actorId: BYSTANDER,
+        action: 'MESSAGE_DELETE',
+        targetId: 'message-1',
+      },
+    ]);
+  });
+
+  it('does not audit an author deleting their own message', async () => {
+    const { messages, audited } = buildHarness({ rows: [message()] });
+
+    await messages.remove(member(), CHANNEL, 'message-1');
+
+    expect(audited).toEqual([]);
   });
 
   it('deletes the files behind the message it removed', async () => {

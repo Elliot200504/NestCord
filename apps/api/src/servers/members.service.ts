@@ -8,6 +8,7 @@ import {
 import { has, Permission, type ServerMember } from '@nestcord/shared';
 
 import { PUBLIC_USER_SELECT, toPublicUser } from '../auth/public-user';
+import { AuditLogService } from '../common/audit/audit-log.service';
 import { outranksMember, type MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -27,6 +28,7 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly audit: AuditLogService,
   ) {}
 
   /**
@@ -86,10 +88,10 @@ export class MembersService {
   }
 
   /**
-   * Kicking removes the membership but not the person's right to come back — that is
-   * what a ban is for, and bans land in Phase 9.
+   * Kicking removes the membership but not the person's right to come back — they
+   * can use a fresh invite. Barring them for good is what `BansService` is for.
    */
-  async kick(actor: MemberContext, targetUserId: string): Promise<void> {
+  async kick(actor: MemberContext, targetUserId: string, reason?: string): Promise<void> {
     const target = await this.permissions.findMemberContext(actor.serverId, targetUserId);
 
     if (!target) throw new NotFoundException('That user is not a member of this server');
@@ -105,6 +107,14 @@ export class MembersService {
     await this.prisma.client.serverMember.delete({ where: { id: target.memberId } });
 
     this.realtime.memberLeft({ serverId: actor.serverId, userId: targetUserId });
+
+    await this.audit.record({
+      serverId: actor.serverId,
+      actorId: actor.userId,
+      action: 'MEMBER_KICK',
+      targetId: targetUserId,
+      reason: reason ?? null,
+    });
   }
 }
 

@@ -1,5 +1,8 @@
-import type { ServerMember, ServerRole } from '@nestcord/shared';
+import type { Server, ServerMember, ServerRole } from '@nestcord/shared';
 
+import { useCurrentUser } from '@/features/auth/use-auth';
+import { memberName } from '@/features/servers/member-name';
+import { MemberMenu } from '@/features/servers/MemberMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useMembers, useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
@@ -10,8 +13,12 @@ export function MemberList() {
 
   const { data: members, isPending, isError } = useMembers(serverId);
   const { data: server } = useServer(serverId);
+  const { data: me } = useCurrentUser();
 
   if (serverId === null) return null;
+
+  // The moderator's own row, which is where their rank in this server comes from.
+  const viewer = members?.find((member) => member.user.id === me?.id);
 
   const online = members?.filter((member) => member.user.status !== 'OFFLINE') ?? [];
   const offline = members?.filter((member) => member.user.status === 'OFFLINE') ?? [];
@@ -48,7 +55,7 @@ export function MemberList() {
             <ul>
               {group.members.map((member) => (
                 <li key={member.user.id}>
-                  <MemberRow member={member} roles={server?.roles ?? []} />
+                  <MemberRow member={member} server={server} viewer={viewer} />
                 </li>
               ))}
             </ul>
@@ -58,11 +65,19 @@ export function MemberList() {
   );
 }
 
-function MemberRow({ member, roles }: { member: ServerMember; roles: ServerRole[] }) {
-  const topRole = highestRole(member, roles);
-  const name = member.nickname ?? member.user.displayName ?? member.user.username;
+function MemberRow({
+  member,
+  server,
+  viewer,
+}: {
+  member: ServerMember;
+  server: Server | undefined;
+  viewer: ServerMember | undefined;
+}) {
+  const topRole = highestRole(member, server?.roles ?? []);
+  const name = memberName(member);
 
-  return (
+  const row = (
     <button
       type="button"
       className={cn(
@@ -83,6 +98,16 @@ function MemberRow({ member, roles }: { member: ServerMember; roles: ServerRole[
         <span className="text-content-500 text-xs">{topRole.name}</span>
       )}
     </button>
+  );
+
+  // Without the server we cannot resolve what the viewer may do, so the row is
+  // just a row until it arrives.
+  if (!server) return row;
+
+  return (
+    <MemberMenu member={member} server={server} viewer={viewer}>
+      {row}
+    </MemberMenu>
   );
 }
 

@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useCreateInvite, useCreateRole, useUpdateRole } from './use-servers';
+import { useBanMember, useCreateInvite, useCreateRole, useKickMember, useUpdateRole } from './use-servers';
 
 const SERVER = 'server-1';
 
@@ -116,5 +116,56 @@ describe('useCreateInvite', () => {
     await waitFor(() => expect(calls).toHaveLength(1));
 
     expect(calls[0]?.body).toEqual({ expiresInHours: 24 });
+  });
+});
+
+describe('useKickMember', () => {
+  it('names the member in the path and leaves the reason out when there is none', async () => {
+    const calls = stubApi();
+    const { result } = renderHook(() => useKickMember(SERVER), { wrapper });
+
+    result.current.mutate({ userId: 'user-9' });
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+
+    expect(calls[0]?.path).toBe(`/api/servers/${SERVER}/members/user-9`);
+    expect(calls[0]?.method).toBe('DELETE');
+  });
+
+  it('escapes the reason into the query string, since DELETE has no body', async () => {
+    const calls = stubApi();
+    const { result } = renderHook(() => useKickMember(SERVER), { wrapper });
+
+    result.current.mutate({ userId: 'user-9', reason: 'spam & noise' });
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+
+    expect(calls[0]?.path).toBe(`/api/servers/${SERVER}/members/user-9?reason=spam%20%26%20noise`);
+  });
+});
+
+describe('useBanMember', () => {
+  it('puts the ban at the user’s own path', async () => {
+    const calls = stubApi();
+    const { result } = renderHook(() => useBanMember(SERVER), { wrapper });
+
+    result.current.mutate({ userId: 'user-9', reason: 'Spam' });
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+
+    expect(calls[0]?.path).toBe(`/api/servers/${SERVER}/bans/user-9`);
+    expect(calls[0]?.method).toBe('PUT');
+    expect(calls[0]?.body).toEqual({ reason: 'Spam' });
+  });
+
+  it('sends an empty body when no reason was given', async () => {
+    const calls = stubApi();
+    const { result } = renderHook(() => useBanMember(SERVER), { wrapper });
+
+    result.current.mutate({ userId: 'user-9' });
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+
+    expect(calls[0]?.body).toEqual({});
   });
 });

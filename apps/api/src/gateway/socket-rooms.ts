@@ -84,6 +84,21 @@ export class SocketRooms {
     return visible;
   }
 
+  /**
+   * Every channel room belonging to a server, whoever can see them.
+   *
+   * Used when someone loses their membership: they must leave all of them, and what
+   * they *could* see no longer matters once they are not a member at all.
+   */
+  async channelIdsIn(serverId: string): Promise<string[]> {
+    const channels = await this.prisma.client.channel.findMany({
+      where: { serverId, type: { not: 'CATEGORY' } },
+      select: { id: true },
+    });
+
+    return channels.map((channel) => channel.id);
+  }
+
   /** The servers a user belongs to, for aiming presence at the people who know them. */
   async serverIdsOf(userId: string): Promise<string[]> {
     const memberships = await this.prisma.client.serverMember.findMany({

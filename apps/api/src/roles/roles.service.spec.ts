@@ -12,6 +12,7 @@ import {
   OWNER_POSITION,
   type MemberContext,
 } from '../common/permissions/member-context';
+import type { AuditLogService, AuditRecord } from '../common/audit/audit-log.service';
 import type { PermissionsService } from '../common/permissions/permissions.service';
 import type { PrismaService } from '../common/prisma/prisma.service';
 import { RolesService } from './roles.service';
@@ -61,6 +62,7 @@ interface Harness {
   deleted: string[];
   assigned: { memberId: string; roleId: string }[];
   unassigned: { memberId: string; roleId: string }[];
+  audited: AuditRecord[];
 }
 
 /** Records writes instead of performing them: the rules are what is under test. */
@@ -116,13 +118,21 @@ function buildHarness(roleRows: StubRole[], members: MemberContext[]): Harness {
       members.find((entry) => entry.serverId === serverId && entry.userId === userId) ?? null,
   } as unknown as PermissionsService;
 
+  const audited: AuditRecord[] = [];
+  const audit = {
+    record: async (entry: AuditRecord) => {
+      audited.push(entry);
+    },
+  } as unknown as AuditLogService;
+
   return {
-    roles: new RolesService(prisma, permissions),
+    roles: new RolesService(prisma, permissions, audit),
     created,
     updated,
     deleted,
     assigned,
     unassigned,
+    audited,
   };
 }
 
@@ -324,6 +334,30 @@ describe('RolesService', () => {
       await roles.update(owner, everyone.id, { permissions: Permission.VIEW_CHANNEL });
 
       expect(updated[0]).toMatchObject({ permissions: Permission.VIEW_CHANNEL });
+    });
+  });
+
+  describe('the audit log', () => {
+    it('records a new role against its creator', async () => {
+      const actor = member({ permissions: Permission.MANAGE_ROLES, highestPosition: 4 });
+      const { roles, audited } = buildHarness([everyone, helper], [actor]);
+
+      const role = await roles.create(actor, { name: 'Greeter' });
+
+      expect(audited).toEqual([
+        { serverId: SERVER, actorId: actor.userId, action: 'ROLE_CREATE', targetId: role.id },
+      ]);
+    });
+
+    it('records a deleted role', async () => {
+      const actor = member({ permissions: ALL_PERMISSIONS, highestPosition: 5 });
+      const { roles, audited } = buildHarness([everyone, helper], [actor]);
+
+      await roles.remove(actor, helper.id);
+
+      expect(audited).toEqual([
+        { serverId: SERVER, actorId: actor.userId, action: 'ROLE_DELETE', targetId: helper.id },
+      ]);
     });
   });
 

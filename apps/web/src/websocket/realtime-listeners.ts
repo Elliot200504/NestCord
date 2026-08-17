@@ -128,6 +128,14 @@ export function registerRealtimeListeners(
 
   const onMemberLeave = (payload: MemberLeavePayload) => {
     void queryClient.invalidateQueries({ queryKey: keys.members(payload.serverId) });
+
+    // When the member who left is us, we were kicked or banned: the server is gone
+    // from our rail, and its cached entry has to go with it so nothing renders a
+    // server we can no longer read.
+    if (payload.userId === viewerId) {
+      queryClient.removeQueries({ queryKey: keys.server(payload.serverId) });
+      void queryClient.invalidateQueries({ queryKey: keys.servers });
+    }
   };
 
   const onNotification = (payload: NotificationPayload) => {

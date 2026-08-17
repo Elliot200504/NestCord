@@ -263,3 +263,28 @@ describe('teardown', () => {
     expect(has('connect')).toBe(false);
   });
 });
+
+describe('member events', () => {
+  const SERVER = 'server-1';
+
+  it('drops the server from the cache when the member who left is us', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.server(SERVER), { id: SERVER, name: 'NestCord HQ' });
+
+    deliver(SocketEvent.MEMBER_LEAVE, { serverId: SERVER, userId: VIEWER });
+
+    expect(queryClient.getQueryData(keys.server(SERVER))).toBeUndefined();
+  });
+
+  it('keeps the server when somebody else left it', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.server(SERVER), { id: SERVER, name: 'NestCord HQ' });
+
+    deliver(SocketEvent.MEMBER_LEAVE, { serverId: SERVER, userId: GRACE.id });
+
+    expect(queryClient.getQueryData(keys.server(SERVER))).toEqual({
+      id: SERVER,
+      name: 'NestCord HQ',
+    });
+  });
+});
