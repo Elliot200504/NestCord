@@ -157,7 +157,7 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
         </p>
       )}
 
-      <ul>
+      <ul aria-label={`Messages in #${channel.name}`}>
         {groups.map((group) => (
           <MessageGroupBlock
             key={group.id}
