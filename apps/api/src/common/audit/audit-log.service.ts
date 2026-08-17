@@ -76,7 +76,10 @@ export class AuditLogService {
     const entries = await this.prisma.client.auditLog.findMany({
       where: { serverId },
       select: ENTRY_SELECT,
-      orderBy: { createdAt: 'desc' },
+      // Id breaks ties, the same way message history does it: a page boundary that
+      // falls between two entries written in the same millisecond would otherwise
+      // skip or repeat one, and moderation actions arrive in bursts.
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: AUDIT_LOG_PAGE_SIZE,
       ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
     });
@@ -90,9 +93,9 @@ export class AuditLogService {
    * same a handful of people over and over.
    */
   private async resolveTargets(entries: EntryRow[]): Promise<AuditLogEntry[]> {
-    const userIds = entries
-      .filter((entry) => USER_ACTIONS.has(entry.action) && entry.targetId !== null)
-      .map((entry) => entry.targetId as string);
+    const userIds = entries.flatMap((entry) =>
+      USER_ACTIONS.has(entry.action) && entry.targetId !== null ? [entry.targetId] : [],
+    );
 
     const users =
       userIds.length === 0
