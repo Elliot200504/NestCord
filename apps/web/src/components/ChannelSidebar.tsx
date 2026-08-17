@@ -62,6 +62,7 @@ export function ChannelSidebar() {
         wide={wide}
         visible={wide || drawer === 'channels'}
         onClose={closeDrawer}
+        label="Channel list"
         closeLabel="Close the channel list"
       >
         {server ? (

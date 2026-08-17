@@ -39,6 +39,7 @@ export function MemberList() {
       wide={roomy}
       visible={roomy ? memberListOpen : drawer === 'members'}
       onClose={closeDrawer}
+      label="Member list"
       closeLabel="Close the member list"
     >
       <aside
