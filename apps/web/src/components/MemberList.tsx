@@ -1,12 +1,15 @@
 import type { Server, ServerMember, ServerRole } from '@nestcord/shared';
 
 import { useCurrentUser } from '@/features/auth/use-auth';
+import { useMediaQuery, SHELL_ROOMY } from '@/hooks/useMediaQuery';
 import { memberName } from '@/features/servers/member-name';
 import { MemberMenu } from '@/features/servers/MemberMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useMembers, useServer } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
+import { ShellPanel } from './ShellPanel';
 import { UserAvatar } from './UserAvatar';
+import { useUiStore } from '@/stores/ui-store';
 
 export function MemberList() {
   const serverId = useActiveServerId();
@@ -14,6 +17,13 @@ export function MemberList() {
   const { data: members, isPending, isError } = useMembers(serverId);
   const { data: server } = useServer(serverId);
   const { data: me } = useCurrentUser();
+
+  // Only from `lg` up is there room for a third column; below that the list comes
+  // in over the messages instead.
+  const roomy = useMediaQuery(SHELL_ROOMY);
+  const memberListOpen = useUiStore((state) => state.memberListOpen);
+  const drawer = useUiStore((state) => state.drawer);
+  const closeDrawer = useUiStore((state) => state.closeDrawer);
 
   if (serverId === null) return null;
 
@@ -24,44 +34,52 @@ export function MemberList() {
   const offline = members?.filter((member) => member.user.status === 'OFFLINE') ?? [];
 
   return (
-    <aside
-      aria-label="Members"
-      className="bg-surface-800 border-border hidden w-60 shrink-0 overflow-y-auto border-l px-2 py-4 lg:block"
+    <ShellPanel
+      side="right"
+      wide={roomy}
+      visible={roomy ? memberListOpen : drawer === 'members'}
+      onClose={closeDrawer}
+      closeLabel="Close the member list"
     >
-      {isPending && (
-        <ul aria-label="Loading members" className="space-y-2 px-2.5">
-          {[0, 1, 2, 3, 4].map((slot) => (
-            <li key={slot} className="flex items-center gap-2.5">
-              <span className="bg-surface-700/60 size-8 animate-pulse rounded-full" />
-              <span className="bg-surface-700/60 h-3 flex-1 animate-pulse rounded" />
-            </li>
+      <aside
+        aria-label="Members"
+        className="border-border flex-1 overflow-y-auto px-2 py-4 lg:border-l"
+      >
+        {isPending && (
+          <ul aria-label="Loading members" className="space-y-2 px-2.5">
+            {[0, 1, 2, 3, 4].map((slot) => (
+              <li key={slot} className="flex items-center gap-2.5">
+                <span className="bg-surface-700/60 size-8 animate-pulse rounded-full" />
+                <span className="bg-surface-700/60 h-3 flex-1 animate-pulse rounded" />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {isError && (
+          <p role="alert" className="text-destructive px-2.5 text-sm">
+            Could not load the member list.
+          </p>
+        )}
+
+        {members &&
+          [
+            { label: `Here now — ${online.length}`, members: online },
+            { label: `Away — ${offline.length}`, members: offline },
+          ].map((group) => (
+            <section key={group.label} className="mb-5">
+              <h2 className="text-content-500 px-2.5 pb-1.5 text-xs font-medium">{group.label}</h2>
+              <ul>
+                {group.members.map((member) => (
+                  <li key={member.user.id}>
+                    <MemberRow member={member} server={server} viewer={viewer} />
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
-      )}
-
-      {isError && (
-        <p role="alert" className="text-destructive px-2.5 text-sm">
-          Could not load the member list.
-        </p>
-      )}
-
-      {members &&
-        [
-          { label: `Here now — ${online.length}`, members: online },
-          { label: `Away — ${offline.length}`, members: offline },
-        ].map((group) => (
-          <section key={group.label} className="mb-5">
-            <h2 className="text-content-500 px-2.5 pb-1.5 text-xs font-medium">{group.label}</h2>
-            <ul>
-              {group.members.map((member) => (
-                <li key={member.user.id}>
-                  <MemberRow member={member} server={server} viewer={viewer} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-    </aside>
+      </aside>
+    </ShellPanel>
   );
 }
 
