@@ -1,5 +1,5 @@
 import { Link, useParams } from '@tanstack/react-router';
-import { Compass, Plus } from 'lucide-react';
+import { Compass, Plus, RotateCw } from 'lucide-react';
 
 import { serverInitials, useServers } from '@/features/servers/use-servers';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,7 @@ export function ServerRail() {
   const params = useParams({ strict: false });
   const openModal = useUiStore((state) => state.openModal);
   const activeServerId = 'serverId' in params ? params.serverId : undefined;
-  const { data: servers, isPending, isError } = useServers();
+  const { data: servers, isPending, isError, refetch } = useServers();
 
   return (
     <nav
@@ -47,9 +47,20 @@ export function ServerRail() {
       )}
 
       {isError && (
-        <p role="alert" className="text-destructive px-2 text-center text-[0.6rem] leading-tight">
-          Could not load your servers
-        </p>
+        <div className="px-2">
+          <p role="alert" className="text-destructive text-center text-[0.6rem] leading-tight">
+            Could not load your servers
+          </p>
+          {/* The rail is too narrow for a worded button, so the icon carries the name. */}
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            aria-label="Try loading your servers again"
+            className="text-content-400 hover:text-content-100 mx-auto mt-1.5 grid size-7 place-items-center rounded-full transition-colors"
+          >
+            <RotateCw className="size-3.5" aria-hidden />
+          </button>
+        </div>
       )}
 
       <ul className="flex flex-col items-center gap-2.5">
