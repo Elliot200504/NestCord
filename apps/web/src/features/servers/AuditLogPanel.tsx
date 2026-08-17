@@ -1,5 +1,6 @@
 import type { AuditAction, AuditLogEntry } from '@nestcord/shared';
 
+import { QueryError } from '@/components/QueryError';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useAuditLog } from './use-servers';
 
@@ -17,7 +18,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 
 /** Recent moderation actions, newest first. */
 export function AuditLogPanel({ serverId }: { serverId: string }) {
-  const { data: entries, isPending, isError } = useAuditLog(serverId);
+  const { data: entries, isPending, isError, refetch } = useAuditLog(serverId);
 
   if (isPending) {
     return (
@@ -30,11 +31,7 @@ export function AuditLogPanel({ serverId }: { serverId: string }) {
   }
 
   if (isError) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        Could not load the audit log.
-      </p>
-    );
+    return <QueryError what="the audit log" onRetry={() => void refetch()} />;
   }
 
   if (entries.length === 0) {
