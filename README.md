@@ -84,6 +84,20 @@ validates them at boot and refuses to start if any are missing.
 
 Target one package: `pnpm --filter @nestcord/api <script>`.
 
+### End-to-end tests
+
+`pnpm test` is Vitest only. The Playwright journeys drive the real stack, so they run
+separately and need PostgreSQL up and the database seeded:
+
+```bash
+pnpm --filter @nestcord/web exec playwright install --with-deps chromium   # once
+pnpm db:seed
+pnpm --filter @nestcord/web test:e2e        # add :ui for the Playwright inspector
+```
+
+They start `pnpm dev` themselves, or reuse it if it is already running. Note that they
+sign in as the seeded account and leave their messages behind in `#general`.
+
 ## Layout
 
 ```text
