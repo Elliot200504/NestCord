@@ -3,6 +3,7 @@ import { UserPlus } from 'lucide-react';
 
 import type { Friend } from '@nestcord/shared';
 
+import { OpenChannelsButton } from '@/components/ShellButtons';
 import { cn } from '@/lib/utils';
 import { AddFriendForm } from './AddFriendForm';
 import { FriendRow } from './FriendRow';
@@ -40,9 +41,14 @@ export function FriendsPage() {
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <header className="border-border flex h-14 shrink-0 items-center gap-1 border-b px-4">
-        <h1 className="font-display mr-3 text-base font-semibold">Friends</h1>
+        <OpenChannelsButton />
+        <h1 className="font-display mr-3 ml-1 shrink-0 text-base font-semibold">Friends</h1>
 
-        <nav aria-label="Friends filters" className="flex items-center gap-1">
+        {/* The tab row scrolls rather than wraps: the bar is a fixed 14 units tall. */}
+        <nav
+          aria-label="Friends filters"
+          className="flex min-w-0 items-center gap-1 overflow-x-auto"
+        >
           {TABS.map((tab) => (
             <button
               key={tab.value}
