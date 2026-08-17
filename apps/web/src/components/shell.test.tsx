@@ -91,7 +91,15 @@ function stubApi(): void {
   );
 }
 
-async function renderChannel() {
+/**
+ * Renders the shell at a channel and waits until it has settled.
+ *
+ * `settled` is what to wait for: the channel list is the usual signal, but with the
+ * drawer closed on a narrow viewport there is no channel list on screen to wait on.
+ */
+async function renderChannel(
+  settled: () => Promise<unknown> = () => screen.findByRole('link', { name: 'general' }),
+) {
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: [`/app/${SERVER}/${GENERAL}`] }),
@@ -108,8 +116,7 @@ async function renderChannel() {
     </QueryClientProvider>,
   );
 
-  // The channel list is what every test here acts on, so wait for it to arrive.
-  await screen.findByRole('link', { name: 'general' });
+  await settled();
 
   return router;
 }
@@ -133,6 +140,21 @@ describe('the app shell on a wide viewport', () => {
     expect(screen.getByRole('navigation', { name: 'Channels' })).toBeInTheDocument();
     // The column is already there, so a button that opens it would do nothing.
     expect(screen.queryByRole('button', { name: 'Open the channel list' })).not.toBeInTheDocument();
+  });
+
+  it('offers a way past the rail and the channel list', async () => {
+    await renderChannel();
+
+    const skip = screen.getByRole('link', { name: 'Skip to the conversation' });
+
+    // It has to be the first stop, or it has skipped nothing.
+    await userEvent.tab();
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#shell-content');
+    expect(screen.getByRole('main', { name: 'Conversation' })).toHaveAttribute(
+      'id',
+      'shell-content',
+    );
   });
 
   it('collapses and restores the member list column', async () => {
@@ -190,6 +212,31 @@ describe('the app shell on a narrow viewport', () => {
     expect(screen.queryByRole('navigation', { name: 'Channels' })).not.toBeInTheDocument();
   });
 
+  it('takes focus into the drawer and gives it back on close', async () => {
+    await renderChannel(() => screen.findByRole('button', { name: 'Open the channel list' }));
+
+    const opener = screen.getByRole('button', { name: 'Open the channel list' });
+    await userEvent.click(opener);
+
+    const drawer = await screen.findByRole('dialog', { name: 'Channel list' });
+    // Landing focus inside is what lets a keyboard reader reach the channels at all;
+    // left on the opener, Tab would walk the page behind the overlay instead.
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
+
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
+  it('hides the covered content from assistive tech while the drawer is up', async () => {
+    useUiStore.setState({ drawer: 'channels' });
+    await renderChannel();
+
+    // The button lives in the channel header, behind the overlay. Visible or not, a
+    // reader must not be able to operate what the drawer is covering.
+    expect(screen.queryByRole('button', { name: 'Show the member list' })).not.toBeInTheDocument();
+  });
+
   it('closes the drawer on Escape', async () => {
     useUiStore.setState({ drawer: 'channels' });
     await renderChannel();
@@ -200,8 +247,12 @@ describe('the app shell on a narrow viewport', () => {
   });
 
   it('opens the member list over the messages rather than beside them', async () => {
+    // Opened so the channel list renders and the wait in renderChannel resolves, then
+    // dismissed: while a drawer is up it is modal, and the header behind it is out of
+    // reach on purpose.
     useUiStore.setState({ drawer: 'channels' });
     await renderChannel();
+    await userEvent.click(screen.getByRole('button', { name: 'Close the channel list' }));
 
     // memberListOpen is true, but there is no room for a column at this width.
     expect(screen.queryByRole('complementary', { name: 'Members' })).not.toBeInTheDocument();
