@@ -18,6 +18,7 @@ import {
 } from '@nestcord/shared';
 
 import { keys } from '@/api/keys';
+import { registerVoiceListeners } from '@/features/voice/voice-listeners';
 import {
   applyReaction,
   patchMessage,
@@ -218,7 +219,13 @@ export function registerRealtimeListeners(
   socket.on('connect', onConnect);
   socket.on('disconnect', onDisconnect);
 
+  // Signalling lives with the mesh it drives, registered here so there is still one
+  // subscription for the whole app.
+  const unregisterVoice = registerVoiceListeners(socket, viewerId);
+
   return () => {
+    unregisterVoice();
+
     socket.off(SocketEvent.MESSAGE_CREATE, onMessageCreate);
     socket.off(SocketEvent.MESSAGE_UPDATE, onMessageUpdate);
     socket.off(SocketEvent.MESSAGE_DELETE, onMessageDelete);
