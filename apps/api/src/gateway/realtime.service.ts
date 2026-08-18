@@ -3,6 +3,7 @@ import type { Server } from 'socket.io';
 
 import { PresenceService } from './presence.service';
 import { SocketRooms } from './socket-rooms';
+import { VoiceStateService } from './voice-state.service';
 import {
   messageRoom,
   rooms,
@@ -17,6 +18,8 @@ import {
   type PresencePayload,
   type ReactionPayload,
   type TypingPayload,
+  type VoiceLeavePayload,
+  type VoiceParticipant,
 } from '@nestcord/shared';
 
 /**
@@ -39,6 +42,7 @@ export class RealtimeService {
   constructor(
     private readonly presence: PresenceService,
     private readonly rooms: SocketRooms,
+    private readonly voice: VoiceStateService,
   ) {}
 
   /** Handed the server by the gateway once Socket.IO is up. */
@@ -143,6 +147,53 @@ export class RealtimeService {
     void this.evictFromServer(payload.serverId, payload.userId);
   }
 
+  /**
+   * Somebody joined a voice channel, muted, or deafened.
+   *
+   * Sent to the channel room, which is already the "who may see this channel"
+   * boundary — so people who are not in the call still see who is, and nobody who
+   * cannot see the channel learns anything.
+   */
+  voiceStateChanged(participant: VoiceParticipant): void {
+    this.emit(rooms.channel(participant.channelId), SocketEvent.VOICE_STATE, participant);
+  }
+
+  voiceStateLeft(payload: VoiceLeavePayload): void {
+    this.emit(rooms.channel(payload.channelId), SocketEvent.VOICE_STATE_LEAVE, payload);
+  }
+
+  /**
+   * Relays one signalling message to a single socket.
+   *
+   * Aimed at a socket id rather than the target's user room on purpose: the call
+   * lives in one tab, and copying an offer to that person's other tabs would have
+   * each of them answer it.
+   */
+  relayToSocket(socketId: string, event: string, payload: unknown): void {
+    if (!this.server) {
+      this.logger.debug(`No socket server yet; dropped ${event}`);
+
+      return;
+    }
+
+    this.server.to(socketId).emit(event, payload);
+  }
+
+  /**
+   * Drops a user out of a voice channel and tells the channel.
+   *
+   * Used when someone loses the right to be in the call rather than choosing to
+   * leave it. Their own client tears the mesh down when it sees the leave — and once
+   * peer connections are established the server has no other way to reach them,
+   * which is why every path that can remove the right calls this.
+   */
+  voiceEvict(channelId: string, userId: string): void {
+    if (!this.voice.isIn(channelId, userId)) return;
+
+    this.voice.leaveUser(userId);
+    this.voiceStateLeft({ channelId, userId });
+  }
+
   /** Aimed at one person, on every device they have open. */
   notify(userId: string, payload: NotificationPayload): void {
     this.emit(rooms.user(userId), SocketEvent.NOTIFICATION_CREATE, payload);
@@ -158,6 +209,12 @@ export class RealtimeService {
 
     try {
       const channelIds = await this.rooms.channelIdsIn(serverId);
+
+      // A kicked member with peer connections already up keeps talking otherwise:
+      // signalling has stopped, so no later event would ever catch them.
+      for (const channelId of channelIds) {
+        this.voiceEvict(channelId, userId);
+      }
 
       this.server
         .in(rooms.user(userId))
