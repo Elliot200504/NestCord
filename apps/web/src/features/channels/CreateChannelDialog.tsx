@@ -18,7 +18,7 @@ type CreatableType = Extract<ChannelType, 'TEXT' | 'VOICE' | 'CATEGORY'>;
 
 const TYPE_OPTIONS: { value: CreatableType; label: string; hint: string }[] = [
   { value: 'TEXT', label: 'Text', hint: 'Send messages, images and links.' },
-  { value: 'VOICE', label: 'Voice', hint: 'Talk together. Voice itself lands later.' },
+  { value: 'VOICE', label: 'Voice', hint: 'Talk together, up to eight at a time.' },
   { value: 'CATEGORY', label: 'Category', hint: 'A heading to group channels under.' },
 ];
 
