@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { Channel, ChannelOverride, ChannelType } from '@nestcord/shared';
+import type {
+  Channel,
+  ChannelOverride,
+  ChannelType,
+  PublicUser,
+  VoiceParticipant,
+} from '@nestcord/shared';
+
+import { PublicUserDto } from '../../auth/dto/auth-session.dto';
 
 /** Documents the shape of `Channel`; the type still comes from shared. */
 export class ChannelDto implements Channel {
@@ -44,4 +52,22 @@ export class ChannelOverrideDto implements ChannelOverride {
 
   @ApiProperty({ description: 'Bitfield taken away in this channel' })
   deny!: number;
+}
+
+/** One person in a voice channel, as the sidebar shows them. */
+export class VoiceParticipantDto implements VoiceParticipant {
+  @ApiProperty({ format: 'uuid' })
+  channelId!: string;
+
+  @ApiProperty({ type: PublicUserDto })
+  user!: PublicUser;
+
+  @ApiProperty({ description: 'They muted their own microphone' })
+  selfMute!: boolean;
+
+  @ApiProperty({ description: 'They turned everyone else off, which also mutes them' })
+  selfDeaf!: boolean;
+
+  @ApiProperty({ description: 'Resolved from SPEAK; a listener joins without it' })
+  canSpeak!: boolean;
 }
