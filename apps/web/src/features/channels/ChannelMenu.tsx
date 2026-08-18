@@ -4,10 +4,16 @@ import { Plus, Settings, Shield } from 'lucide-react';
 
 import { has, Permission, type Channel } from '@nestcord/shared';
 
+import { MENU_MOTION } from '@/lib/motion';
+import { cn } from '@/lib/utils';
+
 const ITEM =
   'hover:bg-surface-700 focus:bg-surface-700 flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none';
 
-const CONTENT = 'bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl';
+const CONTENT = cn(
+  'bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl',
+  MENU_MOTION,
+);
 
 /** Both menu kinds take the same items; this is all either one needs of them. */
 type MenuItem = ComponentType<{

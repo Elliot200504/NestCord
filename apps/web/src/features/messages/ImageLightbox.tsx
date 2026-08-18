@@ -4,6 +4,9 @@ import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 
 import type { MessageAttachment } from '@nestcord/shared';
 
+import { DIALOG_MOTION, OVERLAY_MOTION } from '@/lib/motion';
+import { cn } from '@/lib/utils';
+
 interface ImageLightboxProps {
   /** The gallery being browsed: the images on one message. */
   images: MessageAttachment[];
@@ -48,11 +51,14 @@ export function ImageLightbox({ images, index, onIndexChange, onClose }: ImageLi
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in fixed inset-0 z-50 bg-black/80" />
+        <Dialog.Overlay className={cn('fixed inset-0 z-50 bg-black/80', OVERLAY_MOTION)} />
 
         <Dialog.Content
           onKeyDown={handleKeyDown}
-          className="data-[state=open]:animate-in data-[state=open]:zoom-in-95 fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 p-4 outline-none sm:p-8"
+          className={cn(
+            'fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 p-4 outline-none sm:p-8',
+            DIALOG_MOTION,
+          )}
         >
           {/* The dialog needs a name, and the filename is the honest one. Visually it
               is already in the caption below, so it is not repeated on screen. */}

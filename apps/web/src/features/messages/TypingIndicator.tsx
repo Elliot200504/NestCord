@@ -34,7 +34,10 @@ export function TypingIndicator({ channelId, viewerId }: { channelId: string; vi
   if (typing.length === 0) return null;
 
   return (
-    <p aria-live="polite" className="text-content-400 h-4 px-5 pb-1 text-xs">
+    <p
+      aria-live="polite"
+      className="text-content-400 animate-in fade-in h-4 px-5 pb-1 text-xs duration-200"
+    >
       <span className="text-content-200">{describe(typing)}</span>
     </p>
   );

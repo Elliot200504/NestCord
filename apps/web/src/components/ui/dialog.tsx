@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { X } from 'lucide-react';
 
+import { DIALOG_MOTION, OVERLAY_MOTION } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 const Dialog = DialogPrimitive.Root;
@@ -14,10 +15,7 @@ function DialogOverlay({
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
-      className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in data-[state=closed]:fade-out fixed inset-0 z-50 bg-black/60',
-        className,
-      )}
+      className={cn('fixed inset-0 z-50 bg-black/60', OVERLAY_MOTION, className)}
       {...props}
     />
   );
@@ -38,7 +36,7 @@ function DialogContent({
       <DialogPrimitive.Content
         className={cn(
           'bg-surface-800 border-border fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-6 shadow-2xl',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
+          DIALOG_MOTION,
           className,
         )}
         {...props}

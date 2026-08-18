@@ -5,6 +5,8 @@ import { AtSign, Bell } from 'lucide-react';
 import type { NotificationPayload } from '@nestcord/shared';
 
 import { UserAvatar } from '@/components/UserAvatar';
+import { MENU_MOTION } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 import { useNotifications, useReadNotifications } from './use-notifications';
 
 /**
@@ -41,7 +43,10 @@ export function NotificationBell() {
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="bg-popover border-border z-50 w-80 rounded-xl border p-1.5 shadow-xl"
+          className={cn(
+            'bg-popover border-border z-50 w-80 rounded-xl border p-1.5 shadow-xl',
+            MENU_MOTION,
+          )}
         >
           <div className="flex items-center justify-between px-2 py-1">
             <p className="text-content-400 text-xs font-medium">Notifications</p>

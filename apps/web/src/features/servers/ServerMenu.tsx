@@ -6,6 +6,7 @@ import { LogOut, Settings, Trash2, UserPlus } from 'lucide-react';
 import { has, Permission, type Server } from '@nestcord/shared';
 
 import { useCurrentUser } from '@/features/auth/use-auth';
+import { MENU_MOTION } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useDeleteServer, useLeaveServer } from './use-servers';
@@ -45,7 +46,10 @@ export function ServerMenu({ server, children }: { server: Server; children: Rea
         <DropdownMenu.Content
           align="start"
           sideOffset={6}
-          className="bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl"
+          className={cn(
+            'bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl',
+            MENU_MOTION,
+          )}
         >
           {canInvite && (
             <DropdownMenu.Item onSelect={() => openModal('invite')} className={ITEM}>
