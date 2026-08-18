@@ -4,6 +4,7 @@ import { DropdownMenu } from 'radix-ui';
 import type { CurrentUser, PresenceStatus } from '@nestcord/shared';
 
 import { useUpdateStatus } from '@/features/users/use-users';
+import { MENU_MOTION } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { PresenceDot } from './PresenceDot';
 
@@ -30,7 +31,10 @@ export function StatusMenu({ user, children }: { user: CurrentUser; children: Re
           side="top"
           align="start"
           sideOffset={8}
-          className="bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl"
+          className={cn(
+            'bg-popover border-border z-50 w-56 rounded-xl border p-1.5 shadow-xl',
+            MENU_MOTION,
+          )}
         >
           <DropdownMenu.Label className="text-content-500 px-2.5 py-1.5 text-xs">
             Set your status
@@ -47,7 +51,9 @@ export function StatusMenu({ user, children }: { user: CurrentUser; children: Re
             >
               <PresenceDot status={choice.status} className="border-0" />
               <span className="flex-1">{choice.label}</span>
-              {choice.hint && <span className="text-content-500 text-[0.65rem]">{choice.hint}</span>}
+              {choice.hint && (
+                <span className="text-content-500 text-[0.65rem]">{choice.hint}</span>
+              )}
             </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>
