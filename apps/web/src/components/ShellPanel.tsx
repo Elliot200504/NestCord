@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { Dialog, VisuallyHidden } from 'radix-ui';
 import { X } from 'lucide-react';
 
+import { drawerMotion, OVERLAY_MOTION } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface ShellPanelProps {
@@ -62,7 +63,7 @@ export function ShellPanel({
             a dismiss. It stays a plain overlay rather than a button because a modal
             hides everything outside the panel from assistive tech anyway, so a label
             here would never be read; the close button below is the reachable one. */}
-        <Dialog.Overlay className="bg-surface-900/70 animate-in fade-in fixed inset-0 z-40" />
+        <Dialog.Overlay className={cn('bg-surface-900/70 fixed inset-0 z-40', OVERLAY_MOTION)} />
 
         <Dialog.Content
           // Read before Radix moves focus inside, so it is still whoever clicked.
@@ -77,8 +78,9 @@ export function ShellPanel({
             opener.current?.focus();
           }}
           className={cn(
-            'bg-surface-800 animate-in fixed inset-y-0 z-50 flex w-60 max-w-[85vw] flex-col shadow-xl',
-            side === 'left' ? 'slide-in-from-left left-0' : 'slide-in-from-right right-0',
+            'bg-surface-800 fixed inset-y-0 z-50 flex w-60 max-w-[85vw] flex-col shadow-xl',
+            side === 'left' ? 'left-0' : 'right-0',
+            drawerMotion(side),
           )}
         >
           {/* The panel's own heading names the room, not the drawer, so the drawer
