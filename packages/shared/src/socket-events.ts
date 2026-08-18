@@ -133,6 +133,8 @@ export interface NotificationPayload {
  * publish anyway. Real enforcement needs an SFU, which PLAN.MD s.17 rules out.
  */
 export interface VoiceParticipant {
+  /** Which server's voice-state list this belongs in, so a listener can aim at one. */
+  serverId: string;
   channelId: string;
   user: PublicUser;
   selfMute: boolean;
@@ -142,6 +144,7 @@ export interface VoiceParticipant {
 
 /** Someone left a voice channel, or was removed from one. */
 export interface VoiceLeavePayload {
+  serverId: string;
   channelId: string;
   userId: string;
 }
@@ -164,9 +167,11 @@ export interface VoiceUpdateInput {
  * was refused. On success it carries everybody already in the call, which is who the
  * joiner then sends offers to.
  */
+export type VoiceJoinRefusal = 'forbidden' | 'full' | 'not-voice';
+
 export type VoiceJoinAck =
   | { ok: true; participants: VoiceParticipant[] }
-  | { ok: false; reason: 'forbidden' | 'full' | 'not-voice' };
+  | { ok: false; reason: VoiceJoinRefusal };
 
 /** An SDP offer or answer, aimed at one other participant. */
 export interface VoiceDescriptionInput {
