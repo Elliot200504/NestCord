@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { VoiceStateService } from './voice-state.service';
 
+const SERVER = 'server-1';
 const GENERAL = 'channel-general-voice';
 const GAMING = 'channel-gaming-voice';
 
@@ -21,6 +22,7 @@ function user(id: string): PublicUser {
 function fill(voice: VoiceStateService, channelId: string, count: number): void {
   for (let index = 0; index < count; index += 1) {
     voice.join({
+      serverId: SERVER,
       channelId,
       socketId: `socket-${index}`,
       user: user(`user-${index}`),
@@ -44,6 +46,7 @@ describe('VoiceStateService', () => {
     fill(voice, GENERAL, MAX_VOICE_PARTICIPANTS - 1);
 
     const result = voice.join({
+      serverId: SERVER,
       channelId: GENERAL,
       socketId: 'socket-last',
       user: user('user-last'),
@@ -58,6 +61,7 @@ describe('VoiceStateService', () => {
     fill(voice, GENERAL, MAX_VOICE_PARTICIPANTS);
 
     const result = voice.join({
+      serverId: SERVER,
       channelId: GENERAL,
       socketId: 'socket-extra',
       user: user('user-extra'),
@@ -72,6 +76,7 @@ describe('VoiceStateService', () => {
     fill(voice, GENERAL, MAX_VOICE_PARTICIPANTS);
 
     const result = voice.join({
+      serverId: SERVER,
       channelId: GENERAL,
       socketId: 'socket-reconnected',
       user: user('user-0'),
@@ -84,8 +89,8 @@ describe('VoiceStateService', () => {
   });
 
   it('forgets the socket a reconnecting tab replaced', () => {
-    voice.join({ channelId: GENERAL, socketId: 'socket-old', user: user('ada'), canSpeak: true });
-    voice.join({ channelId: GENERAL, socketId: 'socket-new', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-old', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-new', user: user('ada'), canSpeak: true });
 
     expect(voice.locationOf('socket-old')).toBeNull();
     expect(voice.leaveSocket('socket-old')).toBeNull();
@@ -93,18 +98,22 @@ describe('VoiceStateService', () => {
   });
 
   it('moves a user out of their previous channel when they join another', () => {
-    voice.join({ channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
     voice.leaveUser('ada');
-    voice.join({ channelId: GAMING, socketId: 'socket-1', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GAMING, socketId: 'socket-1', user: user('ada'), canSpeak: true });
 
     expect(voice.isIn(GENERAL, 'ada')).toBe(false);
     expect(voice.isIn(GAMING, 'ada')).toBe(true);
   });
 
   it('removes the call a disconnected socket was carrying', () => {
-    voice.join({ channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
 
-    expect(voice.leaveSocket('socket-1')).toEqual({ channelId: GENERAL, userId: 'ada' });
+    expect(voice.leaveSocket('socket-1')).toEqual({
+      serverId: SERVER,
+      channelId: GENERAL,
+      userId: 'ada',
+    });
     expect(voice.participantsIn(GENERAL)).toEqual([]);
   });
 
@@ -113,6 +122,7 @@ describe('VoiceStateService', () => {
     voice.leaveSocket('socket-0');
 
     const result = voice.join({
+      serverId: SERVER,
       channelId: GENERAL,
       socketId: 'socket-new',
       user: user('user-new'),
@@ -123,7 +133,7 @@ describe('VoiceStateService', () => {
   });
 
   it('records a mute and a deafen', () => {
-    voice.join({ channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-1', user: user('ada'), canSpeak: true });
 
     const updated = voice.update('socket-1', { selfMute: true, selfDeaf: true });
 
@@ -136,7 +146,7 @@ describe('VoiceStateService', () => {
   });
 
   it('carries whether a participant may speak', () => {
-    voice.join({ channelId: GENERAL, socketId: 'socket-1', user: user('mute'), canSpeak: false });
+    voice.join({ serverId: SERVER, channelId: GENERAL, socketId: 'socket-1', user: user('mute'), canSpeak: false });
 
     expect(voice.participantsIn(GENERAL)[0]).toMatchObject({ canSpeak: false });
   });

@@ -699,6 +699,7 @@ describe('ChannelsService', () => {
     function seedCall(channelId: string, userId = ADA) {
       harness.rows.push(channel({ id: channelId, name: channelId, type: 'VOICE' }));
       harness.voice.join({
+        serverId: SERVER,
         channelId,
         socketId: `socket-${userId}`,
         user: {

@@ -284,6 +284,7 @@ describe('EventsGateway voice', () => {
   /** Somebody else already in the call, seeded directly. */
   function seedParticipant(voice: VoiceStateService, id: string, socketId: string) {
     voice.join({
+      serverId: SERVER,
       channelId: VOICE,
       socketId,
       user: {
@@ -399,7 +400,7 @@ describe('EventsGateway voice', () => {
     await gateway.handleDisconnect(socket as never);
 
     expect(voice.isIn(VOICE, ADA.id)).toBe(false);
-    expect(voiceLeaves).toEqual([{ channelId: VOICE, userId: ADA.id }]);
+    expect(voiceLeaves).toEqual([{ serverId: SERVER, channelId: VOICE, userId: ADA.id }]);
   });
 
   it('ignores a mute that names a channel the socket is not in', async () => {
