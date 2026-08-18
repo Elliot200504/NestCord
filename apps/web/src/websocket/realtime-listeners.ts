@@ -13,6 +13,8 @@ import {
   type PresencePayload,
   type ReactionPayload,
   type TypingPayload,
+  type VoiceLeavePayload,
+  type VoiceParticipant,
 } from '@nestcord/shared';
 
 import { keys } from '@/api/keys';
@@ -152,6 +154,35 @@ export function registerRealtimeListeners(
   };
 
   /**
+   * Somebody joined a call, muted, or deafened.
+   *
+   * Patched rather than invalidated: a mute is as frequent as typing, and re-reading a
+   * server's voice state for each one would defeat the point of the event. The payload
+   * names its server, so exactly one cached list is touched — patching by prefix would
+   * add the person to every server whose list happens to be loaded.
+   */
+  const onVoiceState = (payload: VoiceParticipant) => {
+    queryClient.setQueryData<VoiceParticipant[]>(
+      keys.voiceStates(payload.serverId),
+      (states) => {
+        const others = (states ?? []).filter(
+          (state) => !(state.channelId === payload.channelId && state.user.id === payload.user.id),
+        );
+
+        return [...others, payload];
+      },
+    );
+  };
+
+  const onVoiceStateLeave = (payload: VoiceLeavePayload) => {
+    queryClient.setQueryData<VoiceParticipant[]>(keys.voiceStates(payload.serverId), (states) =>
+      (states ?? []).filter(
+        (state) => !(state.channelId === payload.channelId && state.user.id === payload.userId),
+      ),
+    );
+  };
+
+  /**
    * A reconnect means time passed with nobody listening, so anything that changed in
    * the gap is missing. The message pages and member lists are re-read; this is the
    * one place invalidation is the right answer for messages.
@@ -182,6 +213,8 @@ export function registerRealtimeListeners(
   socket.on(SocketEvent.MEMBER_LEAVE, onMemberLeave);
   socket.on(SocketEvent.NOTIFICATION_CREATE, onNotification);
   socket.on(SocketEvent.CONVERSATION_CREATE, onConversationCreate);
+  socket.on(SocketEvent.VOICE_STATE, onVoiceState);
+  socket.on(SocketEvent.VOICE_STATE_LEAVE, onVoiceStateLeave);
   socket.on('connect', onConnect);
   socket.on('disconnect', onDisconnect);
 
@@ -198,6 +231,8 @@ export function registerRealtimeListeners(
     socket.off(SocketEvent.MEMBER_LEAVE, onMemberLeave);
     socket.off(SocketEvent.NOTIFICATION_CREATE, onNotification);
     socket.off(SocketEvent.CONVERSATION_CREATE, onConversationCreate);
+    socket.off(SocketEvent.VOICE_STATE, onVoiceState);
+    socket.off(SocketEvent.VOICE_STATE_LEAVE, onVoiceStateLeave);
     socket.off('connect', onConnect);
     socket.off('disconnect', onDisconnect);
   };
