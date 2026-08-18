@@ -679,11 +679,16 @@ Support:
 
 ### Voice channels
 
-Implement the UI and basic voice state.
+People join a voice channel and talk to each other.
 
-Voice transmission itself can be treated as a later feature.
+Transmission is a peer-to-peer **WebRTC mesh**: the API relays signalling and tracks who is in which
+call, and the audio goes browser to browser. STUN only, no TURN.
 
-Do not introduce a complicated SFU architecture.
+A mesh means every participant uploads their microphone once per other participant, so a channel is
+capped at **8 people**, enforced by the gateway.
+
+Do not introduce a complicated SFU architecture. The cost of that choice is that `SPEAK` cannot be
+truly enforced — the server never sees the media — which is accepted.
 
 ---
 
