@@ -191,6 +191,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const joined = this.voice.join({
+      serverId: channel.serverId,
       channelId: dto.channelId,
       socketId: socket.id,
       user: state.user,

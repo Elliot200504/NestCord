@@ -4,6 +4,7 @@ import { MAX_VOICE_PARTICIPANTS, type PublicUser, type VoiceParticipant } from '
 
 /** One person in one voice channel, and the socket carrying their call. */
 interface VoiceEntry {
+  serverId: string;
   socketId: string;
   user: PublicUser;
   selfMute: boolean;
@@ -13,11 +14,13 @@ interface VoiceEntry {
 
 /** Where a socket's call is, so a disconnect does not have to search every channel. */
 interface SocketLocation {
+  serverId: string;
   channelId: string;
   userId: string;
 }
 
 export interface JoinInput {
+  serverId: string;
   channelId: string;
   socketId: string;
   user: PublicUser;
@@ -55,7 +58,7 @@ export class VoiceStateService {
    * Rejoining a channel the user is already in replaces their entry rather than
    * counting twice — a reconnecting tab must not consume a second seat.
    */
-  join({ channelId, socketId, user, canSpeak }: JoinInput): JoinResult {
+  join({ serverId, channelId, socketId, user, canSpeak }: JoinInput): JoinResult {
     const existing = this.channels.get(channelId);
     const isAlreadyHere = existing?.has(user.id) ?? false;
 
@@ -63,7 +66,14 @@ export class VoiceStateService {
       return { ok: false, reason: 'full' };
     }
 
-    const entry: VoiceEntry = { socketId, user, selfMute: false, selfDeaf: false, canSpeak };
+    const entry: VoiceEntry = {
+      serverId,
+      socketId,
+      user,
+      selfMute: false,
+      selfDeaf: false,
+      canSpeak,
+    };
     const participants = existing ?? new Map<string, VoiceEntry>();
 
     // Drop the previous entry's socket mapping, whether it was in this channel or
@@ -73,7 +83,7 @@ export class VoiceStateService {
 
     participants.set(user.id, entry);
     this.channels.set(channelId, participants);
-    this.locations.set(socketId, { channelId, userId: user.id });
+    this.locations.set(socketId, { serverId, channelId, userId: user.id });
 
     return { ok: true };
   }
@@ -110,7 +120,7 @@ export class VoiceStateService {
       participants.delete(userId);
       if (participants.size === 0) this.channels.delete(channelId);
 
-      return { channelId, userId };
+      return { serverId: entry.serverId, channelId, userId };
     }
 
     return null;
@@ -172,6 +182,7 @@ export class VoiceStateService {
 
 function toParticipant(channelId: string, entry: VoiceEntry): VoiceParticipant {
   return {
+    serverId: entry.serverId,
     channelId,
     user: entry.user,
     selfMute: entry.selfMute,

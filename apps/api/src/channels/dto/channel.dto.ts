@@ -57,6 +57,9 @@ export class ChannelOverrideDto implements ChannelOverride {
 /** One person in a voice channel, as the sidebar shows them. */
 export class VoiceParticipantDto implements VoiceParticipant {
   @ApiProperty({ format: 'uuid' })
+  serverId!: string;
+
+  @ApiProperty({ format: 'uuid' })
   channelId!: string;
 
   @ApiProperty({ type: PublicUserDto })

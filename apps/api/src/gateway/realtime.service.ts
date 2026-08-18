@@ -188,10 +188,12 @@ export class RealtimeService {
    * which is why every path that can remove the right calls this.
    */
   voiceEvict(channelId: string, userId: string): void {
-    if (!this.voice.isIn(channelId, userId)) return;
+    const left = this.voice.leaveUser(userId);
 
-    this.voice.leaveUser(userId);
-    this.voiceStateLeft({ channelId, userId });
+    // `leaveUser` searches every channel, so check it was the one we meant.
+    if (!left || left.channelId !== channelId) return;
+
+    this.voiceStateLeft(left);
   }
 
   /** Aimed at one person, on every device they have open. */
