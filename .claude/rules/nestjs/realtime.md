@@ -58,5 +58,30 @@ typist does not emit per keystroke.
 
 ## Voice
 
-Implement voice **state** and UI only (who is connected to which voice channel). No SFU, no media
-transport (PLAN.MD ss.17).
+Peer-to-peer **mesh**, capped at `MAX_VOICE_PARTICIPANTS` (8). No SFU and no media server (PLAN.MD
+ss.17) — the API only ever relays signalling and tracks who is in which call.
+
+- **State is in memory**, in `VoiceStateService`, exactly like presence. Being in a call is a fact
+  about a live socket, so a table would survive a restart and leave ghosts sitting in an empty
+  channel. A restart clears every call by construction. There is no migration for voice.
+- **State broadcasts go to `rooms.channel()`**, which is already the "who may see this channel"
+  boundary — so people who are not in a call still see who is.
+- **Signalling goes to a single socket id** via `relayToSocket`, not to a room or a user room: the
+  call lives in one tab, and a copy to that person's other tabs would have each of them answer the
+  same offer.
+- **`voice:join` is answered by an ack**, the only handler in the gateway that replies to its sender.
+  A client must not open a microphone hopefully and learn afterwards it was refused, and "the channel
+  is full" has to arrive as the answer to that request.
+- **Never trust the claimed channel.** Every signalling relay uses the channel the server recorded
+  for that socket and verifies the target is in the same call. Taking `channelId` from the payload
+  would let a client push SDP into a channel it cannot even see.
+- **Established connections outlive a permission change.** Once ICE completes the media never touches
+  the server, so anything that removes the right to be in a call has to evict explicitly — a kick or
+  ban (`evictFromServer`), an override that takes `CONNECT` away, or deleting the channel.
+
+### `SPEAK` is not enforceable in a mesh
+
+`canSpeak` is resolved on the server and travels on the voice state, and the client publishes no audio
+track without it — but the server never sees the media, so a patched client could publish anyway. This
+is a recorded trade-off, not an oversight: real enforcement needs the SFU ss.17 rules out. Do not
+describe `SPEAK` as a security boundary.

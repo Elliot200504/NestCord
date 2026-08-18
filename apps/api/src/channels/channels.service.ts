@@ -12,6 +12,7 @@ import {
   slugifyChannelName,
   type Channel,
   type ChannelOverride,
+  type VoiceParticipant,
 } from '@nestcord/shared';
 
 import { AuditLogService } from '../common/audit/audit-log.service';
@@ -21,6 +22,8 @@ import { outranksMember, outranksPosition } from '../common/permissions/member-c
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { RealtimeService } from '../gateway/realtime.service';
+import { VoiceStateService } from '../gateway/voice-state.service';
 import {
   CHANNEL_OVERRIDE_SELECT,
   CHANNEL_SELECT,
@@ -37,6 +40,8 @@ export class ChannelsService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly audit: AuditLogService,
+    private readonly voice: VoiceStateService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /**
@@ -57,6 +62,29 @@ export class ChannelsService {
     return channels
       .map((channel) => toChannel(channel, resolveChannelPermissions(member, channel.overrides)))
       .filter((channel) => has(channel.permissions, Permission.VIEW_CHANNEL));
+  }
+
+  /**
+   * Who is in each voice channel of this server, right now.
+   *
+   * Somebody opening the app has missed every broadcast so far, so the sidebar reads
+   * this once and the socket events patch it afterwards. Filtered by the same
+   * VIEW_CHANNEL rule as `list`: a call in a channel you cannot see is none of your
+   * business, including who is in it.
+   */
+  async voiceStates(member: MemberContext): Promise<VoiceParticipant[]> {
+    const channels = await this.prisma.client.channel.findMany({
+      where: { serverId: member.serverId, type: 'VOICE' },
+      select: CHANNEL_SELECT,
+    });
+
+    const visible = channels
+      .filter((channel) =>
+        has(resolveChannelPermissions(member, channel.overrides), Permission.VIEW_CHANNEL),
+      )
+      .map((channel) => channel.id);
+
+    return this.voice.participantsFor(visible);
   }
 
   async create(member: MemberContext, dto: CreateChannelDto): Promise<Channel> {
@@ -137,6 +165,12 @@ export class ChannelsService {
   async remove(member: MemberContext, channelId: string): Promise<void> {
     await this.permissions.requireChannelPermission(member, channelId, Permission.MANAGE_CHANNELS);
 
+    // Before the row goes: the channel is about to stop existing, so anyone still in
+    // a call there has to be told, and their mesh torn down.
+    for (const userId of this.voice.participantIdsIn(channelId)) {
+      this.realtime.voiceEvict(channelId, userId);
+    }
+
     await this.prisma.client.channel.delete({ where: { id: channelId } });
 
     await this.audit.record({
@@ -190,6 +224,8 @@ export class ChannelsService {
       });
     }
 
+    await this.evictWhoMayNoLongerConnect(member.serverId, channelId);
+
     return this.overrides(member, channelId);
   }
 
@@ -219,7 +255,36 @@ export class ChannelsService {
       });
     }
 
+    await this.evictWhoMayNoLongerConnect(member.serverId, channelId);
+
     return this.overrides(member, channelId);
+  }
+
+  /**
+   * Drops anyone out of a call they may no longer join.
+   *
+   * An override that takes CONNECT away has no effect on a peer connection that is
+   * already up — the media never touches this server — so the change has to be
+   * enforced here or not at all. At most eight people are in a channel, so
+   * re-resolving each one is a handful of queries.
+   *
+   * Deliberately never throws: the override itself is already committed, and the
+   * request must not fail because an eviction did.
+   */
+  private async evictWhoMayNoLongerConnect(serverId: string, channelId: string): Promise<void> {
+    for (const userId of this.voice.participantIdsIn(channelId)) {
+      const participant = await this.permissions.findMemberContext(serverId, userId);
+
+      // A channel that has just been deleted resolves to nothing, which is also the
+      // right answer: they cannot be in a call there either.
+      const permissions = participant
+        ? await this.permissions.resolveChannelPermissions(participant, channelId).catch(() => 0)
+        : 0;
+
+      if (!has(permissions, Permission.CONNECT)) {
+        this.realtime.voiceEvict(channelId, userId);
+      }
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
-import { ChevronDown, Hash, Plus, Users, Volume2 } from 'lucide-react';
+import { ChevronDown, Hash, Plus, Users } from 'lucide-react';
 
 import { has, Permission, type Channel } from '@nestcord/shared';
 
@@ -16,6 +16,11 @@ import { incomingCount, useFriends } from '@/features/friends/use-friends';
 import { ServerMenu } from '@/features/servers/ServerMenu';
 import { useActiveServerId } from '@/features/servers/useActiveServer';
 import { useServer } from '@/features/servers/use-servers';
+import { useVoice } from '@/features/voice/use-voice';
+import { participantsIn, useVoiceStates } from '@/features/voice/use-voice-states';
+import { VoiceChannelButton } from '@/features/voice/VoiceChannelButton';
+import { VoiceParticipants } from '@/features/voice/VoiceParticipants';
+import { VoiceTray } from '@/features/voice/VoiceTray';
 import { cn } from '@/lib/utils';
 import { QueryError } from './QueryError';
 import { ShellPanel } from './ShellPanel';
@@ -34,6 +39,7 @@ export function ChannelSidebar() {
   const activeServerId = useActiveServerId();
   const { data: server } = useServer(activeServerId);
   const channels = useChannels(activeServerId);
+  const { channelId: voiceChannelId } = useVoice();
   const [dialog, setDialog] = useState<SidebarDialog>(null);
 
   const wide = useMediaQuery(SHELL_WIDE);
@@ -89,6 +95,7 @@ export function ChannelSidebar() {
         ) : (
           <ChannelList
             query={channels}
+            serverId={activeServerId}
             routeServerId={routeServerId}
             activeChannelId={activeChannelId}
             canCreate={canCreate}
@@ -97,6 +104,11 @@ export function ChannelSidebar() {
           />
         )}
 
+        <VoiceTray
+          channelName={
+            (channels.data ?? []).find((channel) => channel.id === voiceChannelId)?.name
+          }
+        />
         <UserPanel />
       </ShellPanel>
 
@@ -164,6 +176,7 @@ function DirectMessagesPanel({
 
 function ChannelList({
   query,
+  serverId,
   routeServerId,
   activeChannelId,
   canCreate,
@@ -172,6 +185,7 @@ function ChannelList({
 }: {
   /** The sidebar owns the query so its dialogs can read the categories from it. */
   query: ReturnType<typeof useChannels>;
+  serverId: string;
   routeServerId: string;
   activeChannelId: string | undefined;
   canCreate: boolean;
@@ -179,6 +193,8 @@ function ChannelList({
   onEdit: (channel: Channel) => void;
 }) {
   const { data: channels, isPending, isError, refetch } = query;
+  const voiceStates = useVoiceStates(serverId);
+  const { join, channelId: activeVoiceId } = useVoice();
 
   if (isPending) {
     return (
@@ -238,27 +254,40 @@ function ChannelList({
           )}
 
           <ul>
-            {inGroup.map((channel) => (
-              <li key={channel.id}>
-                <ChannelMenu channel={channel} onEdit={() => onEdit(channel)}>
-                  <Link
-                    to="/app/$serverId/$channelId"
-                    params={{ serverId: routeServerId, channelId: channel.id }}
-                    className={cn(
-                      'text-content-300 hover:bg-surface-700 hover:text-content-100 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors',
-                      activeChannelId === channel.id && 'bg-surface-600 text-content-100',
-                    )}
-                  >
-                    {channel.type === 'VOICE' ? (
-                      <Volume2 className="text-content-500 size-4 shrink-0" aria-hidden />
-                    ) : (
+            {inGroup.map((channel) =>
+              // A voice channel is joined, not navigated to — the two are different
+              // actions, so they are different controls. Text channels are untouched.
+              channel.type === 'VOICE' ? (
+                <li key={channel.id}>
+                  <ChannelMenu channel={channel} onEdit={() => onEdit(channel)}>
+                    <VoiceChannelButton
+                      channel={channel}
+                      participants={participantsIn(voiceStates.data, channel.id)}
+                      isActive={activeVoiceId === channel.id}
+                      onJoin={() => void join(channel.id)}
+                    />
+                  </ChannelMenu>
+
+                  <VoiceParticipants participants={participantsIn(voiceStates.data, channel.id)} />
+                </li>
+              ) : (
+                <li key={channel.id}>
+                  <ChannelMenu channel={channel} onEdit={() => onEdit(channel)}>
+                    <Link
+                      to="/app/$serverId/$channelId"
+                      params={{ serverId: routeServerId, channelId: channel.id }}
+                      className={cn(
+                        'text-content-300 hover:bg-surface-700 hover:text-content-100 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors',
+                        activeChannelId === channel.id && 'bg-surface-600 text-content-100',
+                      )}
+                    >
                       <Hash className="text-content-500 size-4 shrink-0" aria-hidden />
-                    )}
-                    <span className="truncate">{channel.name}</span>
-                  </Link>
-                </ChannelMenu>
-              </li>
-            ))}
+                      <span className="truncate">{channel.name}</span>
+                    </Link>
+                  </ChannelMenu>
+                </li>
+              ),
+            )}
           </ul>
         </section>
       ))}

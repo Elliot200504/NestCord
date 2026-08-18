@@ -1,7 +1,12 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { DEFAULT_EVERYONE_PERMISSIONS, Permission, SocketEvent } from '@nestcord/shared';
+import {
+  DEFAULT_EVERYONE_PERMISSIONS,
+  MAX_VOICE_PARTICIPANTS,
+  Permission,
+  SocketEvent,
+} from '@nestcord/shared';
 
 import type { AuthService } from '../auth/auth.service';
 import type { MemberContext } from '../common/permissions/member-context';
@@ -11,6 +16,7 @@ import { EventsGateway } from './events.gateway';
 import { PresenceService } from './presence.service';
 import type { RealtimeService } from './realtime.service';
 import type { SocketRooms } from './socket-rooms';
+import { VoiceStateService } from './voice-state.service';
 
 const SERVER = 'server-1';
 const CHANNEL = 'channel-1';
@@ -44,10 +50,28 @@ function fakeSocket(id: string, token: string | undefined, sent: Sent[]) {
   };
 }
 
-function buildHarness(options: { channelPermissions?: number; isMember?: boolean } = {}) {
-  const { channelPermissions = DEFAULT_EVERYONE_PERMISSIONS, isMember = true } = options;
+function buildHarness(
+  options: {
+    channelPermissions?: number;
+    isMember?: boolean;
+    channelType?: 'TEXT' | 'VOICE' | 'CATEGORY';
+    channelExists?: boolean;
+  } = {},
+) {
+  const {
+    channelPermissions = DEFAULT_EVERYONE_PERMISSIONS,
+    isMember = true,
+    channelType = 'TEXT',
+    channelExists = true,
+  } = options;
+  // Mutable so a test can take a permission away mid-connection, which is the whole
+  // point of re-resolving per event.
+  let current = channelPermissions;
   const sent: Sent[] = [];
   const announced: string[] = [];
+  const voiceStates: unknown[] = [];
+  const voiceLeaves: unknown[] = [];
+  const relayed: { socketId: string; event: string; payload: unknown }[] = [];
 
   const auth = {
     authenticateAccessToken: async (token: string | undefined) => {
@@ -59,7 +83,9 @@ function buildHarness(options: { channelPermissions?: number; isMember?: boolean
 
   const prisma = {
     client: {
-      channel: { findUnique: async () => ({ serverId: SERVER }) },
+      channel: {
+        findUnique: async () => (channelExists ? { serverId: SERVER, type: channelType } : null),
+      },
       user: { findUnique: async () => ({ status: 'ONLINE' }) },
     },
   } as unknown as PrismaService;
@@ -72,17 +98,21 @@ function buildHarness(options: { channelPermissions?: number; isMember?: boolean
             memberId: 'member-1',
             userId: ADA.id,
             isOwner: false,
-            permissions: channelPermissions,
+            permissions: current,
             roleIds: [],
             highestPosition: 0,
           }
         : null,
-    resolveChannelPermissions: async () => channelPermissions,
+    resolveChannelPermissions: async () => current,
   } as unknown as PermissionsService;
 
   const realtime = {
     attach: () => {},
     announcePresence: async (userId: string) => void announced.push(userId),
+    voiceStateChanged: (participant: unknown) => void voiceStates.push(participant),
+    voiceStateLeft: (payload: unknown) => void voiceLeaves.push(payload),
+    relayToSocket: (socketId: string, event: string, payload: unknown) =>
+      void relayed.push({ socketId, event, payload }),
   } as unknown as RealtimeService;
 
   const socketRooms = {
@@ -91,12 +121,20 @@ function buildHarness(options: { channelPermissions?: number; isMember?: boolean
   } as unknown as SocketRooms;
 
   const presence = new PresenceService();
+  const voice = new VoiceStateService();
 
   return {
-    gateway: new EventsGateway(auth, prisma, permissions, presence, realtime, socketRooms),
+    gateway: new EventsGateway(auth, prisma, permissions, presence, realtime, socketRooms, voice),
     presence,
+    voice,
     sent,
     announced,
+    voiceStates,
+    voiceLeaves,
+    relayed,
+    setChannelPermissions: (next: number) => {
+      current = next;
+    },
   };
 }
 
@@ -225,5 +263,256 @@ describe('EventsGateway typing', () => {
     await stranger.gateway.handleTypingStart(socket as never, { channelId: CHANNEL });
 
     expect(stranger.sent).toEqual([]);
+  });
+});
+
+describe('EventsGateway voice', () => {
+  const VOICE = 'channel-voice';
+
+  /** A connected socket in a harness whose channel is a voice channel. */
+  async function connectedTo(
+    options: Parameters<typeof buildHarness>[0] = {},
+    socketId = 'socket-1',
+  ) {
+    const harness = buildHarness({ channelType: 'VOICE', ...options });
+    const connect = fakeSocket(socketId, 'good-token', harness.sent);
+    await harness.gateway.handleConnection(connect.socket as never);
+
+    return { ...harness, socket: connect.socket };
+  }
+
+  /** Somebody else already in the call, seeded directly. */
+  function seedParticipant(voice: VoiceStateService, id: string, socketId: string) {
+    voice.join({
+      serverId: SERVER,
+      channelId: VOICE,
+      socketId,
+      user: {
+        id,
+        username: id,
+        displayName: null,
+        avatarUrl: null,
+        accentColor: null,
+        status: 'ONLINE',
+      },
+      canSpeak: true,
+    });
+  }
+
+  it('lets a member with CONNECT join a voice channel', async () => {
+    const { gateway, socket, voice, voiceStates } = await connectedTo();
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack).toEqual({ ok: true, participants: [] });
+    expect(voice.isIn(VOICE, ADA.id)).toBe(true);
+    expect(voiceStates).toHaveLength(1);
+  });
+
+  it('tells a joiner who is already in the call, so it knows who to offer to', async () => {
+    const { gateway, socket, voice } = await connectedTo();
+    seedParticipant(voice, 'user-grace', 'socket-grace');
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack.ok).toBe(true);
+    expect(ack.ok && ack.participants.map((p) => p.user.id)).toEqual(['user-grace']);
+  });
+
+  it('refuses a join from someone without CONNECT', async () => {
+    const { gateway, socket, voice, voiceStates } = await connectedTo({
+      channelPermissions: Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES,
+    });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack).toEqual({ ok: false, reason: 'forbidden' });
+    expect(voice.isIn(VOICE, ADA.id)).toBe(false);
+    expect(voiceStates).toEqual([]);
+  });
+
+  it('refuses a join when the channel is not visible', async () => {
+    // Losing VIEW_CHANNEL clears every other bit, so CONNECT cannot survive it.
+    const { gateway, socket, voice } = await connectedTo({ channelPermissions: 0 });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack).toEqual({ ok: false, reason: 'forbidden' });
+    expect(voice.isIn(VOICE, ADA.id)).toBe(false);
+  });
+
+  it('refuses a join from someone who is no longer a member', async () => {
+    const { gateway, socket } = await connectedTo({ isMember: false });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack).toEqual({ ok: false, reason: 'forbidden' });
+  });
+
+  it('refuses a join aimed at a text channel', async () => {
+    const { gateway, socket } = await connectedTo({ channelType: 'TEXT' });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: CHANNEL });
+
+    expect(ack).toEqual({ ok: false, reason: 'not-voice' });
+  });
+
+  it('lets an administrator join without an explicit CONNECT', async () => {
+    const { gateway, socket, voice } = await connectedTo({
+      channelPermissions: Permission.ADMINISTRATOR | Permission.VIEW_CHANNEL,
+    });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack.ok).toBe(true);
+    expect(voice.isIn(VOICE, ADA.id)).toBe(true);
+  });
+
+  it('lets someone without SPEAK join as a listener', async () => {
+    const { gateway, socket, voice } = await connectedTo({
+      channelPermissions: Permission.VIEW_CHANNEL | Permission.CONNECT,
+    });
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack.ok).toBe(true);
+    expect(voice.participantsIn(VOICE)[0]).toMatchObject({ canSpeak: false });
+  });
+
+  it('refuses the ninth participant and announces nothing', async () => {
+    const { gateway, socket, voice, voiceStates } = await connectedTo();
+
+    for (let index = 0; index < MAX_VOICE_PARTICIPANTS; index += 1) {
+      seedParticipant(voice, `user-${index}`, `socket-seed-${index}`);
+    }
+
+    const ack = await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    expect(ack).toEqual({ ok: false, reason: 'full' });
+    expect(voice.countIn(VOICE)).toBe(MAX_VOICE_PARTICIPANTS);
+    expect(voiceStates).toEqual([]);
+  });
+
+  it('ends the call when the tab closes', async () => {
+    const { gateway, socket, voice, voiceLeaves } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    await gateway.handleDisconnect(socket as never);
+
+    expect(voice.isIn(VOICE, ADA.id)).toBe(false);
+    expect(voiceLeaves).toEqual([{ serverId: SERVER, channelId: VOICE, userId: ADA.id }]);
+  });
+
+  it('ignores a mute that names a channel the socket is not in', async () => {
+    const { gateway, socket, voice, voiceStates } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    await gateway.handleVoiceUpdate(socket as never, {
+      channelId: 'channel-somewhere-else',
+      selfMute: true,
+      selfDeaf: false,
+    });
+
+    expect(voice.participantsIn(VOICE)[0]).toMatchObject({ selfMute: false });
+    // Only the join was announced.
+    expect(voiceStates).toHaveLength(1);
+  });
+
+  it('announces a mute', async () => {
+    const { gateway, socket, voiceStates } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    await gateway.handleVoiceUpdate(socket as never, {
+      channelId: VOICE,
+      selfMute: true,
+      selfDeaf: false,
+    });
+
+    expect(voiceStates.at(-1)).toMatchObject({ selfMute: true, selfDeaf: false });
+  });
+
+  it('relays an offer to exactly the target socket', async () => {
+    const { gateway, socket, voice, relayed } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+    seedParticipant(voice, 'user-grace', 'socket-grace');
+
+    await gateway.handleVoiceOffer(socket as never, {
+      channelId: VOICE,
+      targetUserId: 'user-grace',
+      sdp: 'v=0',
+    });
+
+    expect(relayed).toEqual([
+      {
+        socketId: 'socket-grace',
+        event: SocketEvent.VOICE_OFFER,
+        payload: {
+          sdp: 'v=0',
+          channelId: VOICE,
+          targetUserId: 'user-grace',
+          fromUserId: ADA.id,
+        },
+      },
+    ]);
+  });
+
+  it('drops a signal naming a channel the sender is not in', async () => {
+    const { gateway, socket, voice, relayed } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+    seedParticipant(voice, 'user-grace', 'socket-grace');
+
+    await gateway.handleVoiceOffer(socket as never, {
+      channelId: 'channel-not-mine',
+      targetUserId: 'user-grace',
+      sdp: 'v=0',
+    });
+
+    expect(relayed).toEqual([]);
+  });
+
+  it('drops a signal from someone who is in no call at all', async () => {
+    const { gateway, socket, voice, relayed } = await connectedTo();
+    seedParticipant(voice, 'user-grace', 'socket-grace');
+
+    await gateway.handleVoiceOffer(socket as never, {
+      channelId: VOICE,
+      targetUserId: 'user-grace',
+      sdp: 'v=0',
+    });
+
+    expect(relayed).toEqual([]);
+  });
+
+  it('drops a signal aimed at someone who is not in the call', async () => {
+    const { gateway, socket, relayed } = await connectedTo();
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+
+    await gateway.handleVoiceOffer(socket as never, {
+      channelId: VOICE,
+      targetUserId: 'user-nowhere',
+      sdp: 'v=0',
+    });
+
+    expect(relayed).toEqual([]);
+  });
+
+  it('drops a signal once the sender has lost CONNECT', async () => {
+    const { gateway, socket, voice, relayed, setChannelPermissions } = await connectedTo({
+      channelPermissions: Permission.VIEW_CHANNEL | Permission.CONNECT,
+    });
+    await gateway.handleVoiceJoin(socket as never, { channelId: VOICE });
+    seedParticipant(voice, 'user-grace', 'socket-grace');
+
+    // Permissions are re-resolved per event, so a connection that was allowed to join
+    // stops being allowed to signal the moment the override lands.
+    setChannelPermissions(Permission.VIEW_CHANNEL);
+
+    await gateway.handleVoiceOffer(socket as never, {
+      channelId: VOICE,
+      targetUserId: 'user-grace',
+      sdp: 'v=0',
+    });
+
+    expect(relayed).toEqual([]);
   });
 });

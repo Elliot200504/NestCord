@@ -19,13 +19,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { Permission, type Channel, type ChannelOverride } from '@nestcord/shared';
+import {
+  Permission,
+  type Channel,
+  type ChannelOverride,
+  type VoiceParticipant,
+} from '@nestcord/shared';
 
 import type { MemberContext } from '../common/permissions/member-context';
 import { Member } from '../common/permissions/member.decorator';
 import { RequirePermission } from '../common/permissions/require-permission.decorator';
 import { ChannelsService } from './channels.service';
-import { ChannelDto, ChannelOverrideDto } from './dto/channel.dto';
+import { ChannelDto, ChannelOverrideDto, VoiceParticipantDto } from './dto/channel.dto';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { SetOverrideDto } from './dto/set-override.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
@@ -48,6 +53,17 @@ export class ChannelsController {
   @ApiOkResponse({ type: [ChannelDto] })
   list(@Member() member: MemberContext): Promise<Channel[]> {
     return this.channels.list(member);
+  }
+
+  // Declared before the parameterised routes so `voice-states` is never read as a
+  // channel id.
+  @Get('voice-states')
+  // Membership only: the list is filtered to the voice channels you may see.
+  @RequirePermission()
+  @ApiOperation({ summary: 'Who is currently in each voice channel you can see' })
+  @ApiOkResponse({ type: [VoiceParticipantDto] })
+  voiceStates(@Member() member: MemberContext): Promise<VoiceParticipant[]> {
+    return this.channels.voiceStates(member);
   }
 
   @Post()

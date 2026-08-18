@@ -6,6 +6,7 @@ import { SocketEvent, type Message } from '@nestcord/shared';
 import { PresenceService } from './presence.service';
 import { RealtimeService } from './realtime.service';
 import type { SocketRooms } from './socket-rooms';
+import { VoiceStateService } from './voice-state.service';
 
 const CHANNEL = 'channel-1';
 
@@ -59,11 +60,12 @@ function buildHarness(
     serverIdsOf: async () => serverIds,
     channelIdsIn: async () => channelIds,
   } as unknown as SocketRooms;
-  const realtime = new RealtimeService(presence, rooms);
+  const voice = new VoiceStateService();
+  const realtime = new RealtimeService(presence, rooms, voice);
 
   if (attach) realtime.attach(server);
 
-  return { realtime, presence, sent, evictions };
+  return { realtime, presence, voice, sent, evictions };
 }
 
 describe('RealtimeService', () => {

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Headphones, Mic, Settings } from 'lucide-react';
+import { Headphones, HeadphoneOff, Mic, MicOff, Settings } from 'lucide-react';
 
 import type { PresenceStatus } from '@nestcord/shared';
 
 import { useCurrentUser } from '@/features/auth/use-auth';
+import { useVoice } from '@/features/voice/use-voice';
 import { StatusMenu } from './StatusMenu';
 import { UserAvatar } from './UserAvatar';
 
@@ -18,6 +19,9 @@ const STATUS_LABELS: Record<PresenceStatus, string> = {
 /** Bottom-left panel: who you are, plus quick toggles. */
 export function UserPanel() {
   const { data: user, isPending } = useCurrentUser();
+  const { status, selfMute, selfDeaf, toggleMute, toggleDeaf } = useVoice();
+  // Nothing to mute when you are not in a call, so the pair is inert until you are.
+  const inCall = status === 'connecting' || status === 'connected';
 
   return (
     <div className="bg-surface-900 border-border flex items-center gap-2 border-t px-2 py-2.5">
@@ -45,11 +49,25 @@ export function UserPanel() {
         </StatusMenu>
       )}
 
-      <IconButton label="Toggle microphone">
-        <Mic className="size-4" aria-hidden />
+      <IconButton
+        label={selfMute ? 'Unmute microphone' : 'Mute microphone'}
+        pressed={selfMute}
+        onClick={toggleMute}
+        disabled={!inCall}
+      >
+        {selfMute ? <MicOff className="size-4" aria-hidden /> : <Mic className="size-4" aria-hidden />}
       </IconButton>
-      <IconButton label="Toggle headphones">
-        <Headphones className="size-4" aria-hidden />
+      <IconButton
+        label={selfDeaf ? 'Undeafen' : 'Deafen'}
+        pressed={selfDeaf}
+        onClick={toggleDeaf}
+        disabled={!inCall}
+      >
+        {selfDeaf ? (
+          <HeadphoneOff className="size-4" aria-hidden />
+        ) : (
+          <Headphones className="size-4" aria-hidden />
+        )}
       </IconButton>
 
       <Link
@@ -68,13 +86,16 @@ interface IconButtonProps {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  /** Set when the button is a toggle, so a reader is told which way it is. */
+  pressed?: boolean;
 }
 
-function IconButton({ label, children, onClick, disabled }: IconButtonProps) {
+function IconButton({ label, children, onClick, disabled, pressed }: IconButtonProps) {
   return (
     <button
       type="button"
       aria-label={label}
+      aria-pressed={pressed}
       onClick={onClick}
       disabled={disabled}
       className="text-content-300 hover:bg-surface-700 hover:text-content-100 grid size-7 shrink-0 place-items-center rounded-lg transition-colors disabled:opacity-50"

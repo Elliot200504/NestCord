@@ -1,7 +1,12 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { SocketEvent, type Message, type Paginated } from '@nestcord/shared';
+import {
+  SocketEvent,
+  type Message,
+  type Paginated,
+  type VoiceParticipant,
+} from '@nestcord/shared';
 
 import { keys } from '@/api/keys';
 import { useTypingStore } from '@/stores/typing-store';
@@ -286,5 +291,136 @@ describe('member events', () => {
       id: SERVER,
       name: 'NestCord HQ',
     });
+  });
+});
+
+describe('voice events', () => {
+  const SERVER = 'server-1';
+  const VOICE = 'channel-voice';
+  const OTHER_VOICE = 'channel-voice-2';
+
+  function participant(overrides: Partial<VoiceParticipant> = {}): VoiceParticipant {
+    return {
+      serverId: SERVER,
+      channelId: VOICE,
+      user: GRACE,
+      selfMute: false,
+      selfDeaf: false,
+      canSpeak: true,
+      ...overrides,
+    };
+  }
+
+  /** The cached voice-state list for a server, as the sidebar reads it. */
+  function states(queryClient: QueryClient, serverId = SERVER) {
+    return queryClient.getQueryData<VoiceParticipant[]>(keys.voiceStates(serverId)) ?? [];
+  }
+
+  it('adds someone who joins a call', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), []);
+
+    deliver(SocketEvent.VOICE_STATE, participant());
+
+    expect(states(queryClient)).toHaveLength(1);
+    expect(states(queryClient)[0]?.user.username).toBe('grace');
+  });
+
+  it('fills in a list that was never read, so a join is not lost', () => {
+    const { queryClient, deliver } = buildHarness();
+
+    deliver(SocketEvent.VOICE_STATE, participant());
+
+    expect(states(queryClient)).toHaveLength(1);
+  });
+
+  it('replaces an entry on a mute rather than listing the person twice', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant()]);
+
+    deliver(SocketEvent.VOICE_STATE, participant({ selfMute: true }));
+
+    expect(states(queryClient)).toHaveLength(1);
+    expect(states(queryClient)[0]).toMatchObject({ selfMute: true });
+  });
+
+  it('keeps the same person listed once per channel they are in', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant()]);
+
+    // Hopping to another voice channel in the same server: the leave and the join are
+    // separate events, and both have to land for the sidebar to be right.
+    deliver(SocketEvent.VOICE_STATE_LEAVE, {
+      serverId: SERVER,
+      channelId: VOICE,
+      userId: GRACE.id,
+    });
+    deliver(SocketEvent.VOICE_STATE, participant({ channelId: OTHER_VOICE }));
+
+    expect(states(queryClient)).toHaveLength(1);
+    expect(states(queryClient)[0]?.channelId).toBe(OTHER_VOICE);
+  });
+
+  it('removes someone who leaves a call', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant()]);
+
+    deliver(SocketEvent.VOICE_STATE_LEAVE, {
+      serverId: SERVER,
+      channelId: VOICE,
+      userId: GRACE.id,
+    });
+
+    expect(states(queryClient)).toEqual([]);
+  });
+
+  it('leaves other people in the call alone', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [
+      participant(),
+      participant({ user: ADA }),
+    ]);
+
+    deliver(SocketEvent.VOICE_STATE_LEAVE, {
+      serverId: SERVER,
+      channelId: VOICE,
+      userId: GRACE.id,
+    });
+
+    expect(states(queryClient).map((state) => state.user.id)).toEqual([ADA.id]);
+  });
+
+  it('does not touch another server when someone joins a call', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), []);
+    queryClient.setQueryData(keys.voiceStates('server-other'), []);
+
+    deliver(SocketEvent.VOICE_STATE, participant());
+
+    expect(states(queryClient, 'server-other')).toEqual([]);
+  });
+
+  it('ignores a leave for somebody who was not listed', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant()]);
+
+    deliver(SocketEvent.VOICE_STATE_LEAVE, {
+      serverId: SERVER,
+      channelId: VOICE,
+      userId: 'user-nobody',
+    });
+
+    expect(states(queryClient)).toHaveLength(1);
+  });
+
+  it('re-reads voice state after a reconnect, since events were missed', async () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant()]);
+
+    deliver('connect', undefined);
+    await Promise.resolve();
+
+    // The key sits under `servers`, which the reconnect handler invalidates wholesale.
+    expect(queryClient.getQueryState(keys.voiceStates(SERVER))?.isInvalidated).toBe(true);
   });
 });

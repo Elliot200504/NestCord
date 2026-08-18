@@ -25,6 +25,20 @@ export const SocketEvent = {
   MEMBER_LEAVE: 'member:leave',
   NOTIFICATION_CREATE: 'notification:create',
   CONVERSATION_CREATE: 'conversation:create',
+  /**
+   * Voice. `voice:join` / `voice:leave` / `voice:update` are what a client sends
+   * about itself; `voice:state` / `voice:state:leave` are what the server tells a
+   * channel about everybody. The three signalling events are relayed verbatim
+   * between two browsers and mean nothing to the server.
+   */
+  VOICE_JOIN: 'voice:join',
+  VOICE_LEAVE: 'voice:leave',
+  VOICE_UPDATE: 'voice:update',
+  VOICE_STATE: 'voice:state',
+  VOICE_STATE_LEAVE: 'voice:state:leave',
+  VOICE_OFFER: 'voice:offer',
+  VOICE_ANSWER: 'voice:answer',
+  VOICE_CANDIDATE: 'voice:candidate',
 } as const;
 
 export type SocketEventName = (typeof SocketEvent)[keyof typeof SocketEvent];
@@ -111,6 +125,83 @@ export interface NotificationPayload {
 }
 
 /**
+ * One person in a voice channel, as everybody who can see that channel sees them.
+ *
+ * `canSpeak` is resolved on the server from SPEAK and sent so the client knows
+ * whether to publish a microphone track at all. It is not an enforcement: in a
+ * peer-to-peer mesh the server never touches the media, so a patched client could
+ * publish anyway. Real enforcement needs an SFU, which PLAN.MD s.17 rules out.
+ */
+export interface VoiceParticipant {
+  /** Which server's voice-state list this belongs in, so a listener can aim at one. */
+  serverId: string;
+  channelId: string;
+  user: PublicUser;
+  selfMute: boolean;
+  selfDeaf: boolean;
+  canSpeak: boolean;
+}
+
+/** Someone left a voice channel, or was removed from one. */
+export interface VoiceLeavePayload {
+  serverId: string;
+  channelId: string;
+  userId: string;
+}
+
+/** What a client sends to join a voice channel. */
+export interface VoiceJoinInput {
+  channelId: string;
+}
+
+/** What a client sends when it mutes or deafens itself. */
+export interface VoiceUpdateInput {
+  channelId: string;
+  selfMute: boolean;
+  selfDeaf: boolean;
+}
+
+/**
+ * The answer to `voice:join`, delivered through an ack callback rather than a
+ * broadcast: a client cannot open a microphone hopefully and find out later that it
+ * was refused. On success it carries everybody already in the call, which is who the
+ * joiner then sends offers to.
+ */
+export type VoiceJoinRefusal = 'forbidden' | 'full' | 'not-voice';
+
+export type VoiceJoinAck =
+  | { ok: true; participants: VoiceParticipant[] }
+  | { ok: false; reason: VoiceJoinRefusal };
+
+/** An SDP offer or answer, aimed at one other participant. */
+export interface VoiceDescriptionInput {
+  channelId: string;
+  targetUserId: string;
+  sdp: string;
+}
+
+/** One ICE candidate, aimed at one other participant. */
+export interface VoiceCandidateInput {
+  channelId: string;
+  targetUserId: string;
+  candidate: string;
+  sdpMid: string | null;
+  sdpMLineIndex: number | null;
+}
+
+/**
+ * A relayed offer or answer. `fromUserId` is filled in by the server from the
+ * sender's own connection, never from what the sender claimed.
+ */
+export interface VoiceDescriptionPayload extends VoiceDescriptionInput {
+  fromUserId: string;
+}
+
+export interface VoiceCandidatePayload extends VoiceCandidateInput {
+  fromUserId: string;
+}
+
+/**
  * The room a message event belongs in.
  *
  * One helper rather than a branch at each call site, so a DM broadcast can never be
@@ -138,6 +229,11 @@ export interface SocketEventPayloads {
   [SocketEvent.MEMBER_LEAVE]: MemberLeavePayload;
   [SocketEvent.NOTIFICATION_CREATE]: NotificationPayload;
   [SocketEvent.CONVERSATION_CREATE]: Conversation;
+  [SocketEvent.VOICE_STATE]: VoiceParticipant;
+  [SocketEvent.VOICE_STATE_LEAVE]: VoiceLeavePayload;
+  [SocketEvent.VOICE_OFFER]: VoiceDescriptionPayload;
+  [SocketEvent.VOICE_ANSWER]: VoiceDescriptionPayload;
+  [SocketEvent.VOICE_CANDIDATE]: VoiceCandidatePayload;
 }
 
 /**
@@ -150,3 +246,22 @@ export const TYPING_TIMEOUT_MS = 8_000;
 
 /** How often a client may repeat `typing:start` while someone keeps typing. */
 export const TYPING_THROTTLE_MS = 3_000;
+
+/**
+ * How many people may be in one voice channel at once.
+ *
+ * Voice is a peer-to-peer mesh, so each participant uploads their microphone once
+ * per other participant: eight people means seven uplinks each, which is about
+ * where a normal connection stops coping. The gateway is the enforcer; the web
+ * client uses this only to render "8/8" and disable the control.
+ */
+export const MAX_VOICE_PARTICIPANTS = 8;
+
+/**
+ * Longest SDP blob and ICE candidate the gateway will relay.
+ *
+ * These strings are written by one browser and handed to another, so they are
+ * bounded like any other user input. Real offers run a few kilobytes.
+ */
+export const MAX_SDP_LENGTH = 20_000;
+export const MAX_ICE_CANDIDATE_LENGTH = 1_000;

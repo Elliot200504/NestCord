@@ -8,6 +8,8 @@ import { NO_ROLE_POSITION, OWNER_POSITION } from '../common/permissions/member-c
 import type { MemberContext } from '../common/permissions/member-context';
 import { PermissionsService } from '../common/permissions/permissions.service';
 import type { PrismaService } from '../common/prisma/prisma.service';
+import type { RealtimeService } from '../gateway/realtime.service';
+import { VoiceStateService } from '../gateway/voice-state.service';
 import { ChannelsService } from './channels.service';
 
 const SERVER = 'server-1';
@@ -73,6 +75,8 @@ const ROLES: StubRole[] = [
 
 interface Harness {
   channels: ChannelsService;
+  voice: VoiceStateService;
+  evicted: { channelId: string; userId: string }[];
   rows: StubChannel[];
   overrides: StubOverride[];
   created: Record<string, unknown>[];
@@ -272,8 +276,19 @@ function buildHarness(rows: StubChannel[], overrides: StubOverride[], members: M
     },
   } as unknown as AuditLogService;
 
+  const voice = new VoiceStateService();
+  const evicted: { channelId: string; userId: string }[] = [];
+  const realtime = {
+    voiceEvict: (channelId: string, userId: string) => {
+      evicted.push({ channelId, userId });
+      voice.leaveUser(userId);
+    },
+  } as unknown as RealtimeService;
+
   return {
-    channels: new ChannelsService(prisma, permissions, audit),
+    channels: new ChannelsService(prisma, permissions, audit, voice, realtime),
+    voice,
+    evicted,
     rows,
     overrides,
     created,
@@ -673,6 +688,99 @@ describe('ChannelsService', () => {
       await expect(
         harness.channels.remove(member({ highestPosition: NO_ROLE_POSITION }), 'channel-staff'),
       ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('voiceStates', () => {
+    // The member the harness seeds, so re-resolving their permissions finds them.
+    const ADA = 'user-1';
+
+    /** Puts someone in a voice channel of the seeded server. */
+    function seedCall(channelId: string, userId = ADA) {
+      harness.rows.push(channel({ id: channelId, name: channelId, type: 'VOICE' }));
+      harness.voice.join({
+        serverId: SERVER,
+        channelId,
+        socketId: `socket-${userId}`,
+        user: {
+          id: userId,
+          username: userId,
+          displayName: null,
+          avatarUrl: null,
+          accentColor: null,
+          status: 'ONLINE',
+        },
+        canSpeak: true,
+      });
+    }
+
+    it('reports who is in a voice channel the member can see', async () => {
+      seedCall('channel-voice');
+
+      const states = await harness.channels.voiceStates(member());
+
+      expect(states.map((state) => state.user.id)).toEqual([ADA]);
+    });
+
+    it('says nothing about a call in a channel the member cannot see', async () => {
+      seedCall('channel-secret-voice');
+      harness.overrides.push({
+        channelId: 'channel-secret-voice',
+        type: 'ROLE',
+        roleId: EVERYONE_ROLE,
+        userId: null,
+        allow: 0,
+        deny: Permission.VIEW_CHANNEL,
+      });
+
+      const states = await harness.channels.voiceStates(member());
+
+      expect(states).toEqual([]);
+    });
+
+    it('leaves text channels out of it', async () => {
+      const states = await harness.channels.voiceStates(member());
+
+      expect(states).toEqual([]);
+    });
+
+    it('drops a member out of a call once an override takes CONNECT away', async () => {
+      seedCall('channel-voice');
+
+      await harness.channels.setRoleOverride(
+        member({ permissions: ALL_PERMISSIONS, isOwner: true, highestPosition: OWNER_POSITION }),
+        'channel-voice',
+        EVERYONE_ROLE,
+        { allow: 0, deny: Permission.CONNECT },
+      );
+
+      expect(harness.evicted).toEqual([{ channelId: 'channel-voice', userId: ADA }]);
+      expect(harness.voice.isIn('channel-voice', ADA)).toBe(false);
+    });
+
+    it('leaves a call alone when an override does not touch CONNECT', async () => {
+      seedCall('channel-voice');
+
+      await harness.channels.setRoleOverride(
+        member({ permissions: ALL_PERMISSIONS, isOwner: true, highestPosition: OWNER_POSITION }),
+        'channel-voice',
+        EVERYONE_ROLE,
+        { allow: 0, deny: Permission.SEND_MESSAGES },
+      );
+
+      expect(harness.evicted).toEqual([]);
+      expect(harness.voice.isIn('channel-voice', ADA)).toBe(true);
+    });
+
+    it('empties a call when the channel is deleted', async () => {
+      seedCall('channel-voice');
+
+      await harness.channels.remove(
+        member({ permissions: ALL_PERMISSIONS, isOwner: true, highestPosition: OWNER_POSITION }),
+        'channel-voice',
+      );
+
+      expect(harness.evicted).toEqual([{ channelId: 'channel-voice', userId: ADA }]);
     });
   });
 });

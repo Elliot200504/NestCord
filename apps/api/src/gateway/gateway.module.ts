@@ -6,6 +6,7 @@ import { EventsGateway } from './events.gateway';
 import { PresenceService } from './presence.service';
 import { RealtimeService } from './realtime.service';
 import { SocketRooms } from './socket-rooms';
+import { VoiceStateService } from './voice-state.service';
 
 /**
  * Exports only what other modules need to *send* — the gateway itself stays private,
@@ -14,7 +15,7 @@ import { SocketRooms } from './socket-rooms';
  */
 @Module({
   imports: [AuthModule, PermissionsModule],
-  providers: [EventsGateway, PresenceService, RealtimeService, SocketRooms],
-  exports: [RealtimeService, PresenceService],
+  providers: [EventsGateway, PresenceService, RealtimeService, SocketRooms, VoiceStateService],
+  exports: [RealtimeService, PresenceService, VoiceStateService],
 })
 export class GatewayModule {}
