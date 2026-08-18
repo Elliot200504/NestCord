@@ -19,6 +19,13 @@ const envSchema = z.object({
   API_URL: z.string().url().default('http://localhost:3000'),
   WEB_URL: z.string().url().default('http://localhost:5173'),
 
+  /**
+   * Who may read the error log, as a comma-separated list of email addresses.
+   * Empty means nobody, which is the right default: an app with no configured
+   * admin should refuse the route rather than open it.
+   */
+  ADMIN_EMAILS: z.string().default(''),
+
   UPLOAD_DIR: z.string().default('./uploads'),
   UPLOAD_MAX_BYTES: z.coerce
     .number()

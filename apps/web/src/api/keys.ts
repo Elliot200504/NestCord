@@ -21,6 +21,8 @@ export const keys = {
   /** Keyed by a channel id or a conversation id — both are UUIDs, so they cannot collide. */
   messages: (listId: string) => ['messages', listId] as const,
   notifications: ['notifications'] as const,
+  adminAccess: ['admin', 'access'] as const,
+  errorLog: ['admin', 'errors'] as const,
   friends: ['friends'] as const,
   conversations: ['conversations'] as const,
   conversation: (conversationId: string) => ['conversations', conversationId] as const,

@@ -267,6 +267,37 @@ export interface AuditLogEntry {
 }
 
 /**
+ * The body of every failed API response.
+ *
+ * `message` is always safe to show a user: for a 4xx it is the sentence the route
+ * itself wrote, and for a 5xx it is a generic apology, because the real cause is
+ * only ever written to the error log.
+ */
+export interface ApiErrorBody {
+  statusCode: number;
+  message: string;
+  /**
+   * Present on the failures nobody expected. It is the code the user reads on
+   * screen and quotes to an admin, who finds the matching row in the error log.
+   */
+  reference?: string;
+}
+
+/** One row of the admin error log, detail included — admins only. */
+export interface ErrorLogEntry {
+  id: string;
+  reference: string;
+  statusCode: number;
+  detail: string;
+  stack: string | null;
+  method: string;
+  path: string;
+  /** The signed-in user who hit it, if there was one. May name a deleted account. */
+  userId: string | null;
+  createdAt: string;
+}
+
+/**
  * Which way round a friendship is, from the asking user's point of view.
  *
  * One row covers both people, so the row alone cannot say whether you sent the
@@ -369,6 +400,15 @@ export const DEFAULT_CHANNEL_NAME = 'general';
 export const MODERATION_REASON_MAX_LENGTH = 512;
 /** One page of the audit log. It is browsed, not exported. */
 export const AUDIT_LOG_PAGE_SIZE = 50;
+
+/**
+ * What a user is told when something failed for a reason that is not their fault
+ * and not their business. Shared so the API's 5xx body and the web app's
+ * dead-network fallback say the same thing.
+ */
+export const GENERIC_ERROR_MESSAGE = 'Something went wrong on our end. Please try again.';
+/** One page of the error log. Same reasoning as the audit log: it is read, not exported. */
+export const ERROR_LOG_PAGE_SIZE = 50;
 
 /**
  * Group DMs, including whoever created it. Small on purpose: past a handful of

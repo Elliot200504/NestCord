@@ -68,6 +68,25 @@ Register at http://localhost:5173/register, or log in with the seeded account ab
 All environment variables live in one `.env` at the repo root; `.env.example` lists them all. The API
 validates them at boot and refuses to start if any are missing.
 
+## Errors
+
+Users are never shown a technical error. A global exception filter turns everything a route throws
+into one shape: a 4xx keeps the sentence the route wrote for the user, and anything unexpected — a
+crash, an unhandled Prisma error — becomes a generic apology plus a short reference code such as
+`ERR-9F3A2C`. The real message and stack go to the `ErrorLog` table and the server log, never to the
+client.
+
+Admins read those at **Settings → Error log**, newest first, and can look one up by the reference a
+user quoted. Who counts as an admin is `ADMIN_EMAILS` in `.env`, a comma-separated list of email
+addresses — empty means nobody, so the route is closed until it is configured:
+
+```bash
+ADMIN_EMAILS="test@nestcord.local"    # the seeded account, to see the page in development
+```
+
+The check runs on the server against the database on every request, so the frontend flag only decides
+whether the link is listed.
+
 ## Commands
 
 | Command           | Purpose                      |

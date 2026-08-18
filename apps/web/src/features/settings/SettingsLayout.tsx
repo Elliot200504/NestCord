@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, LogOut, Palette, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowLeft, LogOut, Palette, ShieldCheck, TriangleAlert, UserRound } from 'lucide-react';
 
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useCurrentUser, useLogout } from '@/features/auth/use-auth';
 import { UserAvatar } from '@/components/UserAvatar';
 import { DEFAULT_APP_ROUTE } from '@/features/auth/require-auth';
@@ -12,14 +13,20 @@ const SECTIONS = [
   { to: '/settings/appearance', label: 'Appearance', icon: Palette },
 ] as const;
 
+/** Only listed for an admin. The route stays reachable by URL either way. */
+const ADMIN_SECTION = { to: '/settings/errors', label: 'Error log', icon: TriangleAlert } as const;
+
 /**
  * The settings shell: a column of sections on the left, the open section on the
  * right. Escape closes it, the same way it does in the app this is modelled on.
  */
 export function SettingsLayout() {
   const { data: user } = useCurrentUser();
+  const { data: access } = useAdminAccess();
   const logout = useLogout();
   const navigate = useNavigate();
+
+  const sections = access?.isAdmin === true ? [...SECTIONS, ADMIN_SECTION] : SECTIONS;
 
   return (
     <div
@@ -51,7 +58,7 @@ export function SettingsLayout() {
         )}
 
         <ul className="space-y-0.5">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <li key={section.to}>
               <Link
                 to={section.to}

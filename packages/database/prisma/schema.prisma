@@ -348,6 +348,29 @@ model AuditLog {
   @@index([serverId, createdAt])
 }
 
+/// One unexpected failure, as the admin error log shows it.
+///
+/// Deliberately not related to `User`: the log has to outlive the account that hit
+/// the error, and a foreign key would either erase the row on delete or make
+/// writing it fail for a request whose session was just invalidated. `userId` is
+/// therefore a plain column, and an id with no matching account is expected.
+model ErrorLog {
+  id String @id @default(uuid())
+  /// Short code shown to the user who hit the error, so support can find this row
+  /// from nothing but what they read on screen.
+  reference  String   @unique
+  statusCode Int
+  /// The real error message. Never sent to a non-admin.
+  detail     String
+  stack      String?
+  method     String
+  path       String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model Notification {
   id        String           @id @default(uuid())
   userId    String
