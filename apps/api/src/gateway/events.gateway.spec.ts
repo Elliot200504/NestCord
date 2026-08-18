@@ -10,6 +10,7 @@ import type { PrismaService } from '../common/prisma/prisma.service';
 import { EventsGateway } from './events.gateway';
 import { PresenceService } from './presence.service';
 import type { RealtimeService } from './realtime.service';
+import { VoiceStateService } from './voice-state.service';
 import type { SocketRooms } from './socket-rooms';
 
 const SERVER = 'server-1';
@@ -91,10 +92,12 @@ function buildHarness(options: { channelPermissions?: number; isMember?: boolean
   } as unknown as SocketRooms;
 
   const presence = new PresenceService();
+  const voice = new VoiceStateService();
 
   return {
-    gateway: new EventsGateway(auth, prisma, permissions, presence, realtime, socketRooms),
+    gateway: new EventsGateway(auth, prisma, permissions, presence, realtime, socketRooms, voice),
     presence,
+    voice,
     sent,
     announced,
   };
