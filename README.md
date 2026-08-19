@@ -41,7 +41,7 @@ openssl rand -base64 48    # run twice, paste into JWT_ACCESS_SECRET and JWT_REF
 
 docker compose up -d       # PostgreSQL on localhost:5432
 pnpm db:migrate
-pnpm db:seed               # optional — sample users, servers, channels, messages
+pnpm db:seed               # optional — one development account to log in with
 
 pnpm dev
 ```
@@ -50,13 +50,16 @@ pnpm dev
 - API — http://localhost:3000/api
 - Swagger — http://localhost:3000/api/docs
 
-Skip `pnpm db:seed` if you would rather start empty and register your own account. The seed is what
-the Playwright journeys expect, so run it before `test:e2e`.
+Skip `pnpm db:seed` if you would rather register your own account at the sign-up page instead.
 
 If any of that does not go to plan, [SETUP.md](./SETUP.md) walks the same ground one step at a time,
 from a clean machine, and has a troubleshooting section.
 
 Seeded login: `test@nestcord.local` / `password123`
+
+That one account is all the seed creates, and it never deletes anything — the servers, channels and
+messages you make while developing stay put, and re-running it on an existing account reports it and
+changes nothing. Everything else is yours to create in the app.
 
 ## Authentication
 
@@ -120,8 +123,10 @@ pnpm db:seed
 pnpm --filter @nestcord/web test:e2e        # add :ui for the Playwright inspector
 ```
 
-They start `pnpm dev` themselves, or reuse it if it is already running. Note that they
-sign in as the seeded account and leave their messages behind in `#general`.
+They start `pnpm dev` themselves, or reuse it if it is already running. The sign-in journey
+only needs the seeded account, but the ones that walk into a channel still expect a server
+named "NestCord HQ" with `#general` and `#random` in it — the seed no longer creates that,
+so those specs need a world you have built yourself.
 
 ## Layout
 
