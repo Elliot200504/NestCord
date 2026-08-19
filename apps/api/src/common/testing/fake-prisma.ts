@@ -106,7 +106,12 @@ export class FakePrisma {
       create: async ({
         data,
       }: {
-        data: { userId: string; refreshTokenHash: string; expiresAt: Date; userAgent: string | null };
+        data: {
+          userId: string;
+          refreshTokenHash: string;
+          expiresAt: Date;
+          userAgent: string | null;
+        };
       }) => {
         const session: FakeSession = {
           id: this.id('session'),
