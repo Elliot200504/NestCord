@@ -23,6 +23,7 @@ import { VoiceParticipants } from '@/features/voice/VoiceParticipants';
 import { VoiceTray } from '@/features/voice/VoiceTray';
 import { cn } from '@/lib/utils';
 import { QueryError } from './QueryError';
+import { ServerRail } from './ServerRail';
 import { ShellPanel } from './ShellPanel';
 import { UserPanel } from './UserPanel';
 
@@ -71,43 +72,55 @@ export function ChannelSidebar() {
         onClose={closeDrawer}
         label="Channel list"
         closeLabel="Close the channel list"
+        drawerWidth="w-[308px]"
       >
-        {server ? (
-          <ServerMenu server={server}>
-            <button
-              type="button"
-              className="border-border hover:bg-surface-700 flex h-14 w-full items-center justify-between border-b px-4 text-left transition-colors"
-            >
-              <h1 className="font-display truncate text-base font-semibold">{server.name}</h1>
-              <ChevronDown className="text-content-500 size-4 shrink-0" aria-hidden />
-            </button>
-          </ServerMenu>
-        ) : (
-          <header className="border-border flex h-14 items-center border-b px-4">
-            <h1 className="font-display truncate text-base font-semibold">
-              {activeServerId === null ? 'Direct Messages' : 'Loading…'}
-            </h1>
-          </header>
-        )}
+        <div className="flex min-h-0 flex-1">
+          {/* The rail lives here, not beside the drawer, because Radix makes
+              everything outside the drawer's content inert while it is open — a rail
+              rendered next to it would be visible but unusable. */}
+          {!wide && <ServerRail />}
 
-        {activeServerId === null ? (
-          <DirectMessagesPanel activeConversationId={activeConversationId} />
-        ) : (
-          <ChannelList
-            query={channels}
-            serverId={activeServerId}
-            routeServerId={routeServerId}
-            activeChannelId={activeChannelId}
-            canCreate={canCreate}
-            onCreate={(parentId) => setDialog({ kind: 'create', parentId })}
-            onEdit={(channel) => setDialog({ kind: 'settings', channel })}
-          />
-        )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {server ? (
+              <ServerMenu server={server}>
+                <button
+                  type="button"
+                  className="border-border hover:bg-surface-700 flex h-14 w-full items-center justify-between border-b px-4 text-left transition-colors"
+                >
+                  <h1 className="font-display truncate text-base font-semibold">{server.name}</h1>
+                  <ChevronDown className="text-content-500 size-4 shrink-0" aria-hidden />
+                </button>
+              </ServerMenu>
+            ) : (
+              <header className="border-border flex h-14 items-center border-b px-4">
+                <h1 className="font-display truncate text-base font-semibold">
+                  {activeServerId === null ? 'Direct Messages' : 'Loading…'}
+                </h1>
+              </header>
+            )}
 
-        <VoiceTray
-          channelName={(channels.data ?? []).find((channel) => channel.id === voiceChannelId)?.name}
-        />
-        <UserPanel />
+            {activeServerId === null ? (
+              <DirectMessagesPanel activeConversationId={activeConversationId} />
+            ) : (
+              <ChannelList
+                query={channels}
+                serverId={activeServerId}
+                routeServerId={routeServerId}
+                activeChannelId={activeChannelId}
+                canCreate={canCreate}
+                onCreate={(parentId) => setDialog({ kind: 'create', parentId })}
+                onEdit={(channel) => setDialog({ kind: 'settings', channel })}
+              />
+            )}
+
+            <VoiceTray
+              channelName={
+                (channels.data ?? []).find((channel) => channel.id === voiceChannelId)?.name
+              }
+            />
+            <UserPanel />
+          </div>
+        </div>
       </ShellPanel>
 
       {/* Outside the panel: closing the drawer must not tear down an open dialog. */}

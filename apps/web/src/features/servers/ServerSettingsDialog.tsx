@@ -84,7 +84,7 @@ function SettingsBody({ server }: { server: Server }) {
       <div
         role="tablist"
         aria-label="Server settings"
-        className="border-border flex gap-1 border-b"
+        className="border-border flex gap-1 overflow-x-auto border-b"
       >
         {available.map((entry) => (
           <button
@@ -94,7 +94,7 @@ function SettingsBody({ server }: { server: Server }) {
             aria-selected={activeTab === entry.id}
             onClick={() => setTab(entry.id)}
             className={cn(
-              'text-content-400 hover:text-content-100 -mb-px border-b-2 border-transparent px-3 py-2 text-sm transition-colors',
+              'text-content-400 hover:text-content-100 -mb-px shrink-0 border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap transition-colors',
               activeTab === entry.id && 'border-primary text-content-100',
             )}
           >

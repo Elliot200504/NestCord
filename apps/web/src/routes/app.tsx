@@ -3,6 +3,7 @@ import { createRoute, Outlet } from '@tanstack/react-router';
 import { ChannelSidebar } from '../components/ChannelSidebar';
 import { ServerRail } from '../components/ServerRail';
 import { requireSession } from '../features/auth/require-auth';
+import { useMediaQuery, SHELL_WIDE } from '../hooks/useMediaQuery';
 import { CreateServerDialog } from '../features/servers/CreateServerDialog';
 import { InviteDialog } from '../features/servers/InviteDialog';
 import { ServerSettingsDialog } from '../features/servers/ServerSettingsDialog';
@@ -20,6 +21,8 @@ const CONTENT_ID = 'shell-content';
  * must not widen the document.
  */
 function AppLayout() {
+  const wide = useMediaQuery(SHELL_WIDE);
+
   return (
     <RealtimeProvider>
       <div className="flex h-screen overflow-hidden">
@@ -32,7 +35,7 @@ function AppLayout() {
           Skip to the conversation
         </a>
 
-        <ServerRail />
+        {wide && <ServerRail />}
         <ChannelSidebar />
         <main
           id={CONTENT_ID}
