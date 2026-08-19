@@ -91,4 +91,6 @@ Commands: `/commit-push-pr`, `/verify`.
 
 ## Documentation policy
 
-One README, this file, and PLAN.MD. Do not create dozens of documentation files (PLAN.MD ss.32).
+Four documents, and no more: README.md (what the project is), SETUP.md (getting it running on a
+clean machine), this file (how to work on it), and PLAN.MD (what gets built). Do not create dozens of
+documentation files (PLAN.MD ss.32).
