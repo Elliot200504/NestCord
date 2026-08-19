@@ -123,10 +123,11 @@ pnpm db:seed
 pnpm --filter @nestcord/web test:e2e        # add :ui for the Playwright inspector
 ```
 
-They start `pnpm dev` themselves, or reuse it if it is already running. The sign-in journey
-only needs the seeded account, but the ones that walk into a channel still expect a server
-named "NestCord HQ" with `#general` and `#random` in it — the seed no longer creates that,
-so those specs need a world you have built yourself.
+They start `pnpm dev` themselves, or reuse it if it is already running. All they need in the
+database is the seeded account: a `setup` project runs first and builds what the journeys
+expect — a server named "Playwright" with two channels, and two friend rows — over the API.
+It only creates what is missing, so later runs reuse the same world, and it leaves the
+servers and channels you made yourself alone.
 
 ## Layout
 

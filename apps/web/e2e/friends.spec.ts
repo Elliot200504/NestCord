@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-import { signInAndOpenApp } from './seeded-world';
+import { signInAndOpenApp, WORLD } from './world';
 
-/** The seed makes Ada an accepted friend and Linus an incoming request. */
-const FRIEND = 'Ada';
-const REQUESTER = 'linus';
+/** The setup makes one an accepted friend, and leaves the other's request waiting. */
+const FRIEND = WORLD.friend;
+const REQUESTER = WORLD.requester;
 
 test('opens the friends page and switches between its tabs', async ({ page }) => {
   await signInAndOpenApp(page);
