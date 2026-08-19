@@ -55,7 +55,11 @@ export function UserPanel() {
         onClick={toggleMute}
         disabled={!inCall}
       >
-        {selfMute ? <MicOff className="size-4" aria-hidden /> : <Mic className="size-4" aria-hidden />}
+        {selfMute ? (
+          <MicOff className="size-4" aria-hidden />
+        ) : (
+          <Mic className="size-4" aria-hidden />
+        )}
       </IconButton>
       <IconButton
         label={selfDeaf ? 'Undeafen' : 'Deafen'}
