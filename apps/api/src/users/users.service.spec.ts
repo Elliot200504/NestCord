@@ -119,9 +119,9 @@ describe('UsersService', () => {
         password: 'password123',
       });
 
-      await expect(harness.users.updateProfile(userId, { username: 'grace' })).rejects.toMatchObject(
-        { status: 409 },
-      );
+      await expect(
+        harness.users.updateProfile(userId, { username: 'grace' }),
+      ).rejects.toMatchObject({ status: 409 });
     });
 
     it('allows saving a profile without changing your own username', async () => {
@@ -232,9 +232,9 @@ describe('UsersService', () => {
     it('refuses to revoke the session making the request', async () => {
       const { userId, sessionId } = await signUp();
 
-      await expect(
-        harness.users.revokeSession(userId, sessionId, sessionId),
-      ).rejects.toMatchObject({ status: 400 });
+      await expect(harness.users.revokeSession(userId, sessionId, sessionId)).rejects.toMatchObject(
+        { status: 400 },
+      );
     });
 
     it('refuses to revoke a session belonging to somebody else', async () => {
