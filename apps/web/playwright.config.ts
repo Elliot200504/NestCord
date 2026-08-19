@@ -7,7 +7,8 @@ const WEB_URL = 'http://localhost:5173';
  *
  * These drive the real stack — Vite, NestJS and PostgreSQL — so they are not part of
  * `pnpm test`, which must stay runnable with nothing else on. Run them with
- * `pnpm --filter @nestcord/web test:e2e` against a database that has been seeded.
+ * `pnpm --filter @nestcord/web test:e2e`; all they need in the database is the seeded
+ * account, because the `setup` project builds the rest over the API first.
  *
  * Chromium only. A handful of journeys on one engine is what the testing rules ask
  * for; a browser matrix would cost minutes per run and catch nothing this app does.
@@ -33,7 +34,18 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Builds the server, channels and friend rows the journeys expect. A dependency
+    // rather than a global setup, so it runs after the web server is up and reports
+    // itself as a step in the output.
+    { name: 'setup', testMatch: /world\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /world\.setup\.ts/,
+      dependencies: ['setup'],
+    },
+  ],
 
   webServer: {
     // The root script builds the shared packages first, then starts the API and the

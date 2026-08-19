@@ -953,22 +953,13 @@ Use Prisma migrations.
 
 Keep the schema easy to understand.
 
-Provide a useful seed script.
+Provide a seed script that creates the development account, and nothing else.
 
-The seed database should contain:
+No sample servers, channels, messages or extra users: those are created through the app while
+developing, which exercises the real code paths instead of hand-written rows.
 
-```text
-10 users
-2-3 servers
-multiple channels
-roles
-sample messages
-reactions
-friendships
-DM conversations
-```
-
-Create a test account for development.
+The seed must never delete anything, so it is safe to run against a database that already holds
+development data. Wiping is `pnpm db:reset`, which is a separate and explicit act.
 
 ---
 

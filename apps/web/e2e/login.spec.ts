@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { APP_HOME, TEST_ACCOUNT } from './seeded-world';
+import { APP_HOME, TEST_ACCOUNT } from './world';
 
 test.describe('signing in', () => {
   test('sends a signed-out visitor to the login page and back again', async ({ page }) => {

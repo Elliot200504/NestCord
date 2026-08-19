@@ -97,14 +97,18 @@ seconds on first boot; if it still says `starting`, wait and re-run.
 
 ```bash
 pnpm db:migrate    # applies migrations, generates the Prisma client
-pnpm db:seed       # 10 users, 3 servers, channels, messages, friends, DMs
+pnpm db:seed       # one development account to log in with
 ```
 
-The seed prints a development login when it finishes:
+The seed prints the login when it finishes:
 
 ```text
 test@nestcord.local  /  password123
 ```
+
+That is all it creates. It does not delete anything, so re-running it after you have built
+servers and channels is safe — an existing account is reported and left untouched. Create
+your own servers, channels and extra users through the app.
 
 ---
 

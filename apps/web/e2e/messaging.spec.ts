@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-import { historyOf, openSeededChannel, SEEDED, signInAndOpenApp } from './seeded-world';
+import { historyOf, openWorldChannel, signInAndOpenApp, WORLD } from './world';
 
 /**
- * Each run leaves its messages behind in the seeded database, so they carry a stamp —
- * otherwise a second run would match the first run's message and pass without having
- * sent anything.
+ * The world is built once and reused, so each run leaves its messages behind in it.
+ * They carry a stamp — otherwise a second run would match the first run's message and
+ * pass without having sent anything.
  */
 function uniqueText(label: string): string {
   return `${label} ${Date.now()}`;
@@ -13,10 +13,10 @@ function uniqueText(label: string): string {
 
 test('sends a message and shows it in the channel', async ({ page }) => {
   await signInAndOpenApp(page);
-  await openSeededChannel(page, SEEDED.channel);
+  await openWorldChannel(page, WORLD.channel);
 
-  const composer = page.getByRole('textbox', { name: `Message #${SEEDED.channel}` });
-  const history = historyOf(page, SEEDED.channel);
+  const composer = page.getByRole('textbox', { name: `Message #${WORLD.channel}` });
+  const history = historyOf(page, WORLD.channel);
   await expect(composer).toBeVisible();
 
   const plain = uniqueText('hello from playwright');
