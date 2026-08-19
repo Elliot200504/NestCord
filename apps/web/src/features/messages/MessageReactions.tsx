@@ -1,5 +1,6 @@
 import type { MessageReaction } from '@nestcord/shared';
 
+import { NO_HOVER, useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
 interface MessageReactionsProps {
@@ -9,6 +10,8 @@ interface MessageReactionsProps {
 }
 
 export function MessageReactions({ reactions, onToggle }: MessageReactionsProps) {
+  const noHover = useMediaQuery(NO_HOVER);
+
   if (reactions.length === 0) return null;
 
   return (
@@ -24,7 +27,8 @@ export function MessageReactions({ reactions, onToggle }: MessageReactionsProps)
             aria-label={`${reaction.me ? 'Remove your' : 'Add a'} ${reaction.emoji} reaction (${reaction.count})`}
             aria-pressed={reaction.me}
             className={cn(
-              'flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs transition-colors',
+              'flex items-center gap-1 rounded-md border text-xs transition-colors',
+              noHover ? 'px-2 py-1' : 'px-1.5 py-0.5',
               reaction.me
                 ? 'border-primary/60 bg-primary/15 text-primary'
                 : 'border-border bg-surface-700/60 text-content-200',

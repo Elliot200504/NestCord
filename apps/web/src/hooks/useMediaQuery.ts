@@ -12,6 +12,9 @@ export const SHELL_WIDE = '(min-width: 768px)';
 /** Whether the member list can sit beside the messages rather than over them. */
 export const SHELL_ROOMY = '(min-width: 1024px)';
 
+/** Whether the pointer driving this device can hover at all, regardless of width. */
+export const NO_HOVER = '(hover: none)';
+
 /**
  * Whether a media query currently matches, re-rendering when that changes.
  *
