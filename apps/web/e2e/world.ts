@@ -1,9 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * What `pnpm db:seed` puts in the database, named once so a spec reads as a journey
- * rather than a pile of string literals. If the seed changes, this file changes with
- * it and the specs do not.
+ * The only thing `pnpm db:seed` creates. Everything else these journeys need is
+ * built over the API by `world.setup.ts` before they run.
  */
 export const TEST_ACCOUNT = {
   email: 'test@nestcord.local',
@@ -11,11 +10,21 @@ export const TEST_ACCOUNT = {
   username: 'testuser',
 } as const;
 
-export const SEEDED = {
-  /** The server the test account owns a membership in, with three text channels. */
-  server: 'NestCord HQ',
+/**
+ * The world the setup project builds, named once so a spec reads as a journey
+ * rather than a pile of string literals.
+ *
+ * The names are fixed rather than stamped per run, because the setup only creates
+ * what is missing. A second run finds the world already there and does nothing.
+ */
+export const WORLD = {
+  server: 'Playwright',
+  /** Created with the server, so the setup never has to make it. */
   channel: 'general',
   otherChannel: 'random',
+  /** An accepted friend, and someone whose request is still waiting. */
+  friend: 'e2e.friend',
+  requester: 'e2e.requester',
 } as const;
 
 /** Where the app drops you after signing in. */
@@ -40,7 +49,7 @@ export async function signIn(page: Page): Promise<void> {
   expect(
     response.ok(),
     `could not sign in as ${TEST_ACCOUNT.email} (HTTP ${response.status()}). ` +
-      'These tests need the API running and the database seeded — try `pnpm db:seed`.',
+      'These tests need the API running and the account created — try `pnpm db:seed`.',
   ).toBe(true);
 }
 
@@ -52,19 +61,20 @@ export async function signInAndOpenApp(page: Page): Promise<void> {
 }
 
 /**
- * Clicks through the rail and the sidebar into one of the seeded server's channels —
- * the same two clicks a person makes, so the specs that need to be *in* a channel do
+ * Clicks through the rail and the sidebar into one of the world's channels — the
+ * same two clicks a person makes, so the specs that need to be *in* a channel do
  * not each spell them out.
  */
-export async function openSeededChannel(page: Page, channel: string): Promise<void> {
+export async function openWorldChannel(page: Page, channel: string): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Servers' })
-    .getByRole('link', { name: SEEDED.server })
+    .getByRole('link', { name: WORLD.server })
     .click();
 
   await page
     .getByRole('navigation', { name: 'Channels' })
-    // Exact: the seed also puts a "General Voice" channel in this server.
+    // Exact: "general" is a substring of nothing here today, but a channel added
+    // to the world later should not silently start matching.
     .getByRole('link', { name: channel, exact: true })
     .click();
 
