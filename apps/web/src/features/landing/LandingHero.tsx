@@ -13,8 +13,7 @@ export function LandingHero() {
         aria-hidden
         className="pointer-events-none absolute -top-24 -left-32 -z-10 size-[38rem] opacity-25"
         style={{
-          background:
-            'radial-gradient(closest-side, var(--color-nest-600) 0%, transparent 100%)',
+          background: 'radial-gradient(closest-side, var(--color-nest-600) 0%, transparent 100%)',
         }}
       />
 
