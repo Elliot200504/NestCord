@@ -163,16 +163,13 @@ export function registerRealtimeListeners(
    * add the person to every server whose list happens to be loaded.
    */
   const onVoiceState = (payload: VoiceParticipant) => {
-    queryClient.setQueryData<VoiceParticipant[]>(
-      keys.voiceStates(payload.serverId),
-      (states) => {
-        const others = (states ?? []).filter(
-          (state) => !(state.channelId === payload.channelId && state.user.id === payload.user.id),
-        );
+    queryClient.setQueryData<VoiceParticipant[]>(keys.voiceStates(payload.serverId), (states) => {
+      const others = (states ?? []).filter(
+        (state) => !(state.channelId === payload.channelId && state.user.id === payload.user.id),
+      );
 
-        return [...others, payload];
-      },
-    );
+      return [...others, payload];
+    });
   };
 
   const onVoiceStateLeave = (payload: VoiceLeavePayload) => {
