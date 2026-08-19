@@ -170,8 +170,7 @@ export interface VoiceUpdateInput {
 export type VoiceJoinRefusal = 'forbidden' | 'full' | 'not-voice';
 
 export type VoiceJoinAck =
-  | { ok: true; participants: VoiceParticipant[] }
-  | { ok: false; reason: VoiceJoinRefusal };
+  { ok: true; participants: VoiceParticipant[] } | { ok: false; reason: VoiceJoinRefusal };
 
 /** An SDP offer or answer, aimed at one other participant. */
 export interface VoiceDescriptionInput {

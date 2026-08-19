@@ -1,13 +1,13 @@
-import {
-  useAppearanceStore,
-  type Density,
-  type Theme,
-} from '@/stores/appearance-store';
+import { useAppearanceStore, type Density, type Theme } from '@/stores/appearance-store';
 import { ChoiceGroup, SettingsSection } from './SettingsPrimitives';
 
 /** Miniatures of the real thing — a swatch says more than the word "dark". */
 const THEMES: ReadonlyArray<{ value: Theme; label: string; preview: React.ReactNode }> = [
-  { value: 'dark', label: 'Dark', preview: <ThemeSwatch background="#0c0908" foreground="#f6f1ef" /> },
+  {
+    value: 'dark',
+    label: 'Dark',
+    preview: <ThemeSwatch background="#0c0908" foreground="#f6f1ef" />,
+  },
   {
     value: 'light',
     label: 'Light',

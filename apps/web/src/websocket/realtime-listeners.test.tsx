@@ -1,12 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  SocketEvent,
-  type Message,
-  type Paginated,
-  type VoiceParticipant,
-} from '@nestcord/shared';
+import { SocketEvent, type Message, type Paginated, type VoiceParticipant } from '@nestcord/shared';
 
 import { keys } from '@/api/keys';
 import { useTypingStore } from '@/stores/typing-store';
@@ -376,10 +371,7 @@ describe('voice events', () => {
 
   it('leaves other people in the call alone', () => {
     const { queryClient, deliver } = buildHarness();
-    queryClient.setQueryData(keys.voiceStates(SERVER), [
-      participant(),
-      participant({ user: ADA }),
-    ]);
+    queryClient.setQueryData(keys.voiceStates(SERVER), [participant(), participant({ user: ADA })]);
 
     deliver(SocketEvent.VOICE_STATE_LEAVE, {
       serverId: SERVER,

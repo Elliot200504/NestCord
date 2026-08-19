@@ -100,7 +100,9 @@ describe('useSendMessage', () => {
     stubApi(message({ id: 'stored', content: 'hi there' }));
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
-    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), { wrapper });
+    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), {
+      wrapper,
+    });
     result.current.submit({ content: 'hi there' });
 
     await waitFor(() => expect(messages()).toHaveLength(1));
@@ -111,7 +113,9 @@ describe('useSendMessage', () => {
     stubApi(message({ id: 'stored', content: 'hi there' }));
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
-    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), { wrapper });
+    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), {
+      wrapper,
+    });
     result.current.submit({ content: 'hi there' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -122,7 +126,9 @@ describe('useSendMessage', () => {
     stubApi(null, { fail: true });
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
 
-    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), { wrapper });
+    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), {
+      wrapper,
+    });
     result.current.submit({ content: 'not allowed' });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -133,7 +139,9 @@ describe('useSendMessage', () => {
     const calls = stubApi(message());
     const { wrapper } = harness({ items: [], nextCursor: null });
 
-    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), { wrapper });
+    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), {
+      wrapper,
+    });
     result.current.submit({ content: 'answer', replyToId: 'message-1', attachmentIds: ['file-1'] });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -169,7 +177,9 @@ describe('useSendMessage', () => {
     );
 
     const { wrapper, messages } = harness({ items: [], nextCursor: null });
-    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), { wrapper });
+    const { result } = renderHook(() => useSendMessage(channelMessages(SERVER, CHANNEL), AUTHOR), {
+      wrapper,
+    });
     result.current.submit({ content: 'hi there' });
 
     await waitFor(() => expect(messages()).toHaveLength(1));
@@ -186,7 +196,9 @@ describe('useToggleReaction', () => {
     const calls = stubApi([{ emoji: '👍', count: 1, me: true }]);
     const { wrapper, messages } = harness({ items: [message()], nextCursor: null });
 
-    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), { wrapper });
+    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), {
+      wrapper,
+    });
     result.current.mutate({ message: message(), emoji: '👍' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -200,7 +212,9 @@ describe('useToggleReaction', () => {
     const existing = message({ reactions: [{ emoji: '👍', count: 1, me: true }] });
     const { wrapper } = harness({ items: [existing], nextCursor: null });
 
-    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), { wrapper });
+    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), {
+      wrapper,
+    });
     result.current.mutate({ message: existing, emoji: '👍' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -211,7 +225,9 @@ describe('useToggleReaction', () => {
     stubApi(null, { fail: true });
     const { wrapper, messages } = harness({ items: [message()], nextCursor: null });
 
-    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), { wrapper });
+    const { result } = renderHook(() => useToggleReaction(channelMessages(SERVER, CHANNEL)), {
+      wrapper,
+    });
     result.current.mutate({ message: message(), emoji: '👍' });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

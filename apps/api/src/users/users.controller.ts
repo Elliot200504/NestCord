@@ -25,7 +25,12 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
-import { AVATAR_MAX_BYTES, type CurrentUser, type UserProfile, type UserSession } from '@nestcord/shared';
+import {
+  AVATAR_MAX_BYTES,
+  type CurrentUser,
+  type UserProfile,
+  type UserSession,
+} from '@nestcord/shared';
 
 import { CurrentSessionId, CurrentUser as User } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/auth.service';

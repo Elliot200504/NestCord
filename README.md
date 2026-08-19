@@ -41,7 +41,7 @@ openssl rand -base64 48    # run twice, paste into JWT_ACCESS_SECRET and JWT_REF
 
 docker compose up -d       # PostgreSQL on localhost:5432
 pnpm db:migrate
-pnpm db:seed               # sample users, servers, channels, messages
+pnpm db:seed               # optional — sample users, servers, channels, messages
 
 pnpm dev
 ```
@@ -49,6 +49,12 @@ pnpm dev
 - Web — http://localhost:5173
 - API — http://localhost:3000/api
 - Swagger — http://localhost:3000/api/docs
+
+Skip `pnpm db:seed` if you would rather start empty and register your own account. The seed is what
+the Playwright journeys expect, so run it before `test:e2e`.
+
+If any of that does not go to plan, [SETUP.md](./SETUP.md) walks the same ground one step at a time,
+from a clean machine, and has a troubleshooting section.
 
 Seeded login: `test@nestcord.local` / `password123`
 

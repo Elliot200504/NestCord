@@ -105,9 +105,7 @@ export function ChannelSidebar() {
         )}
 
         <VoiceTray
-          channelName={
-            (channels.data ?? []).find((channel) => channel.id === voiceChannelId)?.name
-          }
+          channelName={(channels.data ?? []).find((channel) => channel.id === voiceChannelId)?.name}
         />
         <UserPanel />
       </ShellPanel>

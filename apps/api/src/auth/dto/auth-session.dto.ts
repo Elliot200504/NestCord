@@ -24,7 +24,9 @@ export class PublicUserDto implements PublicUser {
 }
 
 export class AuthSessionDto implements AuthSession {
-  @ApiProperty({ description: 'Short-lived bearer token. The refresh token is an httpOnly cookie.' })
+  @ApiProperty({
+    description: 'Short-lived bearer token. The refresh token is an httpOnly cookie.',
+  })
   accessToken!: string;
 
   @ApiProperty({ type: PublicUserDto })

@@ -130,12 +130,7 @@ function RoleForm({
         disabled={role.isDefault || update.isPending}
       />
 
-      <ColorPicker
-        label="Role colour"
-        value={color}
-        colors={ROLE_COLORS}
-        onChange={setColor}
-      />
+      <ColorPicker label="Role colour" value={color} colors={ROLE_COLORS} onChange={setColor} />
 
       <fieldset>
         <legend className="text-content-300 mb-2 text-sm font-medium">Permissions</legend>

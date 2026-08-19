@@ -170,10 +170,7 @@ describe('Auth routes', () => {
   it('stops the access token working once the session is logged out', async () => {
     const { accessToken, cookie } = await register();
 
-    await request(app.getHttpServer())
-      .post('/api/auth/logout')
-      .set('Cookie', cookie)
-      .expect(204);
+    await request(app.getHttpServer()).post('/api/auth/logout').set('Cookie', cookie).expect(204);
 
     await request(app.getHttpServer())
       .get('/api/auth/me')

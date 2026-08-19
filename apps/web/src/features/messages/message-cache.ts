@@ -19,10 +19,7 @@ export type MessagePages = InfiniteData<Paginated<Message>, string | undefined>;
  * through, which would throw away their position for the sake of one changed row.
  */
 
-export function readMessages(
-  queryClient: QueryClient,
-  listId: string,
-): MessagePages | undefined {
+export function readMessages(queryClient: QueryClient, listId: string): MessagePages | undefined {
   return queryClient.getQueryData<MessagePages>(keys.messages(listId));
 }
 
@@ -69,11 +66,7 @@ export function upsertMessage(queryClient: QueryClient, listId: string, message:
 }
 
 /** Puts a message at the top of the newest page, where the newest message belongs. */
-export function prependMessage(
-  queryClient: QueryClient,
-  listId: string,
-  message: Message,
-): void {
+export function prependMessage(queryClient: QueryClient, listId: string, message: Message): void {
   const current = readMessages(queryClient, listId);
 
   // No page loaded yet means nothing is rendering this list; the first fetch will
@@ -126,11 +119,7 @@ export function replaceMessage(
   });
 }
 
-export function removeMessage(
-  queryClient: QueryClient,
-  listId: string,
-  messageId: string,
-): void {
+export function removeMessage(queryClient: QueryClient, listId: string, messageId: string): void {
   const current = readMessages(queryClient, listId);
   if (!current) return;
 
