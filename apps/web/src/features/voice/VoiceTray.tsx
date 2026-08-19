@@ -65,7 +65,11 @@ export function VoiceTray({ channelName }: VoiceTrayProps) {
             pressed={selfMute}
             onClick={toggleMute}
           >
-            {selfMute ? <MicOff className="size-4" aria-hidden /> : <Mic className="size-4" aria-hidden />}
+            {selfMute ? (
+              <MicOff className="size-4" aria-hidden />
+            ) : (
+              <Mic className="size-4" aria-hidden />
+            )}
           </TrayToggle>
 
           <TrayToggle
