@@ -127,7 +127,10 @@ export class VoiceStateService {
   }
 
   /** Records a mute or deafen. Returns the new state, or null if that socket is not in a call. */
-  update(socketId: string, next: { selfMute: boolean; selfDeaf: boolean }): VoiceParticipant | null {
+  update(
+    socketId: string,
+    next: { selfMute: boolean; selfDeaf: boolean },
+  ): VoiceParticipant | null {
     const location = this.locations.get(socketId);
     const entry = location && this.channels.get(location.channelId)?.get(location.userId);
 
