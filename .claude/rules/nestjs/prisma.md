@@ -46,6 +46,10 @@ Friendship.userId, Friendship.friendId
 
 ## Seed
 
-`pnpm db:seed` produces a usable dev world: 10 users, 2-3 servers with channels and roles, sample
-messages and reactions, friendships, DM conversations, and a known test account with a documented
-password. Keep it idempotent enough to run after `db:reset`.
+`pnpm db:seed` creates one thing: the development account, with a documented password. Nothing
+else — no servers, channels or messages. Everything else is created through the app while
+developing.
+
+The seed must never delete rows. It is safe to run against a database with real development data
+in it, and re-running it on an existing account reports it and changes nothing rather than
+resetting the password. Wiping the database is `pnpm db:reset`, which is a separate, explicit act.
