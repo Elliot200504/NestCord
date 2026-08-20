@@ -57,7 +57,7 @@ export function ChannelSettingsDialog({
         </DialogDescription>
 
         {canManageChannel && canManageRoles && (
-          <div className="border-border mt-4 flex gap-1 border-b">
+          <div className="border-border mt-4 flex gap-1 overflow-x-auto border-b">
             {(['overview', 'permissions'] as const).map((value) => (
               <button
                 key={value}
@@ -65,7 +65,7 @@ export function ChannelSettingsDialog({
                 onClick={() => setTab(value)}
                 aria-current={tab === value}
                 className={cn(
-                  'text-content-400 hover:text-content-100 -mb-px border-b-2 border-transparent px-3 py-2 text-sm capitalize transition-colors',
+                  'text-content-400 hover:text-content-100 -mb-px shrink-0 border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap capitalize transition-colors',
                   tab === value && 'border-primary text-content-100',
                 )}
               >

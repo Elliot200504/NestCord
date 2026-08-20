@@ -20,13 +20,14 @@ const ACTIVE_DOOR = 'bg-primary text-primary-foreground ring-primary/30 ring-4';
 export function ServerRail() {
   const params = useParams({ strict: false });
   const openModal = useUiStore((state) => state.openModal);
+  const closeDrawer = useUiStore((state) => state.closeDrawer);
   const activeServerId = 'serverId' in params ? params.serverId : undefined;
   const { data: servers, isPending, isError, refetch } = useServers();
 
   return (
     <nav
       aria-label="Servers"
-      className="bg-surface-900 flex w-[68px] shrink-0 flex-col items-center gap-2.5 py-4"
+      className="bg-surface-900 flex w-[68px] shrink-0 flex-col items-center gap-2.5 overflow-y-auto py-4"
     >
       <Link
         to="/app/@me/friends"
@@ -85,7 +86,12 @@ export function ServerRail() {
 
       <button
         type="button"
-        onClick={() => openModal('create-server')}
+        onClick={() => {
+          // Closed first: opening this modal from inside the channels drawer would
+          // otherwise stack a second Radix modal on top of one that is still open.
+          closeDrawer();
+          openModal('create-server');
+        }}
         aria-label="Add a server"
         className={cn(
           DOOR,

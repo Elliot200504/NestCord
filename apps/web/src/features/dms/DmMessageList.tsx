@@ -52,6 +52,7 @@ export function DmMessageList({
 
   const bottom = useRef<HTMLDivElement>(null);
   const [flashingId, setFlashingId] = useState<string | null>(null);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
 
   function jumpTo(messageId: string) {
     document.getElementById(messageAnchorId(messageId))?.scrollIntoView({
@@ -133,7 +134,11 @@ export function DmMessageList({
         <p className="text-content-400 px-3 text-sm">Say the first thing.</p>
       )}
 
-      <ul>
+      <ul
+        onClick={(event) => {
+          if (!(event.target as HTMLElement).closest('[data-message-row]')) setRevealedId(null);
+        }}
+      >
         {groups.map((group) => (
           <MessageGroupBlock
             key={group.id}
@@ -151,6 +156,8 @@ export function DmMessageList({
             canManage={false}
             isCompact={isCompact}
             flashingId={flashingId}
+            revealedId={revealedId}
+            onReveal={setRevealedId}
             canJumpTo={(messageId) => loadedIds.has(messageId)}
             onJump={jumpTo}
             onReply={(message: Message) =>

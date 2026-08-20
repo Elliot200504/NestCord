@@ -19,6 +19,9 @@ interface MessageGroupProps {
   isCompact: boolean;
   /** Set while a message here is ringed after being travelled to. */
   flashingId: string | null;
+  /** The message whose toolbar a touch reader tapped open, if any. */
+  revealedId: string | null;
+  onReveal: (messageId: string | null) => void;
   /** False when the quoted message is not loaded, so there is nothing to travel to. */
   canJumpTo: (messageId: string) => boolean;
   onJump: (messageId: string) => void;
@@ -40,6 +43,8 @@ export function MessageGroupBlock({
   canManage,
   isCompact,
   flashingId,
+  revealedId,
+  onReveal,
   canJumpTo,
   onJump,
   onReply,
@@ -105,6 +110,8 @@ export function MessageGroupBlock({
               channels={channels}
               revealOnBlockHover={group.messages.length === 1}
               isFlashing={flashingId === message.id}
+              revealedId={revealedId}
+              onReveal={onReveal}
               canReply={canSend}
               canReact={canReact}
               // Only ever your own words: MANAGE_MESSAGES can remove a message but

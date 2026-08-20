@@ -16,6 +16,8 @@ interface ShellPanelProps {
   label: string;
   /** Names the backdrop button, e.g. "Close the channel list". */
   closeLabel: string;
+  /** Overrides the default `w-60` drawer width, for a panel that carries more than one column. */
+  drawerWidth?: string;
   children: ReactNode;
 }
 
@@ -38,6 +40,7 @@ export function ShellPanel({
   onClose,
   label,
   closeLabel,
+  drawerWidth = 'w-60',
   children,
 }: ShellPanelProps) {
   // Radix returns focus to a <Dialog.Trigger>, and the buttons that raise these
@@ -78,7 +81,8 @@ export function ShellPanel({
             opener.current?.focus();
           }}
           className={cn(
-            'bg-surface-800 fixed inset-y-0 z-50 flex w-60 max-w-[85vw] flex-col shadow-xl',
+            'bg-surface-800 fixed inset-y-0 z-50 flex max-w-[85vw] flex-col shadow-xl',
+            drawerWidth,
             side === 'left' ? 'left-0' : 'right-0',
             drawerMotion(side),
           )}

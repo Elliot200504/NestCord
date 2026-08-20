@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -157,6 +157,13 @@ describe('the app shell on a wide viewport', () => {
     );
   });
 
+  it('keeps the server rail beside the channel list', async () => {
+    await renderChannel();
+
+    expect(screen.getAllByRole('navigation', { name: 'Servers' })).toHaveLength(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('collapses and restores the member list column', async () => {
     await renderChannel();
 
@@ -244,6 +251,32 @@ describe('the app shell on a narrow viewport', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => expect(useUiStore.getState().drawer).toBeNull());
+  });
+
+  it('keeps the server rail out of the way until the drawer is opened', async () => {
+    await renderChannel(() => screen.findByRole('button', { name: 'Open the channel list' }));
+
+    expect(screen.queryByRole('navigation', { name: 'Servers' })).not.toBeInTheDocument();
+  });
+
+  it('brings the rail in with the channel list, and only once', async () => {
+    await renderChannel(() => screen.findByRole('button', { name: 'Open the channel list' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open the channel list' }));
+
+    const drawer = await screen.findByRole('dialog', { name: 'Channel list' });
+    expect(within(drawer).getByRole('navigation', { name: 'Servers' })).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Servers' })).toHaveLength(1);
+  });
+
+  it('closes the drawer when a door in the rail is used', async () => {
+    useUiStore.setState({ drawer: 'channels' });
+    await renderChannel();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Friends and direct messages' }));
+
+    await waitFor(() => expect(useUiStore.getState().drawer).toBeNull());
+    expect(screen.queryByRole('navigation', { name: 'Servers' })).not.toBeInTheDocument();
   });
 
   it('opens the member list over the messages rather than beside them', async () => {

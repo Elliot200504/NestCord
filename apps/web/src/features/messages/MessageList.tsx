@@ -55,6 +55,7 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
 
   const bottom = useRef<HTMLDivElement>(null);
   const [flashingId, setFlashingId] = useState<string | null>(null);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
 
   /**
    * Travels to the message a reply is answering.
@@ -151,7 +152,12 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
         </p>
       )}
 
-      <ul aria-label={`Messages in #${channel.name}`}>
+      <ul
+        aria-label={`Messages in #${channel.name}`}
+        onClick={(event) => {
+          if (!(event.target as HTMLElement).closest('[data-message-row]')) setRevealedId(null);
+        }}
+      >
         {groups.map((group) => (
           <MessageGroupBlock
             key={group.id}
@@ -165,6 +171,8 @@ export function MessageList({ serverId, channel, viewerId }: MessageListProps) {
             canManage={canManage}
             isCompact={isCompact}
             flashingId={flashingId}
+            revealedId={revealedId}
+            onReveal={setRevealedId}
             canJumpTo={(messageId) => loadedIds.has(messageId)}
             onJump={jumpTo}
             onReply={(message: Message) =>

@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 
 import {
   MESSAGE_MAX_LENGTH,
@@ -7,6 +7,7 @@ import {
   type ServerMember,
 } from '@nestcord/shared';
 
+import { NO_HOVER, useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { messageAnchorId } from './message-anchor';
 import { formatFullTime } from './message-grouping';
@@ -29,6 +30,9 @@ export interface MessageProps {
   revealOnBlockHover: boolean;
   /** Briefly ringed after someone travelled here from a reply quote. */
   isFlashing: boolean;
+  /** The message whose toolbar a touch reader tapped open, if any. */
+  revealedId: string | null;
+  onReveal: (messageId: string | null) => void;
   canReply: boolean;
   canReact: boolean;
   canEdit: boolean;
@@ -51,6 +55,8 @@ export function MessageRow({
   channels,
   revealOnBlockHover,
   isFlashing,
+  revealedId,
+  onReveal,
   canReply,
   canReact,
   canEdit,
@@ -62,6 +68,20 @@ export function MessageRow({
 }: MessageProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const isEditing = draft !== null;
+  const noHover = useMediaQuery(NO_HOVER);
+  const isRevealed = revealedId === message.id;
+
+  function handleRowClick(event: MouseEvent<HTMLDivElement>) {
+    if (!noHover || isEditing) return;
+    if ((event.target as HTMLElement).closest('a, button, input, textarea')) return;
+
+    onReveal(isRevealed ? null : message.id);
+  }
+
+  function runAndClose(action: () => void) {
+    action();
+    if (noHover) onReveal(null);
+  }
 
   function commit() {
     const trimmed = (draft ?? '').trim();
@@ -83,6 +103,8 @@ export function MessageRow({
     <div
       // Addressable so a reply quote can scroll to it.
       id={messageAnchorId(message.id)}
+      data-message-row
+      onClick={handleRowClick}
       className={cn(
         // The negative margin and matching padding are always on, so the tint has
         // room to breathe without the text shifting when it appears.
@@ -90,17 +112,6 @@ export function MessageRow({
         isFlashing && 'bg-primary/15',
       )}
     >
-      {!isEditing && (
-        <MessageActions
-          revealOnBlockHover={revealOnBlockHover}
-          onReply={canReply ? () => onReply(message) : undefined}
-          onReact={canReact ? (emoji) => onReact(message, emoji) : undefined}
-          onEdit={canEdit ? () => setDraft(message.content) : undefined}
-          onDelete={canDelete ? () => onDelete(message) : undefined}
-          onCopy={() => void navigator.clipboard?.writeText(message.content)}
-        />
-      )}
-
       {isEditing ? (
         <div className="py-0.5">
           <textarea
@@ -141,6 +152,18 @@ export function MessageRow({
       )}
 
       <MessageAttachments attachments={message.attachments} />
+
+      {!isEditing && (
+        <MessageActions
+          revealOnBlockHover={revealOnBlockHover}
+          forceVisible={isRevealed}
+          onReply={canReply ? () => runAndClose(() => onReply(message)) : undefined}
+          onReact={canReact ? (emoji) => runAndClose(() => onReact(message, emoji)) : undefined}
+          onEdit={canEdit ? () => setDraft(message.content) : undefined}
+          onDelete={canDelete ? () => runAndClose(() => onDelete(message)) : undefined}
+          onCopy={() => runAndClose(() => void navigator.clipboard?.writeText(message.content))}
+        />
+      )}
 
       <MessageReactions
         reactions={message.reactions}

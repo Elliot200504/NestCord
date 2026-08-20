@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setAccessToken } from '@/api/client';
 import { routeTree } from '@/router';
+import { stubMatchMedia } from '@/test/setup';
 
 const USER = {
   id: 'user-1',
@@ -180,5 +181,61 @@ describe('settings', () => {
     const router = await renderAt('/settings');
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings/account'));
+  });
+});
+
+describe('the settings page on a narrow viewport', () => {
+  beforeEach(() => {
+    stubMatchMedia(false);
+    setAccessToken('access-token');
+  });
+
+  afterEach(() => {
+    setAccessToken(null);
+    vi.unstubAllGlobals();
+    // The default in test/setup.ts is wide; every later file in this worker must see
+    // that default rather than the narrow one this describe block leaves behind.
+    stubMatchMedia(true);
+  });
+
+  it('shows the section content with the section list out of the way', async () => {
+    stubApi();
+    await renderAt('/settings/account');
+
+    await screen.findByText('This device');
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open the settings menu' })).toBeInTheDocument();
+  });
+
+  it('opens the section list as a drawer and closes it again on navigation', async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const router = await renderAt('/settings/account');
+    await screen.findByText('This device');
+
+    await user.click(screen.getByRole('button', { name: 'Open the settings menu' }));
+    expect(await screen.findByRole('navigation', { name: 'Settings' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: 'Profile' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings/profile'));
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).not.toBeInTheDocument();
+  });
+
+  it('closes the drawer on Escape without leaving the settings page', async () => {
+    stubApi();
+    const user = userEvent.setup();
+    const router = await renderAt('/settings/account');
+    await screen.findByText('This device');
+
+    await user.click(screen.getByRole('button', { name: 'Open the settings menu' }));
+    await screen.findByRole('navigation', { name: 'Settings' });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', { name: 'Settings' })).not.toBeInTheDocument(),
+    );
+    expect(router.state.location.pathname).toBe('/settings/account');
   });
 });
