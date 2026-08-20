@@ -97,10 +97,7 @@ describe('the message toolbar on a device with no hover', () => {
     const user = userEvent.setup();
     render(
       <Harness
-        messages={[
-          message({ id: 'a', content: 'first' }),
-          message({ id: 'b', content: 'second' }),
-        ]}
+        messages={[message({ id: 'a', content: 'first' }), message({ id: 'b', content: 'second' })]}
       />,
     );
 
