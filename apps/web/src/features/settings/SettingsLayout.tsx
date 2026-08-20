@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, LogOut, Menu, Palette, ShieldCheck, TriangleAlert, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  LogOut,
+  Menu,
+  Palette,
+  ShieldCheck,
+  TriangleAlert,
+  UserRound,
+} from 'lucide-react';
 
 import { useMediaQuery, SHELL_WIDE } from '@/hooks/useMediaQuery';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
