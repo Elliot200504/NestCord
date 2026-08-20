@@ -74,7 +74,14 @@ function HoverToolbar({
   );
 }
 
-function TapToolbar({ forceVisible, onReply, onReact, onEdit, onDelete, onCopy }: MessageActionsProps) {
+function TapToolbar({
+  forceVisible,
+  onReply,
+  onReact,
+  onEdit,
+  onDelete,
+  onCopy,
+}: MessageActionsProps) {
   if (!forceVisible) return null;
 
   return (
