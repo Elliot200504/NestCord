@@ -61,7 +61,9 @@ export class FriendsService {
     const target = await this.prisma.client.user.findUnique({
       // Exact, not case-insensitive: `username` is unique case-sensitively, so
       // `Ada` and `ada` can both exist and a loose match could address the wrong
-      // account. Mentions resolve exactly for the same reason.
+      // account. A request goes to exactly one person, so guessing is not acceptable
+      // here — unlike a mention, which is matched loosely because the client
+      // highlights it loosely and notifying both beats notifying neither.
       where: { username },
       select: { id: true },
     });

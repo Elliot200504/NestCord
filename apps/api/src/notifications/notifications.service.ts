@@ -206,8 +206,23 @@ export class NotificationsService {
 
     // Resolved against real accounts: `@nobody` notifies nobody, which is also how
     // the client renders it.
+    //
+    // Matched case-insensitively, because that is how `mentionMatches` decides
+    // whether the client highlighted the mention at all — and because
+    // `mentionedUsernames` hands these over lowercased while a username is stored as
+    // it was typed. An exact match made every name with a capital in it silently
+    // unmentionable: the recipient saw their name lit up and was never told.
+    //
+    // `username` is unique case-sensitively, so `Ada` and `ada` can both exist and
+    // both get notified by one `@ada`. That is the same pair the client highlights
+    // for, and over-notifying is the better failure here — a friend request, which
+    // has to reach exactly one person, still resolves exactly.
     const mentioned = await this.prisma.client.user.findMany({
-      where: { username: { in: usernames } },
+      where: {
+        OR: usernames.map((username) => ({
+          username: { equals: username, mode: 'insensitive' as const },
+        })),
+      },
       select: { id: true },
     });
 
