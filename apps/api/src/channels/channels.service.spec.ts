@@ -73,10 +73,17 @@ const ROLES: StubRole[] = [
   { id: MOD_ROLE, serverId: SERVER, position: 1, isDefault: false },
 ];
 
+/** The one `serverMember.findMany` filter the service asks for. */
+interface RoleFilter {
+  some: { roleId: string };
+}
+
 interface Harness {
   channels: ChannelsService;
   voice: VoiceStateService;
   evicted: { channelId: string; userId: string }[];
+  /** Users whose socket rooms were recomputed after a permission change. */
+  resynced: string[];
   rows: StubChannel[];
   overrides: StubOverride[];
   created: Record<string, unknown>[];
@@ -263,6 +270,15 @@ function buildHarness(rows: StubChannel[], overrides: StubOverride[], members: M
             })),
           };
         },
+
+        findMany: async ({ where }: { where: { serverId: string; roles?: RoleFilter } }) => {
+          const roleId = where.roles?.some.roleId;
+
+          return members
+            .filter((entry) => entry.serverId === where.serverId)
+            .filter((entry) => roleId === undefined || entry.roleIds.includes(roleId))
+            .map((entry) => ({ userId: entry.userId }));
+        },
       },
     },
   } as unknown as PrismaService;
@@ -278,17 +294,20 @@ function buildHarness(rows: StubChannel[], overrides: StubOverride[], members: M
 
   const voice = new VoiceStateService();
   const evicted: { channelId: string; userId: string }[] = [];
+  const resynced: string[] = [];
   const realtime = {
     voiceEvict: (channelId: string, userId: string) => {
       evicted.push({ channelId, userId });
       voice.leaveUser(userId);
     },
+    resyncRooms: (userId: string) => resynced.push(userId),
   } as unknown as RealtimeService;
 
   return {
     channels: new ChannelsService(prisma, permissions, audit, voice, realtime),
     voice,
     evicted,
+    resynced,
     rows,
     overrides,
     created,
@@ -546,6 +565,55 @@ describe('ChannelsService', () => {
         roleIds: [EVERYONE_ROLE, MOD_ROLE],
         highestPosition: 5,
       });
+
+    /**
+     * Room membership is the read boundary for realtime and it is resolved when a
+     * socket connects, so an override written now only reaches an open connection if
+     * the sockets are moved. Without it, a channel just hidden from someone keeps
+     * delivering its messages to them until they reload.
+     */
+    it('recomputes the rooms of everybody holding the role that was overridden', async () => {
+      const staff = member({ userId: 'user-mod', memberId: 'member-mod', roleIds: [MOD_ROLE] });
+      const plain = member({ userId: 'user-plain', memberId: 'member-plain' });
+      const local = buildHarness(
+        [channel({ id: 'channel-staff', name: 'staff' })],
+        [],
+        [staff, plain],
+      );
+
+      await local.channels.setRoleOverride(admin(), 'channel-staff', MOD_ROLE, {
+        allow: 0,
+        deny: Permission.VIEW_CHANNEL,
+      });
+
+      // Nobody else's resolution can have changed, so nobody else is touched.
+      expect(local.resynced).toEqual(['user-mod']);
+    });
+
+    it('recomputes the rooms of the one member an override names', async () => {
+      const plain = member({ userId: 'user-plain', memberId: 'member-plain' });
+      const local = buildHarness([channel({ id: 'channel-staff', name: 'staff' })], [], [plain]);
+
+      await local.channels.setMemberOverride(admin(), 'channel-staff', 'user-plain', {
+        allow: 0,
+        deny: Permission.VIEW_CHANNEL,
+      });
+
+      expect(local.resynced).toEqual(['user-plain']);
+    });
+
+    /** Granting access is the same staleness the other way round. */
+    it('recomputes the rooms when an override hands access back', async () => {
+      const plain = member({ userId: 'user-plain', memberId: 'member-plain' });
+      const local = buildHarness([channel({ id: 'channel-staff', name: 'staff' })], [], [plain]);
+
+      await local.channels.setMemberOverride(admin(), 'channel-staff', 'user-plain', {
+        allow: Permission.VIEW_CHANNEL,
+        deny: 0,
+      });
+
+      expect(local.resynced).toEqual(['user-plain']);
+    });
 
     it('stores an allow/deny pair for a role', async () => {
       const result = await harness.channels.setRoleOverride(admin(), 'channel-staff', MOD_ROLE, {
