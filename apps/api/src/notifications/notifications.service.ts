@@ -267,7 +267,13 @@ export class NotificationsService {
   }
 
   /**
-   * Who sent each pending friend request in a page of notifications, in one query.
+   * Who sent each still-pending friend request in a page of notifications, in one
+   * query.
+   *
+   * Only PENDING rows: accepting a request, or blocking the person who sent it,
+   * leaves the row behind with a new status, and a notification still offering to
+   * accept a request that is already settled has nothing left to do. The row not
+   * existing at all — the request was withdrawn — is handled by the same absence.
    *
    * A friendship row is symmetrical, so the sender is whichever side of the pair
    * matches `requestedBy` — the same resolution the friends module does, but for one
@@ -284,7 +290,7 @@ export class NotificationsService {
     if (ids.length === 0) return new Map();
 
     const friendships = await this.prisma.client.friendship.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, status: 'PENDING' },
       select: {
         id: true,
         requestedBy: true,
