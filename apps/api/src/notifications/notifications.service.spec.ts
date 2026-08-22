@@ -50,12 +50,45 @@ interface UserWhere {
  * query asks otherwise — which is what PostgreSQL does with a `username` column, and
  * the whole point of the bug this covers.
  */
-function buildHarness(accounts: PublicUser[]) {
+/** A stored notification row, as `list` reads it back. */
+interface StoredNotification {
+  id: string;
+  type: 'MENTION' | 'FRIEND_REQUEST' | 'DIRECT_MESSAGE';
+  sourceId: string | null;
+  readAt: Date | null;
+  createdAt: Date;
+}
+
+/** A friendship row, as far as the notification list cares. */
+interface StoredFriendship {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED' | 'BLOCKED';
+  requestedBy: string;
+  user: PublicUser;
+  friend: PublicUser;
+}
+
+function buildHarness(
+  accounts: PublicUser[],
+  stored: StoredNotification[] = [],
+  friendships: StoredFriendship[] = [],
+) {
   const notified: Array<{ userId: string; payload: NotificationPayload }> = [];
   const created: Array<{ userId: string; type: string; sourceId: string }> = [];
 
   const prisma = {
     client: {
+      friendship: {
+        findMany: async ({ where }: { where: { id: { in: string[] }; status?: 'PENDING' } }) =>
+          friendships
+            .filter((row) => where.id.in.includes(row.id))
+            .filter((row) => where.status === undefined || row.status === where.status),
+      },
+
+      message: {
+        findMany: async () => [],
+      },
+
       user: {
         findMany: async ({ where }: { where: UserWhere }) =>
           accounts
@@ -76,6 +109,8 @@ function buildHarness(accounts: PublicUser[]) {
 
           return { id: `notification-${created.length}`, createdAt: new Date(0) };
         },
+
+        findMany: async () => stored,
       },
     },
   } as unknown as PrismaService;
@@ -96,6 +131,69 @@ function buildHarness(accounts: PublicUser[]) {
 }
 
 describe('NotificationsService', () => {
+  describe('the unread list', () => {
+    const request = (id: string): StoredNotification => ({
+      id: 'notification-1',
+      type: 'FRIEND_REQUEST',
+      sourceId: id,
+      readAt: null,
+      createdAt: new Date(0),
+    });
+
+    const friendship = (status: StoredFriendship['status']): StoredFriendship => ({
+      id: 'friendship-1',
+      status,
+      requestedBy: GRACE.id,
+      user: GRACE,
+      friend: ADA,
+    });
+
+    it('shows a friend request that is still waiting to be answered', async () => {
+      const { notifications } = buildHarness(
+        [ADA, GRACE],
+        [request('friendship-1')],
+        [friendship('PENDING')],
+      );
+
+      const list = await notifications.list(ADA.id);
+
+      expect(list).toMatchObject([{ type: 'FRIEND_REQUEST', actor: GRACE }]);
+    });
+
+    /**
+     * The row survives being accepted, so nothing else takes the notification down.
+     * It offered to accept a request that no longer needs accepting, and sat unread
+     * in the bell until the reader cleared everything.
+     */
+    it('hides a friend request that has already been accepted', async () => {
+      const { notifications } = buildHarness(
+        [ADA, GRACE],
+        [request('friendship-1')],
+        [friendship('ACCEPTED')],
+      );
+
+      await expect(notifications.list(ADA.id)).resolves.toEqual([]);
+    });
+
+    /** Blocking the sender settles it just as firmly, and leaves the row behind too. */
+    it('hides a friend request from someone who has since been blocked', async () => {
+      const { notifications } = buildHarness(
+        [ADA, GRACE],
+        [request('friendship-1')],
+        [friendship('BLOCKED')],
+      );
+
+      await expect(notifications.list(ADA.id)).resolves.toEqual([]);
+    });
+
+    /** A withdrawn request deletes its row, and was already handled this way. */
+    it('hides a friend request whose row is gone entirely', async () => {
+      const { notifications } = buildHarness([ADA, GRACE], [request('friendship-1')], []);
+
+      await expect(notifications.list(ADA.id)).resolves.toEqual([]);
+    });
+  });
+
   describe('mentions', () => {
     it('notifies a mention typed in the same case as the username', async () => {
       const { notifications, created } = buildHarness([ADA, GRACE]);
