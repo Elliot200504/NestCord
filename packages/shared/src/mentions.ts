@@ -11,8 +11,15 @@
 /** Matches `@name`, where the name follows the same rules as a username. */
 const USER_MENTION = /@([a-zA-Z0-9._]+)/g;
 
-/** Matches `#name`, where the name follows the channel slug rules. */
-const CHANNEL_MENTION = /#([a-z0-9-]+)/g;
+/**
+ * Matches `#name`, where the name follows the channel slug rules.
+ *
+ * Letters from any alphabet, because `slugifyChannelName` keeps them — a channel
+ * called `#hälsa` has to be mentionable. Capitals match too, even though a stored
+ * name never has any: someone typing `#General` means the channel, and the callers
+ * that resolve a mention compare without case.
+ */
+const CHANNEL_MENTION = /#([\p{L}\p{N}-]+)/gu;
 
 export const EVERYONE_MENTION = 'everyone';
 
