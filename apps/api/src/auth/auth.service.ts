@@ -48,8 +48,10 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto, userAgent?: string): Promise<IssuedSession> {
+    const email = normaliseEmail(dto.email);
+
     const existing = await this.prisma.client.user.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+      where: { OR: [{ email: emailFilter(email) }, { username: dto.username }] },
       select: { email: true },
     });
 
@@ -62,7 +64,7 @@ export class AuthService {
     const user = await this.prisma.client.user.create({
       data: {
         username: dto.username,
-        email: dto.email,
+        email,
         passwordHash: await hashPassword(dto.password),
       },
     });
@@ -71,7 +73,9 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, userAgent?: string): Promise<IssuedSession> {
-    const user = await this.prisma.client.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.client.user.findFirst({
+      where: { email: emailFilter(normaliseEmail(dto.email)) },
+    });
 
     // Hash a throwaway value when the user does not exist so that a missing
     // account and a wrong password take roughly the same time to answer.
@@ -250,4 +254,28 @@ function parseRefreshToken(value: string | undefined): { sessionId: string; secr
   if (!sessionId || !secret) throw new UnauthorizedException('Missing refresh token');
 
   return { sessionId, secret };
+}
+
+/**
+ * The stored form of an email address.
+ *
+ * An address is the same address whatever case it is typed in, and the app already
+ * depends on that: `AdminService` lowercases what it reads from the database before
+ * comparing it against ADMIN_EMAILS. `email` is unique case-*sensitively*, though,
+ * so storing one as typed let `Admin@example.com` be registered alongside
+ * `admin@example.com` — and the second account then resolved as that admin.
+ */
+function normaliseEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * How an email is looked up: case-insensitively, so rows written before addresses
+ * were normalised still sign in, and so a variant cannot slip past the check that
+ * says whether one is taken.
+ *
+ * Not covered by the `email` index, which is fine — a few hundred rows.
+ */
+function emailFilter(email: string) {
+  return { equals: email, mode: 'insensitive' as const };
 }

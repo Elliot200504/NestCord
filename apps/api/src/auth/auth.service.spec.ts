@@ -71,6 +71,27 @@ describe('AuthService', () => {
       });
     });
 
+    /**
+     * Emails are not case sensitive, and the app already relies on that:
+     * `AdminService` lowercases the stored address before comparing it against
+     * ADMIN_EMAILS. Storing one as typed, against a case-sensitive unique column,
+     * meant `Admin@example.com` could be registered alongside `admin@example.com`
+     * and would then resolve as that admin.
+     */
+    it('stores the email lowercased, whatever case it was typed in', async () => {
+      await auth.register({ ...CREDENTIALS, email: 'Ada@NestCord.Local' });
+
+      expect([...prisma.users.values()][0]?.email).toBe('ada@nestcord.local');
+    });
+
+    it('rejects an email that differs from an existing one only in case', async () => {
+      await auth.register(CREDENTIALS);
+
+      await expect(
+        auth.register({ ...CREDENTIALS, username: 'ada2', email: 'ADA@NestCord.Local' }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
     it('rejects a duplicate username', async () => {
       await auth.register(CREDENTIALS);
 
@@ -86,6 +107,33 @@ describe('AuthService', () => {
 
       const issued = await auth.login({
         email: CREDENTIALS.email,
+        password: CREDENTIALS.password,
+      });
+
+      expect(issued.session.user.username).toBe('ada');
+    });
+
+    /** The address is the same address however it was typed, so it must sign in. */
+    it('signs in an email typed in a different case from the one registered', async () => {
+      await auth.register(CREDENTIALS);
+
+      const issued = await auth.login({
+        email: 'ADA@NestCord.Local',
+        password: CREDENTIALS.password,
+      });
+
+      expect(issued.session.user.username).toBe('ada');
+    });
+
+    /** Rows written before the address was normalised still have to work. */
+    it('signs in an account whose stored email was never lowercased', async () => {
+      await auth.register(CREDENTIALS);
+
+      const stored = [...prisma.users.values()][0];
+      if (stored) prisma.users.set(stored.id, { ...stored, email: 'Ada@NestCord.Local' });
+
+      const issued = await auth.login({
+        email: 'ada@nestcord.local',
         password: CREDENTIALS.password,
       });
 
