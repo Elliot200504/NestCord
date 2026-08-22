@@ -163,6 +163,26 @@ export class RealtimeService {
   }
 
   /**
+   * Brings a user's sockets back in line with what they may currently read.
+   *
+   * `SocketRooms.forUser` resolves rooms once, when a socket connects, and room
+   * membership *is* the read boundary for realtime — a broadcast reaches whoever is
+   * in the room. So a permission change written now has no effect on a connection
+   * that is already up: somebody just denied VIEW_CHANNEL keeps receiving every
+   * message in that channel until they happen to reload, and somebody just granted
+   * it receives none of them.
+   *
+   * The rooms are recomputed from the database rather than patched from the change,
+   * so one override interacting with another cannot leave a socket somewhere it does
+   * not belong.
+   */
+  resyncRooms(userId: string): void {
+    // Deliberately not awaited: the permission change is already committed, and the
+    // request must not fail because a socket could not be moved.
+    void this.applyRooms(userId);
+  }
+
+  /**
    * Relays one signalling message to a single socket.
    *
    * Aimed at a socket id rather than the target's user room on purpose: the call
@@ -224,6 +244,31 @@ export class RealtimeService {
     } catch (error) {
       this.logger.error(
         `Could not remove ${userId} from the rooms of server ${serverId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /** Leaves the rooms this user may no longer read, joins the ones they may. */
+  private async applyRooms(userId: string): Promise<void> {
+    if (!this.server) return;
+
+    try {
+      const allowed = new Set(await this.rooms.forUser(userId));
+      const sockets = await this.server.in(rooms.user(userId)).fetchSockets();
+
+      for (const socket of sockets) {
+        for (const room of socket.rooms) {
+          // Every socket is in a room named after itself; that one is not ours.
+          if (room !== socket.id && !allowed.has(room)) socket.leave(room);
+        }
+
+        // Joining a room a socket is already in is a no-op, so this needs no diff.
+        socket.join([...allowed]);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Could not resync the rooms of ${userId}`,
         error instanceof Error ? error.stack : undefined,
       );
     }
