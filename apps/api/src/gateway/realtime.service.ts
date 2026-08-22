@@ -127,8 +127,34 @@ export class RealtimeService {
     this.presenceChanged(serverIds, { userId, status: this.presence.statusOf(userId) });
   }
 
+  /**
+   * Somebody joined a server.
+   *
+   * The people already there hear about it, and the new member's sockets are put into
+   * the server's rooms. Rooms are resolved at connect time, so without this a member
+   * who joined in one tab would receive nothing from that server — no messages, no
+   * presence, no member list changes — until they next reloaded. It is the mirror
+   * image of what `memberLeft` does, for the same reason `conversationCreated`
+   * already does it for a DM.
+   */
   memberJoined(payload: MemberJoinPayload): void {
+    // Broadcast first, so the new member is not handed news of their own arrival.
     this.emit(rooms.server(payload.serverId), SocketEvent.MEMBER_JOIN, payload);
+
+    this.admitToServer(payload.serverId, payload.member.user.id);
+  }
+
+  /**
+   * Puts a user's sockets into a server's rooms without announcing anything.
+   *
+   * Called on its own when somebody creates a server: they are the only member, so
+   * there is nobody to tell, but their own sockets still have to be let in or the
+   * server they just made would be silent for them until a reload.
+   */
+  admitToServer(serverId: string, userId: string): void {
+    // Deliberately not awaited: the membership itself is already committed, and the
+    // caller must not fail because a socket could not be moved.
+    void this.joinServerRooms(serverId, userId);
   }
 
   /**
@@ -201,7 +227,31 @@ export class RealtimeService {
     this.emit(rooms.user(userId), SocketEvent.NOTIFICATION_CREATE, payload);
   }
 
-  /** Drops the event when the target names neither a channel nor a conversation. */
+  /**
+   * Puts every socket this user has into a server's room and the rooms of the
+   * channels they can see in it.
+   *
+   * Resolved through `visibleChannelIds`, so a channel an override hides from them
+   * is not joined: room membership is the read boundary, and a new member must not
+   * land in a room they would not have been given at connect time.
+   */
+  private async joinServerRooms(serverId: string, userId: string): Promise<void> {
+    if (!this.server) return;
+
+    try {
+      const channelIds = await this.rooms.visibleChannelIds(userId, [serverId]);
+
+      await this.server
+        .in(rooms.user(userId))
+        .socketsJoin([rooms.server(serverId), ...channelIds.map(rooms.channel)]);
+    } catch (error) {
+      this.logger.error(
+        `Could not add ${userId} to the rooms of server ${serverId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
   /**
    * Takes every socket this user has out of the server room and its channel rooms.
    * Their own user room stays: it is how they are told anything at all.
@@ -229,6 +279,7 @@ export class RealtimeService {
     }
   }
 
+  /** Drops the event when the target names neither a channel nor a conversation. */
   private emitToMessage(target: MessageTarget, event: string, payload: unknown): void {
     const room = messageRoom(target);
 
