@@ -205,9 +205,16 @@ export class NotificationsService {
     if (usernames.length === 0) return [];
 
     // Resolved against real accounts: `@nobody` notifies nobody, which is also how
-    // the client renders it.
+    // the client renders it. Matched without case, because the names arrive
+    // lowercased and `username` is a case-sensitive column — an exact match would
+    // leave `@Ada` notifying nobody while the client rendered it as a mention. Two
+    // accounts differing only in case both get told, which is the kinder failure.
     const mentioned = await this.prisma.client.user.findMany({
-      where: { username: { in: usernames } },
+      where: {
+        OR: usernames.map((username) => ({
+          username: { equals: username, mode: 'insensitive' as const },
+        })),
+      },
       select: { id: true },
     });
 
