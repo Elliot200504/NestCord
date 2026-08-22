@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Server } from 'socket.io';
 
-import { SocketEvent, type Message } from '@nestcord/shared';
+import { SocketEvent, type Message, type ServerMember } from '@nestcord/shared';
 
 import { PresenceService } from './presence.service';
 import { RealtimeService } from './realtime.service';
@@ -38,12 +38,29 @@ function message(): Message {
   };
 }
 
+function joiner(): ServerMember {
+  return {
+    user: {
+      id: 'user-grace',
+      username: 'grace',
+      displayName: null,
+      avatarUrl: null,
+      accentColor: null,
+      status: 'ONLINE',
+    },
+    nickname: null,
+    joinedAt: '2026-08-12T09:00:00.000Z',
+    roleIds: ['role-everyone'],
+  };
+}
+
 function buildHarness(
   options: { attach?: boolean; serverIds?: string[]; channelIds?: string[] } = {},
 ) {
   const { attach = true, serverIds = ['server-1', 'server-2'], channelIds = [CHANNEL] } = options;
   const sent: Sent[] = [];
   const evictions: Array<{ from: string; rooms: string[] }> = [];
+  const admissions: Array<{ from: string; rooms: string[] }> = [];
 
   const server = {
     to: (room: string) => ({
@@ -52,6 +69,8 @@ function buildHarness(
     in: (from: string) => ({
       socketsLeave: (left: string | string[]) =>
         evictions.push({ from, rooms: Array.isArray(left) ? left : [left] }),
+      socketsJoin: (joined: string | string[]) =>
+        admissions.push({ from, rooms: Array.isArray(joined) ? joined : [joined] }),
     }),
   } as unknown as Server;
 
@@ -59,13 +78,14 @@ function buildHarness(
   const rooms = {
     serverIdsOf: async () => serverIds,
     channelIdsIn: async () => channelIds,
+    visibleChannelIds: async () => channelIds,
   } as unknown as SocketRooms;
   const voice = new VoiceStateService();
   const realtime = new RealtimeService(presence, rooms, voice);
 
   if (attach) realtime.attach(server);
 
-  return { realtime, presence, voice, sent, evictions };
+  return { realtime, presence, voice, sent, admissions, evictions };
 }
 
 describe('RealtimeService', () => {
@@ -171,6 +191,32 @@ describe('RealtimeService', () => {
     expect(evictions).toEqual([
       { from: 'user:user-ada', rooms: ['server:server-1', `channel:${CHANNEL}`] },
     ]);
+  });
+
+  it('puts a new member into the server and channel rooms', async () => {
+    const { realtime, sent, admissions } = buildHarness();
+
+    realtime.memberJoined({ serverId: 'server-1', member: joiner() });
+
+    // The admission is fire-and-forget, so it lands a tick after the broadcast.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sent[0]).toMatchObject({ room: 'server:server-1', event: SocketEvent.MEMBER_JOIN });
+    expect(admissions).toEqual([
+      { from: 'user:user-grace', rooms: ['server:server-1', `channel:${CHANNEL}`] },
+    ]);
+  });
+
+  it('only admits a new member to the channels they can see', async () => {
+    const { realtime, admissions } = buildHarness({ channelIds: [] });
+
+    realtime.memberJoined({ serverId: 'server-1', member: joiner() });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(admissions).toEqual([{ from: 'user:user-grace', rooms: ['server:server-1'] }]);
   });
 
   it('drops a broadcast rather than failing when no socket server is up', () => {
