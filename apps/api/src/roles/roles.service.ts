@@ -134,6 +134,12 @@ export class RolesService {
   async assign(actor: MemberContext, targetUserId: string, roleId: string): Promise<void> {
     const { target, role } = await this.resolveAssignment(actor, targetUserId, roleId);
 
+    // Handing out a role hands out its permissions, so the rule that guards creating
+    // and editing one guards this too. Hierarchy alone is not enough: a role below
+    // your own highest can still carry ADMINISTRATOR, and assigning it — to anyone,
+    // including yourself — would be MANAGE_ROLES turned into a way to take the server.
+    grantablePermissions(actor.permissions, role.permissions);
+
     await this.prisma.client.memberRole.upsert({
       where: { memberId_roleId: { memberId: target.memberId, roleId: role.id } },
       // Already assigned is the state the caller asked for, so this is a no-op
@@ -162,8 +168,9 @@ export class RolesService {
     if (!target) throw new NotFoundException('That user is not a member of this server');
 
     // Two separate checks: the role must be below you, and so must the member. The
-    // first stops handing out power you do not have; the second stops editing a
-    // peer's roles at all.
+    // first stops a role being dragged out of your control; the second stops editing
+    // a peer's roles at all. What the role *grants* is checked by the caller, since
+    // taking one away is not a grant.
     this.assertCanReachPosition(actor, role.position);
 
     if (target.userId !== actor.userId && !outranksMember(actor, target)) {
