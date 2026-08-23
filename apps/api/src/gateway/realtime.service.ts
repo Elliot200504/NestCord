@@ -214,10 +214,14 @@ export class RealtimeService {
    * which is why every path that can remove the right calls this.
    */
   voiceEvict(channelId: string, userId: string): void {
+    // Checked before removing anything: `leaveUser` searches every channel, so a
+    // user whose call is elsewhere would be taken out of it and nobody told — which
+    // is what happens when this runs in a loop over a whole server's channels.
+    if (!this.voice.isIn(channelId, userId)) return;
+
     const left = this.voice.leaveUser(userId);
 
-    // `leaveUser` searches every channel, so check it was the one we meant.
-    if (!left || left.channelId !== channelId) return;
+    if (!left) return;
 
     this.voiceStateLeft(left);
   }

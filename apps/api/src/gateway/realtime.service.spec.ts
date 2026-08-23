@@ -219,6 +219,51 @@ describe('RealtimeService', () => {
     expect(admissions).toEqual([{ from: 'user:user-grace', rooms: ['server:server-1'] }]);
   });
 
+  it('announces the departure of a member who was in a call, whatever order the channels come back in', async () => {
+    // `channelIdsIn` promises no particular order, so the eviction loop reaches a
+    // channel with no call in it before the one holding the leaver's call.
+    const { realtime, voice, sent } = buildHarness({ channelIds: ['channel-quiet', CHANNEL] });
+
+    voice.join({
+      serverId: 'server-1',
+      channelId: CHANNEL,
+      socketId: 'socket-1',
+      user: message().author,
+      canSpeak: true,
+    });
+
+    realtime.memberLeft({ serverId: 'server-1', userId: 'user-ada' });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Without the announcement everyone else keeps rendering them in the call for
+    // as long as the channel stays open.
+    expect(sent).toContainEqual({
+      room: `channel:${CHANNEL}`,
+      event: SocketEvent.VOICE_STATE_LEAVE,
+      payload: { serverId: 'server-1', channelId: CHANNEL, userId: 'user-ada' },
+    });
+    expect(voice.participantsIn(CHANNEL)).toEqual([]);
+  });
+
+  it('leaves a call in another channel alone when evicting from one the user is not in', () => {
+    const { realtime, voice, sent } = buildHarness();
+
+    voice.join({
+      serverId: 'server-1',
+      channelId: CHANNEL,
+      socketId: 'socket-1',
+      user: message().author,
+      canSpeak: true,
+    });
+
+    realtime.voiceEvict('channel-elsewhere', 'user-ada');
+
+    expect(voice.participantsIn(CHANNEL)).toHaveLength(1);
+    expect(sent).toEqual([]);
+  });
+
   it('drops a broadcast rather than failing when no socket server is up', () => {
     // The API serves HTTP fine without websockets; a request must not fail because
     // nothing is listening.
