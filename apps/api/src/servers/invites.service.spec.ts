@@ -190,6 +190,31 @@ function buildHarness(options: HarnessOptions): Harness {
 }
 
 describe('InvitesService', () => {
+  describe('list', () => {
+    it('offers only codes that would still work', async () => {
+      // Anything listed here gets copied and handed out, so a code that a join
+      // would refuse has no business appearing under "active codes".
+      const live = invite({ code: 'Live1234' });
+      const expired = invite({ code: 'Gone1234', expiresAt: new Date(Date.now() - 1000) });
+      const spent = invite({ code: 'Used1234', uses: 3, maxUses: 3 });
+      const { invites } = buildHarness({ invites: [live, expired, spent] });
+
+      const listed = await invites.list(SERVER);
+
+      expect(listed.map((entry) => entry.code)).toEqual(['Live1234']);
+    });
+
+    it('keeps an invite with uses left and one that never expires', async () => {
+      const partly = invite({ code: 'Some1234', uses: 2, maxUses: 3 });
+      const forever = invite({ code: 'Ever1234', expiresAt: null });
+      const { invites } = buildHarness({ invites: [partly, forever] });
+
+      const listed = await invites.list(SERVER);
+
+      expect(listed.map((entry) => entry.code)).toEqual(['Some1234', 'Ever1234']);
+    });
+  });
+
   describe('code generation', () => {
     it('produces codes that match the shared pattern', async () => {
       const { invites, createdCodes } = buildHarness({ invites: [] });

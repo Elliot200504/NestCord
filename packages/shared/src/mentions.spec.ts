@@ -23,6 +23,22 @@ describe('parseMentions', () => {
     expect(mentionsEveryone('@Everyone look')).toBe(true);
   });
 
+  it('reads a channel name with letters outside the ASCII range', () => {
+    // `slugifyChannelName` keeps those letters, so a mention has to as well —
+    // cutting at the first one turned `#hälsa` into a mention of `#h`.
+    expect(parseMentions('meet in #hälsa')).toEqual([
+      { type: 'channel', name: 'hälsa', start: 8, end: 14 },
+    ]);
+  });
+
+  it('reads a channel mention typed with capitals', () => {
+    // A stored name never has any, but someone typing `#General` means the
+    // channel, and resolving compares without case.
+    expect(parseMentions('#General')).toEqual([
+      { type: 'channel', name: 'General', start: 0, end: 8 },
+    ]);
+  });
+
   it('finds nothing in text with no sigils', () => {
     expect(parseMentions('no mentions in this sentence')).toEqual([]);
   });

@@ -98,6 +98,15 @@ describe('renderMarkdown', () => {
     ]);
   });
 
+  it('hands over a channel mention whose name is not plain ASCII', () => {
+    const { container } = draw('see #hälsa');
+
+    // Cutting the token short used to render `#h` as the mention and leave
+    // `älsa` behind as text.
+    expect(container.querySelector('mark')?.textContent).toBe('hälsa');
+    expect(container.textContent).toBe('see hälsa');
+  });
+
   it('keeps the author’s line breaks', () => {
     const { container } = draw('first\nsecond');
 

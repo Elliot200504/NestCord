@@ -29,9 +29,12 @@ const CODE_BLOCK = /```(\w*)\n?([\s\S]*?)```/g;
  * One pass over the inline syntax. Order matters: inline code comes first because
  * nothing inside backticks is markup, and the two-character markers come before the
  * one-character ones so `**bold**` is not read as two empty italics.
+ *
+ * The two mention tokens have to accept exactly what `parseMentions` accepts, or a
+ * token this pass cuts short never reaches it — `#hälsa` would arrive as `#h`.
  */
 const INLINE =
-  /`([^`\n]+)`|\|\|([\s\S]+?)\|\||\*\*([\s\S]+?)\*\*|~~([\s\S]+?)~~|\*([^*\n]+)\*|_([^_\n]+)_|@[a-zA-Z0-9._]+|#[a-z0-9-]+/g;
+  /`([^`\n]+)`|\|\|([\s\S]+?)\|\||\*\*([\s\S]+?)\*\*|~~([\s\S]+?)~~|\*([^*\n]+)\*|_([^_\n]+)_|@[a-zA-Z0-9._]+|#[\p{L}\p{N}-]+/gu;
 
 /** Renders message content as elements. */
 export function renderMarkdown(content: string, options: MarkdownOptions = {}): ReactNode {

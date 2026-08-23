@@ -34,6 +34,8 @@ function member(overrides: Partial<MemberContext> = {}): MemberContext {
 
 interface Harness {
   servers: ServersService;
+  /** Users whose sockets were let into a server's rooms. */
+  admitted: Array<{ serverId: string; userId: string }>;
   broadcasts: Array<{ event: string; payload: unknown }>;
   rolesCreated: Record<string, unknown>[];
   channelsCreated: Record<string, unknown>[];
@@ -115,12 +117,15 @@ function buildHarness(): Harness {
 
   // Broadcasts are recorded so a test can assert what the server told everyone.
   const broadcasts: Array<{ event: string; payload: unknown }> = [];
+  const admitted: Array<{ serverId: string; userId: string }> = [];
   const realtime = {
     memberLeft: (payload: unknown) => broadcasts.push({ event: 'member:leave', payload }),
+    admitToServer: (serverId: string, userId: string) => admitted.push({ serverId, userId }),
   } as unknown as RealtimeService;
 
   return {
     servers: new ServersService(prisma, icons, realtime),
+    admitted,
     broadcasts,
     rolesCreated,
     channelsCreated,
@@ -161,6 +166,18 @@ describe('ServersService', () => {
       await servers.create('owner', 'NestCord HQ');
 
       expect(channelsCreated[0]).toMatchObject({ name: DEFAULT_CHANNEL_NAME, type: 'TEXT' });
+    });
+
+    /**
+     * Rooms are resolved when a socket connects, so a server created afterwards is
+     * silent for its own creator until they reload — unless they are let in here.
+     */
+    it('puts the creator into the rooms of the server they just made', async () => {
+      const { servers, admitted } = buildHarness();
+
+      await servers.create('owner', 'NestCord HQ');
+
+      expect(admitted).toEqual([{ serverId: SERVER, userId: 'owner' }]);
     });
 
     it('reports the creator as holding every permission', async () => {

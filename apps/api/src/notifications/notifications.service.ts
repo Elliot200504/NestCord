@@ -206,8 +206,23 @@ export class NotificationsService {
 
     // Resolved against real accounts: `@nobody` notifies nobody, which is also how
     // the client renders it.
+    //
+    // Matched case-insensitively, because that is how `mentionMatches` decides
+    // whether the client highlighted the mention at all — and because
+    // `mentionedUsernames` hands these over lowercased while a username is stored as
+    // it was typed. An exact match made every name with a capital in it silently
+    // unmentionable: the recipient saw their name lit up and was never told.
+    //
+    // `username` is unique case-sensitively, so `Ada` and `ada` can both exist and
+    // both get notified by one `@ada`. That is the same pair the client highlights
+    // for, and over-notifying is the better failure here — a friend request, which
+    // has to reach exactly one person, still resolves exactly.
     const mentioned = await this.prisma.client.user.findMany({
-      where: { username: { in: usernames } },
+      where: {
+        OR: usernames.map((username) => ({
+          username: { equals: username, mode: 'insensitive' as const },
+        })),
+      },
       select: { id: true },
     });
 
@@ -252,7 +267,13 @@ export class NotificationsService {
   }
 
   /**
-   * Who sent each pending friend request in a page of notifications, in one query.
+   * Who sent each still-pending friend request in a page of notifications, in one
+   * query.
+   *
+   * Only PENDING rows: accepting a request, or blocking the person who sent it,
+   * leaves the row behind with a new status, and a notification still offering to
+   * accept a request that is already settled has nothing left to do. The row not
+   * existing at all — the request was withdrawn — is handled by the same absence.
    *
    * A friendship row is symmetrical, so the sender is whichever side of the pair
    * matches `requestedBy` — the same resolution the friends module does, but for one
@@ -269,7 +290,7 @@ export class NotificationsService {
     if (ids.length === 0) return new Map();
 
     const friendships = await this.prisma.client.friendship.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, status: 'PENDING' },
       select: {
         id: true,
         requestedBy: true,

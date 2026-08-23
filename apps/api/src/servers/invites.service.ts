@@ -46,7 +46,15 @@ export class InvitesService {
     private readonly realtime: RealtimeService,
   ) {}
 
-  /** Invites that could still be used, newest first. */
+  /**
+   * Invites that could still be used, newest first.
+   *
+   * Filtered by the same rule the join path applies, so a code in this list is a code
+   * that works — a spent or expired one shown as active is a link somebody copies and
+   * hands out. The filtering is in memory rather than in the query because "used up"
+   * compares two columns, and keeping one definition of usable matters more than
+   * saving a few rows at this size.
+   */
   async list(serverId: string): Promise<Invite[]> {
     const invites = await this.prisma.client.invite.findMany({
       where: { serverId },
@@ -54,7 +62,7 @@ export class InvitesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return invites.map(toInvite);
+    return invites.filter(isUsable).map(toInvite);
   }
 
   async create(member: MemberContext, dto: CreateInviteDto): Promise<Invite> {
@@ -229,9 +237,27 @@ function invalidInvite(): NotFoundException {
   return new NotFoundException('That invite is invalid or has expired');
 }
 
+/** The columns that decide whether an invite can still be used. */
+interface InviteUsability {
+  uses: number;
+  maxUses: number | null;
+  expiresAt: Date | null;
+}
+
+/**
+ * Not expired, and not used up.
+ *
+ * The one definition of "usable", so what the list offers and what a join accepts
+ * cannot drift apart.
+ */
+function isUsable(invite: InviteUsability): boolean {
+  if (invite.expiresAt && invite.expiresAt.getTime() <= Date.now()) return false;
+
+  return invite.maxUses === null || invite.uses < invite.maxUses;
+}
+
 function assertUsable(invite: FoundInvite): void {
-  if (invite.expiresAt && invite.expiresAt.getTime() <= Date.now()) throw invalidInvite();
-  if (invite.maxUses !== null && invite.uses >= invite.maxUses) throw invalidInvite();
+  if (!isUsable(invite)) throw invalidInvite();
 }
 
 function generateCode(): string {
