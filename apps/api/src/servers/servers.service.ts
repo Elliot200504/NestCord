@@ -67,6 +67,11 @@ export class ServersService {
       return server.id;
     });
 
+    // Rooms are resolved when a socket connects, so the creator's existing sockets
+    // know nothing about a server made a moment later. Without this the first channel
+    // of a brand new server would not deliver a message until a reload.
+    this.realtime.admitToServer(serverId, userId);
+
     // The creator is the owner, so their permissions need no resolving.
     return this.findOne(serverId, ALL_PERMISSIONS);
   }

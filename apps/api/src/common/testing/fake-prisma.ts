@@ -34,6 +34,41 @@ export interface FakeSession {
   expiresAt: Date;
 }
 
+/** A string column compared either exactly or without regard to case. */
+type StringFilter = string | { equals: string; mode?: 'insensitive' };
+
+/** The `where` shapes the auth code asks for, and nothing else. */
+interface UserWhere {
+  OR?: UserWhere[];
+  email?: StringFilter;
+  username?: StringFilter;
+  id?: { not: string };
+}
+
+function matchesString(value: string, filter: StringFilter | undefined): boolean {
+  if (filter === undefined) return true;
+  if (typeof filter === 'string') return value === filter;
+
+  return filter.mode === 'insensitive'
+    ? value.toLowerCase() === filter.equals.toLowerCase()
+    : value === filter.equals;
+}
+
+/**
+ * Mirrors how PostgreSQL answers these clauses — in particular that a plain string
+ * comparison is case-*sensitive*, which is the whole reason the email rules need
+ * testing at all.
+ */
+function matchesWhere(user: FakeUser, where: UserWhere): boolean {
+  if (where.OR) return where.OR.some((clause) => matchesWhere(user, clause));
+
+  return (
+    matchesString(user.email, where.email) &&
+    matchesString(user.username, where.username) &&
+    (where.id === undefined || user.id !== where.id.not)
+  );
+}
+
 export class FakePrisma {
   readonly users = new Map<string, FakeUser>();
   readonly sessions = new Map<string, FakeSession>();
@@ -42,27 +77,8 @@ export class FakePrisma {
 
   readonly client = {
     user: {
-      findFirst: async ({
-        where,
-      }: {
-        where: { OR?: Array<Record<string, string>>; username?: string; id?: { not: string } };
-      }) => {
-        const matchesOr = (user: FakeUser) =>
-          (where.OR ?? []).some((clause) =>
-            Object.entries(clause).every(
-              ([field, value]) => user[field as keyof FakeUser] === value,
-            ),
-          );
-
-        // The two shapes the code actually asks for: "is this taken by anyone"
-        // and "is this taken by anyone other than me".
-        const matches = (user: FakeUser) =>
-          where.OR
-            ? matchesOr(user)
-            : user.username === where.username && user.id !== where.id?.not;
-
-        return [...this.users.values()].find(matches) ?? null;
-      },
+      findFirst: async ({ where }: { where: UserWhere }) =>
+        [...this.users.values()].find((user) => matchesWhere(user, where)) ?? null,
 
       findUnique: async ({ where }: { where: { id?: string; email?: string } }) => {
         if (where.id) return this.users.get(where.id) ?? null;

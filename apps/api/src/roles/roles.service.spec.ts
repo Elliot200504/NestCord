@@ -388,6 +388,62 @@ describe('RolesService', () => {
       expect(assigned).toEqual([{ memberId: 'member-target', roleId: helper.id }]);
     });
 
+    /**
+     * Handing out an existing role hands out its permissions, so the rule that
+     * guards creating and editing one has to guard this too: MANAGE_ROLES plus a
+     * single ADMINISTRATOR role below you would otherwise be a one-request path to
+     * owning the server.
+     */
+    it('refuses to assign a role carrying a permission the actor does not hold', async () => {
+      const actor = member({
+        userId: 'actor',
+        permissions: Permission.MANAGE_ROLES,
+        highestPosition: 5,
+      });
+      const target = member({ userId: 'target', memberId: 'member-target', highestPosition: 0 });
+      const admin = role({ id: 'admin', name: 'Admin', permissions: ALL_PERMISSIONS, position: 3 });
+      const { roles, assigned } = buildHarness([everyone, admin], [actor, target]);
+
+      await expect(roles.assign(actor, 'target', admin.id)).rejects.toThrow(
+        /permission you do not have/,
+      );
+      expect(assigned).toEqual([]);
+    });
+
+    /** Assigning it to yourself is the same escalation, and gets the same refusal. */
+    it('refuses to assign such a role to the actor themselves', async () => {
+      const actor = member({
+        userId: 'actor',
+        memberId: 'member-actor',
+        permissions: Permission.MANAGE_ROLES,
+        highestPosition: 5,
+      });
+      const admin = role({ id: 'admin', name: 'Admin', permissions: ALL_PERMISSIONS, position: 3 });
+      const { roles, assigned } = buildHarness([everyone, admin], [actor]);
+
+      await expect(roles.assign(actor, 'actor', admin.id)).rejects.toMatchObject({ status: 403 });
+      expect(assigned).toEqual([]);
+    });
+
+    /**
+     * Taking a role away is not a grant, so it stays a hierarchy question only —
+     * otherwise a moderator could not clean up after an escalation they spotted.
+     */
+    it('still lets a role be taken away that the actor could not have granted', async () => {
+      const actor = member({
+        userId: 'actor',
+        permissions: Permission.MANAGE_ROLES,
+        highestPosition: 5,
+      });
+      const target = member({ userId: 'target', memberId: 'member-target', highestPosition: 0 });
+      const admin = role({ id: 'admin', name: 'Admin', permissions: ALL_PERMISSIONS, position: 3 });
+      const { roles, unassigned } = buildHarness([everyone, admin], [actor, target]);
+
+      await roles.unassign(actor, 'target', admin.id);
+
+      expect(unassigned).toEqual([{ memberId: 'member-target', roleId: admin.id }]);
+    });
+
     it('reports an unknown member as not found', async () => {
       const actor = member({ userId: 'actor', permissions: ALL_PERMISSIONS, highestPosition: 5 });
       const { roles } = buildHarness([everyone, helper], [actor]);
