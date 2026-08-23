@@ -7,14 +7,15 @@ import type { NotificationPayload } from '@nestcord/shared';
 import { UserAvatar } from '@/components/UserAvatar';
 import { MENU_MOTION } from '@/lib/motion';
 import { cn } from '@/lib/utils';
+import { notificationSummary } from './notification-copy';
 import { useNotifications, useReadNotifications } from './use-notifications';
 
 /**
- * Unread mentions, with a dot when there are any (PLAN.MD §20).
+ * Everything unread, with a dot when there is any of it (PLAN.MD §20).
  *
- * Opening one takes you to the channel it happened in and marks it read, which is the
- * only thing anyone wants from a notification. Friend requests and DMs will appear in
- * the same list when those features land — the payload already has a type for them.
+ * Opening one takes you where it happened and marks it read, which is the only thing
+ * anyone wants from a notification. Where that is depends on the type: a mention has a
+ * channel, a DM has a conversation, a friend request has the friends page.
  */
 export function NotificationBell() {
   const { data: notifications } = useNotifications();
@@ -100,7 +101,7 @@ function NotificationRow({
       <span className="min-w-0">
         <span className="block text-sm">
           <span className="font-medium">{name}</span>
-          <span className="text-content-400"> mentioned you</span>
+          <span className="text-content-400"> {notificationSummary(notification)}</span>
         </span>
         {notification.preview && (
           <span className="text-content-400 block truncate text-xs">{notification.preview}</span>
@@ -112,24 +113,45 @@ function NotificationRow({
   const className =
     'hover:bg-surface-700 block w-full rounded-lg px-2 py-2 text-left transition-colors';
 
-  // A notification whose channel is gone — deleted, or no longer visible — still marks
-  // read, it just has nowhere to send you.
-  if (!notification.serverId || !notification.channelId) {
+  if (notification.serverId && notification.channelId) {
     return (
-      <button type="button" onClick={onOpen} className={className}>
+      <Link
+        to="/app/$serverId/$channelId"
+        params={{ serverId: notification.serverId, channelId: notification.channelId }}
+        onClick={onOpen}
+        className={className}
+      >
         {body}
-      </button>
+      </Link>
     );
   }
 
+  if (notification.conversationId) {
+    return (
+      <Link
+        to="/app/@me/$conversationId"
+        params={{ conversationId: notification.conversationId }}
+        onClick={onOpen}
+        className={className}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  if (notification.type === 'FRIEND_REQUEST') {
+    return (
+      <Link to="/app/@me/friends" onClick={onOpen} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  // Nothing left to open: a mention whose channel is gone, or one of the types that
+  // carries no destination. It still marks read, it just has nowhere to send you.
   return (
-    <Link
-      to="/app/$serverId/$channelId"
-      params={{ serverId: notification.serverId, channelId: notification.channelId }}
-      onClick={onOpen}
-      className={className}
-    >
+    <button type="button" onClick={onOpen} className={className}>
       {body}
-    </Link>
+    </button>
   );
 }
