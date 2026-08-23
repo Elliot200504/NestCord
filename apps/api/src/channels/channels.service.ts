@@ -225,6 +225,7 @@ export class ChannelsService {
     }
 
     await this.evictWhoMayNoLongerConnect(member.serverId, channelId);
+    await this.resyncRoleHolders(member.serverId, roleId);
 
     return this.overrides(member, channelId);
   }
@@ -257,7 +258,34 @@ export class ChannelsService {
 
     await this.evictWhoMayNoLongerConnect(member.serverId, channelId);
 
+    // Whether they may still read the channel has just changed, and room membership
+    // is what decides that for a live socket.
+    this.realtime.resyncRooms(userId);
+
     return this.overrides(member, channelId);
+  }
+
+  /**
+   * Moves the sockets of everybody holding a role after one of its channel overrides
+   * changed.
+   *
+   * Room membership is the read boundary for realtime and it is resolved when a
+   * socket connects, so an override written now reaches an open connection only if
+   * the sockets are moved. Without this, denying `@everyone` VIEW_CHANNEL hides the
+   * channel from the sidebar while its messages keep arriving over the socket, and
+   * granting a role access leaves that channel silent until a reload.
+   *
+   * Only holders of this role are touched: nobody else's resolution can have changed.
+   */
+  private async resyncRoleHolders(serverId: string, roleId: string): Promise<void> {
+    const holders = await this.prisma.client.serverMember.findMany({
+      where: { serverId, roles: { some: { roleId } } },
+      select: { userId: true },
+    });
+
+    for (const holder of holders) {
+      this.realtime.resyncRooms(holder.userId);
+    }
   }
 
   /**
