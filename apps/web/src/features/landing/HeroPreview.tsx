@@ -24,7 +24,7 @@ export function HeroPreview() {
 
       <ul className="space-y-4 px-4 py-5">
         {heroPreview.map((line) => (
-          <li key={line.author} className="flex gap-3">
+          <li key={`${line.author}-${line.time}`} className="flex gap-3">
             <span className="bg-surface-600 text-content-300 grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold uppercase">
               {line.initials}
             </span>
