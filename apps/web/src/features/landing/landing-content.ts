@@ -84,21 +84,21 @@ export interface HeroPreviewLine {
 
 export const heroPreview: HeroPreviewLine[] = [
   {
-    author: 'ada',
-    initials: 'ad',
+    author: 'Linus',
+    initials: 'li',
     time: '19:04',
-    text: 'kettle is on, who is joining voice?',
+    text: "Yo, what's this?",
   },
   {
-    author: 'grace',
-    initials: 'gr',
+    author: 'Adam',
+    initials: 'ad',
     time: '19:05',
-    text: 'two minutes — finishing the washing up',
+    text: "It's a chat app! You can send messages, create channels, and more.",
   },
   {
-    author: 'linus',
+    author: 'Linus',
     initials: 'li',
     time: '19:06',
-    text: 'saved us a seat by the fire 🔥',
+    text: "Really? It looks just like Discord.",
   },
 ];
