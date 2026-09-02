@@ -44,10 +44,100 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # Vitest only. The Playwright journeys need a seeded PostgreSQL and a
-      # running stack, so they stay a local command (see README).
+      # Vitest only. The Playwright journeys need PostgreSQL and a running
+      # stack, so they are the `e2e` job below rather than part of this one.
       - name: Test
         run: pnpm test
 
       - name: Build
         run: pnpm build
+
+  e2e:
+    name: End-to-end journeys
+    runs-on: ubuntu-latest
+    # Only worth the minutes once the cheap checks have passed: a build that does
+    # not typecheck cannot pass a journey either.
+    needs: verify
+    # The webServer alone is allowed 180s to come up, and a retry doubles the
+    # specs. Well clear of a normal run, tight enough to catch a hang.
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        # Same image and credentials as docker-compose.yml, so a failure here
+        # means the same thing it would mean locally.
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nestcord
+          POSTGRES_PASSWORD: nestcord
+          POSTGRES_DB: nestcord
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nestcord -d nestcord"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The app reads one .env at the workspace root, so write the same file a
+      # developer would (SETUP.md §3) rather than relying on process env alone.
+      # These secrets are throwaway CI values; they only have to satisfy the
+      # 32-character minimum the env schema enforces.
+      - name: Write .env
+        run: |
+          cat > .env <<'ENV'
+          DATABASE_URL="postgresql://nestcord:nestcord@localhost:5432/nestcord?schema=public"
+          JWT_ACCESS_SECRET="ci-access-secret-not-a-real-one-padded-to-length"
+          JWT_REFRESH_SECRET="ci-refresh-secret-not-a-real-one-padded-to-length"
+          API_PORT=3000
+          WEB_URL="http://localhost:5173"
+          ADMIN_EMAILS="test@nestcord.local"
+          UPLOAD_DIR="./uploads"
+          ENV
+
+      # Generates the Prisma client and compiles shared + database, both of which
+      # the seed and the API import from dist.
+      - name: Build workspace packages
+        run: pnpm packages:build
+
+      # `migrate deploy` rather than `migrate dev`: it applies the committed
+      # migrations and never tries to author a new one.
+      - name: Apply migrations
+        run: pnpm --filter @nestcord/database migrate:deploy
+
+      # The journeys need the seeded account to sign in as; the `setup` project
+      # builds the server, channels and friend rows over the API from there.
+      - name: Seed the development account
+        run: pnpm db:seed
+
+      - name: Install Chromium
+        run: pnpm --filter @nestcord/web exec playwright install --with-deps chromium
+
+      # Playwright starts `pnpm dev` itself and waits for the web app to answer.
+      - name: Run journeys
+        run: pnpm --filter @nestcord/web test:e2e
+        env:
+          CI: true
+
+      # Traces are written on the first retry, so a flake leaves something to read.
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

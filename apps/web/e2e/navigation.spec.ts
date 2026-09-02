@@ -18,5 +18,14 @@ test('walks from direct messages into a server channel and sees its history', as
     .click();
 
   await expect(page.getByRole('heading', { name: WORLD.otherChannel, exact: true })).toBeVisible();
-  await expect(historyOf(page, WORLD.otherChannel)).toBeVisible();
+
+  // The second channel is deliberately left empty by the setup, and an empty <ul>
+  // has no box — so it is present rather than visible. What a person actually sees
+  // is the empty state, and what proves the swap is the first channel's history
+  // being gone rather than merely scrolled away.
+  await expect(historyOf(page, WORLD.otherChannel)).toBeAttached();
+  await expect(
+    page.getByRole('heading', { name: `This is the start of #${WORLD.otherChannel}` }),
+  ).toBeVisible();
+  await expect(historyOf(page, WORLD.channel)).not.toBeAttached();
 });

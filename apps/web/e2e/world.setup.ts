@@ -31,6 +31,53 @@ const OPENING_MESSAGES = [
   'Anything below this line was sent by a test.',
 ];
 
+/** How long to wait for the API to come up, and how often to ask. */
+const API_READY_TIMEOUT_MS = 120_000;
+const API_POLL_INTERVAL_MS = 500;
+
+/**
+ * Waits until the API answers and can reach the database.
+ *
+ * Playwright's `webServer` waits for Vite, which is ready well before Nest has
+ * finished booting and connecting to PostgreSQL. On a cold start — CI, or the
+ * first local run of the day — the first request below would otherwise be
+ * proxied to a port nothing is listening on yet, and a connection refused looks
+ * exactly like a rejected login: "could not sign in, try `pnpm db:seed`", with
+ * a perfectly good seeded account sitting in the database.
+ *
+ * `/api/health` is public and checks the database too, so a pass here means the
+ * whole stack is genuinely ready rather than just listening.
+ */
+async function waitForApi(request: APIRequestContext): Promise<void> {
+  const deadline = Date.now() + API_READY_TIMEOUT_MS;
+  let detail = 'no response yet';
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await request.get('/api/health');
+
+      if (response.ok()) {
+        const body = (await response.json()) as { status: string; database: string };
+
+        if (body.status === 'ok') return;
+
+        detail = `status "${body.status}", database "${body.database}"`;
+      } else {
+        detail = `HTTP ${response.status()}`;
+      }
+    } catch (cause) {
+      detail = cause instanceof Error ? cause.message : String(cause);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, API_POLL_INTERVAL_MS));
+  }
+
+  throw new Error(
+    `The API did not become ready within ${String(API_READY_TIMEOUT_MS / 1000)}s. ` +
+      `Last attempt: ${detail}.`,
+  );
+}
+
 function authHeader(session: Session): Record<string, string> {
   return { Authorization: `Bearer ${session.token}` };
 }
@@ -187,6 +234,12 @@ async function ensureFriends(request: APIRequestContext, owner: Session): Promis
 }
 
 setup('builds the world the journeys need', async ({ request }) => {
+  // Covers the cold start: building two packages and booting Nest takes longer
+  // than a test is normally allowed.
+  setup.setTimeout(API_READY_TIMEOUT_MS + 60_000);
+
+  await waitForApi(request);
+
   const owner = await signInAsOwner(request);
 
   const server = await ensureServer(request, owner);
