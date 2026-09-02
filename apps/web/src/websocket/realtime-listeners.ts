@@ -11,6 +11,8 @@ import {
   type MessageDeletePayload,
   type NotificationPayload,
   type PresencePayload,
+  type PublicUser,
+  type Friend,
   type ReactionPayload,
   type TypingPayload,
   type VoiceLeavePayload,
@@ -107,20 +109,52 @@ export function registerRealtimeListeners(
   };
 
   /**
-   * Presence is patched across every loaded member list rather than invalidating
-   * them: someone going idle should not cost a request per server you share.
+   * Presence is patched across every cache the user appears in rather than
+   * invalidating them: someone going idle should not cost a request per server you
+   * share, per friend row and per conversation.
+   *
+   * The same person is cached in three differently shaped places — member lists
+   * under `servers`, friend rows under `friends`, and participants under
+   * `conversations` — so all three are patched here. Patching only `servers` is
+   * what left the friends page and the DM sidebar showing a stale dot until the
+   * next reconnect.
    */
   const onPresence = (payload: PresencePayload) => {
-    queryClient.setQueriesData<Array<{ user: { id: string; status: string } }>>(
-      { queryKey: ['servers'], exact: false },
+    const patchUser = <T extends PublicUser>(user: T): T =>
+      user.id === payload.userId ? { ...user, status: payload.status } : user;
+
+    const patchParticipants = (conversation: Conversation): Conversation => ({
+      ...conversation,
+      participants: conversation.participants.map(patchUser),
+    });
+
+    // Member lists. The `servers` prefix also matches channels, roles and other
+    // arrays with no `user` on them, so those fall through untouched.
+    queryClient.setQueriesData<Array<{ user: PublicUser }>>(
+      { queryKey: keys.servers, exact: false },
       (members) => {
         if (!Array.isArray(members)) return members;
 
         return members.map((member) =>
-          member.user?.id === payload.userId
-            ? { ...member, user: { ...member.user, status: payload.status } }
-            : member,
+          member.user === undefined ? member : { ...member, user: patchUser(member.user) },
         );
+      },
+    );
+
+    queryClient.setQueriesData<Friend[]>({ queryKey: keys.friends, exact: false }, (friends) => {
+      if (!Array.isArray(friends)) return friends;
+
+      return friends.map((friend) => ({ ...friend, user: patchUser(friend.user) }));
+    });
+
+    // One prefix covers both `keys.conversations` (a list) and
+    // `keys.conversation(id)` (a single one), so this handles either shape.
+    queryClient.setQueriesData<Conversation | Conversation[]>(
+      { queryKey: keys.conversations, exact: false },
+      (data) => {
+        if (data === undefined) return data;
+
+        return Array.isArray(data) ? data.map(patchParticipants) : patchParticipants(data);
       },
     );
   };
