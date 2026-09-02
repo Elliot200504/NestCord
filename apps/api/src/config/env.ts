@@ -27,11 +27,6 @@ const envSchema = z.object({
   ADMIN_EMAILS: z.string().default(''),
 
   UPLOAD_DIR: z.string().default('./uploads'),
-  UPLOAD_MAX_BYTES: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(8 * 1024 * 1024),
 });
 
 export type Env = z.infer<typeof envSchema>;
