@@ -15,7 +15,7 @@
     "prisma"
   ],
   "scripts": {
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
@@ -23,7 +23,8 @@
     "reset": "prisma migrate reset --force",
     "seed": "tsx prisma/seed.ts",
     "studio": "prisma studio",
-    "test": "echo \"no tests in @nestcord/database yet\""
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@nestcord/shared": "workspace:*",
@@ -38,6 +39,7 @@
     "argon2": "^0.45.1",
     "prisma": "^7.9.1",
     "tsx": "^4.23.11",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
