@@ -29,9 +29,10 @@ providers between them unless a concrete problem demands it.
 
 ```text
 apps/api/          NestJS API (auth, users, servers, channels, messages, roles,
-                   friends, dms, attachments, notifications, gateway, common)
+                   friends, dms, attachments, notifications, admin, gateway,
+                   health, config, common)
 apps/web/          React + Vite (routes, components, features, api, hooks,
-                   stores, websocket, lib)
+                   stores, websocket, lib, styles, test)
 packages/database/ Prisma schema, migrations, seed
 packages/shared/   Types, constants, permission flags shared by api and web
 ```
