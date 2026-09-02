@@ -240,6 +240,64 @@ describe('presence events', () => {
     );
     expect(members?.[1]?.user.status).toBe('ONLINE');
   });
+
+  it('patches a friend row', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.friends, [
+      { id: 'friendship-1', user: GRACE, status: 'ACCEPTED', direction: 'INCOMING', createdAt: '' },
+    ]);
+
+    deliver(SocketEvent.PRESENCE_UPDATE, { userId: GRACE.id, status: 'IDLE' });
+
+    const friends = queryClient.getQueryData<Array<{ user: { status: string } }>>(keys.friends);
+    expect(friends?.[0]?.user.status).toBe('IDLE');
+  });
+
+  it('patches a participant in the conversation list', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.conversations, [
+      {
+        id: 'conversation-1',
+        name: null,
+        isGroup: false,
+        participants: [ADA, GRACE],
+        createdAt: '',
+        lastMessageAt: null,
+      },
+    ]);
+
+    deliver(SocketEvent.PRESENCE_UPDATE, { userId: GRACE.id, status: 'OFFLINE' });
+
+    const conversations = queryClient.getQueryData<
+      Array<{ participants: Array<{ id: string; status: string }> }>
+    >(keys.conversations);
+    expect(conversations?.[0]?.participants.find((user) => user.id === GRACE.id)?.status).toBe(
+      'OFFLINE',
+    );
+    // The viewer's own row is untouched.
+    expect(conversations?.[0]?.participants.find((user) => user.id === ADA.id)?.status).toBe(
+      'ONLINE',
+    );
+  });
+
+  it('patches a participant in a single loaded conversation', () => {
+    const { queryClient, deliver } = buildHarness();
+    queryClient.setQueryData(keys.conversation('conversation-1'), {
+      id: 'conversation-1',
+      name: null,
+      isGroup: false,
+      participants: [GRACE],
+      createdAt: '',
+      lastMessageAt: null,
+    });
+
+    deliver(SocketEvent.PRESENCE_UPDATE, { userId: GRACE.id, status: 'IDLE' });
+
+    const conversation = queryClient.getQueryData<{
+      participants: Array<{ status: string }>;
+    }>(keys.conversation('conversation-1'));
+    expect(conversation?.participants[0]?.status).toBe('IDLE');
+  });
 });
 
 describe('notification events', () => {
