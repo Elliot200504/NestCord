@@ -14,6 +14,7 @@ import { resolve } from 'node:path';
 import * as argon2 from 'argon2';
 import { config as loadEnv } from 'dotenv';
 
+import { assertLocalDatabase } from '../src/assert-local-database.js';
 import { createPrismaClient } from '../src/index.js';
 
 loadEnv({ path: resolve(process.cwd(), '../../.env'), quiet: true });
@@ -29,35 +30,6 @@ const ADMIN_ACCOUNT = {
   bio: 'The account you develop against.',
   accentColor: '#e0234e',
 };
-
-/** Hosts we consider safe to seed against. */
-const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', 'db', 'postgres'];
-
-/**
- * The seed plants an account whose password is written down in the repository,
- * so refuse to run against anything that is not an obviously local development
- * database. NestCord only ever runs locally, so this guard should never fire —
- * it is here because a seed that can reach a real database always needs one.
- */
-function assertLocalDatabase(url: string): void {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Refusing to seed: NODE_ENV is production.');
-  }
-
-  let host: string;
-  try {
-    host = new URL(url).hostname;
-  } catch {
-    throw new Error('Refusing to seed: DATABASE_URL is missing or not a valid URL.');
-  }
-
-  if (!LOCAL_HOSTS.includes(host)) {
-    throw new Error(
-      `Refusing to seed: database host "${host}" is not local. ` +
-        'The seed uses a publicly known password. Point DATABASE_URL at a local database.',
-    );
-  }
-}
 
 async function main(): Promise<void> {
   assertLocalDatabase(process.env.DATABASE_URL ?? '');
