@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ALL_PERMISSIONS, DEFAULT_EVERYONE_PERMISSIONS, Permission } from '@nestcord/shared';
 
+import type { OverrideRow } from './channel-overrides';
 import type { PrismaService } from '../prisma/prisma.service';
 import { NO_ROLE_POSITION, OWNER_POSITION } from './member-context';
 import { PermissionsService } from './permissions.service';
@@ -20,14 +21,47 @@ interface StubMember {
   roles: StubRole[];
 }
 
+interface StubChannel {
+  id: string;
+  serverId: string;
+  ownerId: string;
+  overrides: OverrideRow[];
+}
+
 /**
- * Stands in for the one query this service makes. It is the permission *rules* under
- * test here, not the query — see the note in `common/testing/fake-prisma.ts`.
+ * Stands in for the queries this service makes. It is the permission *rules* under
+ * test here, not the queries — see the note in `common/testing/fake-prisma.ts`.
  */
-function buildService(members: StubMember[]): PermissionsService {
+function buildService(members: StubMember[], channels: StubChannel[] = []): PermissionsService {
+  const row = (found: StubMember) => ({
+    id: found.id,
+    userId: found.userId,
+    serverId: found.serverId,
+    server: { ownerId: found.ownerId },
+    roles: found.roles.map((role) => ({ role })),
+  });
+
   const prisma = {
     client: {
+      channel: {
+        findUnique: async ({ where }: { where: { id: string } }) => {
+          const found = channels.find((entry) => entry.id === where.id);
+
+          if (!found) return null;
+
+          // `server` is redundant now the owner id is read off each member row,
+          // but keeping it means these tests also pass against the previous
+          // implementation, which read it from the channel.
+          return {
+            serverId: found.serverId,
+            server: { ownerId: found.ownerId },
+            overrides: found.overrides,
+          };
+        },
+      },
       serverMember: {
+        findMany: async ({ where }: { where: { serverId: string } }) =>
+          members.filter((entry) => entry.serverId === where.serverId).map(row),
         findUnique: async ({
           where,
         }: {
@@ -40,13 +74,7 @@ function buildService(members: StubMember[]): PermissionsService {
 
           if (!found) return null;
 
-          return {
-            id: found.id,
-            userId: found.userId,
-            serverId: found.serverId,
-            server: { ownerId: found.ownerId },
-            roles: found.roles.map((role) => ({ role })),
-          };
+          return row(found);
         },
       },
     },
@@ -99,6 +127,84 @@ describe('PermissionsService', () => {
         roles: [EVERYONE, { id: 'admin-role', permissions: Permission.ADMINISTRATOR, position: 2 }],
       },
     ];
+  });
+
+  describe('findChannelViewers', () => {
+    const everyoneDeny = (deny: number): OverrideRow => ({
+      type: 'ROLE',
+      roleId: 'everyone',
+      userId: null,
+      allow: 0,
+      deny,
+      role: { isDefault: true },
+    });
+
+    it('lists every member who can see an unrestricted channel', async () => {
+      const service = buildService(members, [
+        { id: 'channel-1', serverId: 'server-1', ownerId: 'owner', overrides: [] },
+      ]);
+
+      const viewers = await service.findChannelViewers('channel-1');
+
+      expect([...viewers].sort()).toEqual(['admin', 'mod', 'owner', 'plain']);
+    });
+
+    it('leaves out a member whose @everyone override removes VIEW_CHANNEL', async () => {
+      const service = buildService(members, [
+        {
+          id: 'channel-1',
+          serverId: 'server-1',
+          ownerId: 'owner',
+          overrides: [everyoneDeny(Permission.VIEW_CHANNEL)],
+        },
+      ]);
+
+      const viewers = await service.findChannelViewers('channel-1');
+
+      // The owner and the administrator are unaffected: both bypass overrides.
+      expect([...viewers].sort()).toEqual(['admin', 'owner']);
+    });
+
+    it('still counts the owner when the row is read per member rather than per channel', async () => {
+      const service = buildService(members, [
+        {
+          id: 'channel-1',
+          serverId: 'server-1',
+          ownerId: 'owner',
+          overrides: [everyoneDeny(Permission.VIEW_CHANNEL)],
+        },
+      ]);
+
+      const viewers = await service.findChannelViewers('channel-1');
+
+      expect(viewers).toContain('owner');
+    });
+
+    it('returns nobody for a channel that does not exist', async () => {
+      const service = buildService(members, []);
+
+      await expect(service.findChannelViewers('ghost')).resolves.toEqual([]);
+    });
+
+    it('ignores members of other servers', async () => {
+      const service = buildService(
+        [
+          ...members,
+          {
+            id: 'member-elsewhere',
+            userId: 'elsewhere',
+            serverId: 'server-2',
+            ownerId: 'other-owner',
+            roles: [EVERYONE],
+          },
+        ],
+        [{ id: 'channel-1', serverId: 'server-1', ownerId: 'owner', overrides: [] }],
+      );
+
+      const viewers = await service.findChannelViewers('channel-1');
+
+      expect(viewers).not.toContain('elsewhere');
+    });
   });
 
   it('returns null for someone who is not a member', async () => {
