@@ -15,6 +15,39 @@ const MEMBER_CONTEXT_SELECT = {
   roles: { select: { role: { select: { id: true, permissions: true, position: true } } } },
 } as const;
 
+/** One `serverMember` row as `MEMBER_CONTEXT_SELECT` shapes it. */
+interface MemberContextRow {
+  id: string;
+  userId: string;
+  serverId: string;
+  server: { ownerId: string };
+  roles: Array<{ role: { id: string; permissions: number; position: number } }>;
+}
+
+/**
+ * Turn one member row into a `MemberContext`.
+ *
+ * Both callers below need this, and the class comment is explicit that a second
+ * copy of the resolution rules would drift into a security hole — so the rules
+ * live here exactly once.
+ */
+function toMemberContext(row: MemberContextRow): MemberContext {
+  const isOwner = row.server.ownerId === row.userId;
+  const roles = row.roles.map((entry) => entry.role);
+
+  return {
+    serverId: row.serverId,
+    memberId: row.id,
+    userId: row.userId,
+    isOwner,
+    permissions: resolvePermissions({ isOwner, roleBits: roles.map((role) => role.permissions) }),
+    roleIds: roles.map((role) => role.id),
+    highestPosition: isOwner
+      ? OWNER_POSITION
+      : roles.reduce((highest, role) => Math.max(highest, role.position), NO_ROLE_POSITION),
+  };
+}
+
 /**
  * The single place server permissions are resolved from the database (PLAN.MD §5).
  *
@@ -36,20 +69,7 @@ export class PermissionsService {
 
     if (!member) return null;
 
-    const isOwner = member.server.ownerId === userId;
-    const roles = member.roles.map((entry) => entry.role);
-
-    return {
-      serverId: member.serverId,
-      memberId: member.id,
-      userId: member.userId,
-      isOwner,
-      permissions: resolvePermissions({ isOwner, roleBits: roles.map((role) => role.permissions) }),
-      roleIds: roles.map((role) => role.id),
-      highestPosition: isOwner
-        ? OWNER_POSITION
-        : roles.reduce((highest, role) => Math.max(highest, role.position), NO_ROLE_POSITION),
-    };
+    return toMemberContext(member);
   }
 
   /**
@@ -129,9 +149,9 @@ export class PermissionsService {
   async findChannelViewers(channelId: string): Promise<string[]> {
     const channel = await this.prisma.client.channel.findUnique({
       where: { id: channelId },
+      // The owner id comes off each member row instead, via MEMBER_CONTEXT_SELECT.
       select: {
         serverId: true,
-        server: { select: { ownerId: true } },
         overrides: { select: OVERRIDE_CONTEXT_SELECT },
       },
     });
@@ -144,30 +164,10 @@ export class PermissionsService {
     });
 
     return members
-      .map((member) => {
-        const isOwner = channel.server.ownerId === member.userId;
-        const roles = member.roles.map((entry) => entry.role);
-
-        const context: MemberContext = {
-          serverId: member.serverId,
-          memberId: member.id,
-          userId: member.userId,
-          isOwner,
-          permissions: resolvePermissions({
-            isOwner,
-            roleBits: roles.map((role) => role.permissions),
-          }),
-          roleIds: roles.map((role) => role.id),
-          highestPosition: isOwner
-            ? OWNER_POSITION
-            : roles.reduce((highest, role) => Math.max(highest, role.position), NO_ROLE_POSITION),
-        };
-
-        return {
-          userId: member.userId,
-          permissions: resolveChannelPermissions(context, channel.overrides),
-        };
-      })
+      .map((member) => ({
+        userId: member.userId,
+        permissions: resolveChannelPermissions(toMemberContext(member), channel.overrides),
+      }))
       .filter((entry) => has(entry.permissions, Permission.VIEW_CHANNEL))
       .map((entry) => entry.userId);
   }
