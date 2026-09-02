@@ -3,14 +3,14 @@ import { Hash } from 'lucide-react';
 import { heroPreview } from './landing-content';
 
 /**
- * A still frame of the app, sitting slightly off-square on the page. Its job is
- * to show a room with people in it rather than describe one.
+ * A still frame of the app. Its job is to show a room with people in it rather
+ * than describe one.
  */
 export function HeroPreview() {
   return (
     <div
       aria-hidden
-      className="border-border bg-surface-800 rotate-[-1.25deg] rounded-2xl border shadow-2xl shadow-black/40"
+      className="border-border bg-surface-800 rounded-2xl border shadow-2xl shadow-black/40"
     >
       <div className="border-border flex items-center gap-2 border-b px-4 py-3">
         <span className="bg-dnd/80 size-2.5 rounded-full" />
@@ -24,7 +24,7 @@ export function HeroPreview() {
 
       <ul className="space-y-4 px-4 py-5">
         {heroPreview.map((line) => (
-          <li key={line.author} className="flex gap-3">
+          <li key={`${line.author}-${line.time}`} className="flex gap-3">
             <span className="bg-surface-600 text-content-300 grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold uppercase">
               {line.initials}
             </span>
