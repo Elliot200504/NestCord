@@ -81,10 +81,17 @@ export function MessageComposer({ serverId, channel, author }: MessageComposerPr
     // Let the same file be picked again after it is removed.
     event.target.value = '';
 
-    for (const file of chosen) {
-      const attachment = await upload.mutateAsync(file).catch(() => null);
-      if (attachment) setPending((current) => [...current, attachment]);
-    }
+    // In parallel: picking four images should not mean four round trips end to
+    // end. Promise.all keeps the results in the order they were picked, and a
+    // file that fails drops out rather than taking the others with it.
+    const uploaded = await Promise.all(
+      chosen.map((file) => upload.mutateAsync(file).catch(() => null)),
+    );
+    const attachments = uploaded.filter(
+      (attachment): attachment is MessageAttachment => attachment !== null,
+    );
+
+    if (attachments.length > 0) setPending((current) => [...current, ...attachments]);
   }
 
   if (!canSend) {
