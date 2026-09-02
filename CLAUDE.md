@@ -45,6 +45,7 @@ pnpm install
 pnpm dev                 # NestJS API + Vite web
 pnpm build
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm db:generate | db:migrate | db:seed | db:reset
 ```
