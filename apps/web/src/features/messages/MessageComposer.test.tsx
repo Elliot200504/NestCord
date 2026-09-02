@@ -70,6 +70,53 @@ function stubApi(): Call[] {
   return calls;
 }
 
+/**
+ * Holds every attachment upload open until released, so the test can see how many
+ * were started at once rather than inferring it from timing.
+ */
+function stubHeldUploads() {
+  const started: string[] = [];
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (!url.endsWith('/attachments')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'sent' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        );
+      }
+
+      const index = started.length;
+      started.push(url);
+
+      return held.then(
+        () =>
+          new Response(
+            JSON.stringify({
+              id: `attachment-${String(index)}`,
+              filename: `file-${String(index)}.png`,
+              mimeType: 'image/png',
+              size: 1,
+              url: `/uploads/file-${String(index)}.png`,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+      );
+    }),
+  );
+
+  return { started, release: () => release() };
+}
+
 function draw(target: Channel = channel()) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -171,5 +218,40 @@ describe('MessageComposer', () => {
 
     expect(screen.queryByLabelText('Add an attachment')).toBeNull();
     expect(screen.getByLabelText('Message #general')).toBeInTheDocument();
+  });
+
+  it('uploads several chosen files at the same time', async () => {
+    const { started, release } = stubHeldUploads();
+    const { container } = draw();
+
+    const input = container.querySelector('input[type="file"]');
+    const files = [0, 1, 2].map(
+      (index) => new File(['x'], `file-${String(index)}.png`, { type: 'image/png' }),
+    );
+
+    await userEvent.upload(input as HTMLInputElement, files);
+
+    // All three are in flight before any of them has come back. Sequentially
+    // there would be exactly one.
+    await waitFor(() => expect(started).toHaveLength(3));
+
+    release();
+  });
+
+  it('keeps the files in the order they were picked', async () => {
+    const { release } = stubHeldUploads();
+    const { container } = draw();
+
+    const input = container.querySelector('input[type="file"]');
+    const files = [0, 1, 2].map(
+      (index) => new File(['x'], `file-${String(index)}.png`, { type: 'image/png' }),
+    );
+
+    await userEvent.upload(input as HTMLInputElement, files);
+    release();
+
+    await waitFor(() => expect(screen.getByLabelText('Remove file-0.png')).toBeInTheDocument());
+    expect(screen.getByLabelText('Remove file-1.png')).toBeInTheDocument();
+    expect(screen.getByLabelText('Remove file-2.png')).toBeInTheDocument();
   });
 });
