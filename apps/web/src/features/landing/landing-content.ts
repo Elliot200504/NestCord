@@ -99,6 +99,6 @@ export const heroPreview: HeroPreviewLine[] = [
     author: 'Linus',
     initials: 'li',
     time: '19:06',
-    text: "Really? It looks just like Discord.",
+    text: 'Really? It looks just like Discord.',
   },
 ];
