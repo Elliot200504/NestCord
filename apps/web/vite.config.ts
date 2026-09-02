@@ -54,5 +54,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // Vitest's 5s default is not enough here. These are jsdom render tests that
+    // mount a router and a query client, and they run in parallel worker
+    // processes competing for CPU — so a suite that finishes in well under a
+    // second on its own can sit waiting on the event loop long enough to trip
+    // the timeout. The failures moved between files from run to run, which is
+    // what made them flaky rather than broken.
+    testTimeout: 15_000,
   },
 });
