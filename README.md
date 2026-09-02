@@ -98,17 +98,20 @@ whether the link is listed.
 
 ## Commands
 
-| Command           | Purpose                      |
-| ----------------- | ---------------------------- |
-| `pnpm dev`        | Run the API and web app      |
-| `pnpm build`      | Build everything             |
-| `pnpm lint`       | ESLint                       |
-| `pnpm typecheck`  | `tsc --noEmit` everywhere    |
-| `pnpm test`       | Vitest                       |
-| `pnpm db:migrate` | Create and apply a migration |
-| `pnpm db:seed`    | Reseed development data      |
-| `pnpm db:reset`   | Drop, re-migrate and reseed  |
-| `pnpm db:studio`  | Prisma Studio                |
+| Command               | Purpose                      |
+| --------------------- | ---------------------------- |
+| `pnpm dev`            | Run the API and web app      |
+| `pnpm build`          | Build everything             |
+| `pnpm lint`           | ESLint                       |
+| `pnpm typecheck`      | `tsc --noEmit` everywhere    |
+| `pnpm format`         | Prettier write               |
+| `pnpm test`           | Vitest                       |
+| `pnpm db:generate`    | Regenerate the Prisma client |
+| `pnpm db:migrate`     | Create and apply a migration |
+| `pnpm db:seed`        | Reseed development data      |
+| `pnpm db:reset`       | Drop, re-migrate and reseed  |
+| `pnpm db:studio`      | Prisma Studio                |
+| `pnpm packages:build` | Rebuild shared and database  |
 
 Target one package: `pnpm --filter @nestcord/api <script>`.
 
