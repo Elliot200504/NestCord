@@ -6,6 +6,12 @@ import { ERROR_LOG_PAGE_SIZE, type ErrorLogEntry } from '@nestcord/shared';
 
 import { PrismaService } from '../prisma/prisma.service';
 
+/**
+ * How many references to try before giving up and using the last one anyway.
+ * Matches the invite-code generator, for the same reason.
+ */
+const REFERENCE_ATTEMPTS = 5;
+
 /** What the exception filter knows about a failure worth recording. */
 export interface ErrorRecord {
   statusCode: number;
@@ -40,7 +46,7 @@ export class ErrorLogService {
    * database is the thing that is broken.
    */
   async record(error: ErrorRecord): Promise<string> {
-    const reference = createReference();
+    const reference = await this.reserveReference();
 
     this.logger.error(
       `[${reference}] ${error.method} ${error.path} → ${String(error.statusCode)}: ${error.detail}`,
@@ -64,6 +70,36 @@ export class ErrorLogService {
         `Could not write error ${reference} to the log`,
         cause instanceof Error ? cause.stack : undefined,
       );
+    }
+
+    return reference;
+  }
+
+  /**
+   * A reference no row is using yet.
+   *
+   * `reference` is unique, so a collision made `create` throw — and because this
+   * service deliberately swallows that failure, the user was still handed a code
+   * with no row behind it, which then 404s when support looks it up. Only 16.7M
+   * codes exist, so a duplicate is a matter of when, not if.
+   *
+   * Same find-then-create shape as invite codes. Never throws: after the last
+   * attempt it hands back the final candidate and lets `record` try the write,
+   * because a possibly-duplicate reference is still better than no log row.
+   */
+  private async reserveReference(): Promise<string> {
+    let reference = createReference();
+
+    for (let attempt = 1; attempt < REFERENCE_ATTEMPTS; attempt += 1) {
+      const taken = await this.prisma.client.errorLog.findUnique({
+        where: { reference },
+        select: { reference: true },
+      });
+
+      if (!taken) return reference;
+
+      this.logger.warn(`Error reference ${reference} is taken; generating another`);
+      reference = createReference();
     }
 
     return reference;
