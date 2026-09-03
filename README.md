@@ -1,19 +1,21 @@
 # NestCord
 
-A Discord clone, and a deliberate exercise in directing AI coding tools across a real codebase.
+A Discord clone: servers and channels, roles and permissions with channel overrides, direct
+messages, friends, attachments, notifications, WebRTC voice channels, and realtime messaging,
+typing and presence throughout.
 
-Scope is fixed and small: one API process, one PostgreSQL database, local file storage, a few hundred
-users.
+![NestCord — a channel in a server, with the member list open](./.github/screenshots/channel.png)
 
-Those constraints are committed alongside the code: [PLAN.MD](./PLAN.MD) for what gets built and what
-deliberately does not, [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` for the standards every change
-is reviewed against.
-
-> **Read before running this anywhere real.** Most of the code here was written by AI tools under my
-> direction and review. It is a learning project: nothing in it has been audited or
-> penetration-tested, and the security-sensitive parts — authentication, authorization, file uploads
-> — are written to be sensible, not proven. Take it apart, learn from it, borrow from it. Do not put
-> it in front of real users and expect it to hold.
+- **Scope** — one API process, one PostgreSQL database, local file storage, a few hundred users.
+  Fixed before the first line was written, and defended since: [PLAN.MD](./PLAN.MD) is as much a
+  list of what this deliberately does not do as what it does.
+- **Constraints** — [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` are the standing rules for the
+  codebase: the layering (controller, service, Prisma, nothing in between), the immutability and
+  file-size conventions, the security invariants, the named technologies that stay out.
+- **Review** — every change was read against those rules before it landed, and the work that
+  missed them was sent back rather than patched over. Every pull request in this repository was
+  reviewed by hand and merged by me, not rubber-stamped. The rules exist because that is how you
+  get a consistent codebase out of a tool that will happily give you five different architectures.
 
 ## Dependencies
 
@@ -140,6 +142,16 @@ apps/web/          React + Vite
 packages/database/ Prisma schema, migrations, seed
 packages/shared/   types, constants, permission flags
 ```
+
+## How it was built
+
+I did not write most of this code. I decided what it would be, and held it to that.
+
+> **Read before running this anywhere real.** Most of the code here was written by AI tools under my
+> direction and review. It is a learning project: nothing in it has been audited or
+> penetration-tested, and the security-sensitive parts — authentication, authorization, file uploads
+> — are written to be sensible, not proven. Take it apart, learn from it, borrow from it. Do not put
+> it in front of real users and expect it to hold.
 
 ## License
 
