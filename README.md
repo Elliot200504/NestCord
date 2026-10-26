@@ -6,13 +6,13 @@ typing and presence throughout.
 
 ![NestCord — a channel in a server, with the member list open](./.github/screenshots/channel.png)
 
-- **Scope** — one API process, one PostgreSQL database, local file storage, a few hundred users.
+- **Scope** One API process, one PostgreSQL database, local file storage, a few hundred users.
   Fixed before the first line was written, and defended since: [PLAN.MD](./PLAN.MD) is as much a
   list of what this deliberately does not do as what it does.
-- **Constraints** — [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` are the standing rules for the
+- **Constraints** [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` are the standing rules for the
   codebase: the layering (controller, service, Prisma, nothing in between), the immutability and
   file-size conventions, the security invariants, the named technologies that stay out.
-- **Review** — every change was read against those rules before it landed, and the work that
+- **Review** Every change was read against those rules before it landed, and the work that
   missed them was sent back rather than patched over. Every pull request in this repository was
   reviewed by hand and merged by me, not rubber-stamped. The rules exist because that is how you
   get a consistent codebase out of a tool that will happily give you five different architectures.
@@ -27,9 +27,9 @@ You need:
 
 Built with:
 
-- **Backend** — NestJS, Prisma, PostgreSQL, Socket.IO, JWT, Argon2
-- **Frontend** — React, Vite, TanStack Router + Query, Zustand, Tailwind, Radix
-- **Tooling** — pnpm workspaces, TypeScript, ESLint, Prettier, Vitest, Playwright
+- **Backend**: NestJS, Prisma, PostgreSQL, Socket.IO, JWT, Argon2
+- **Frontend**: React, Vite, TanStack Router + Query, Zustand, Tailwind, Radix
+- **Tooling**: pnpm workspaces, TypeScript, ESLint, Prettier, Vitest, Playwright
 
 ## Setup
 
@@ -59,7 +59,7 @@ from a clean machine, and has a troubleshooting section.
 
 Seeded login: `test@nestcord.local` / `password123`
 
-That one account is all the seed creates, and it never deletes anything — the servers, channels and
+That one account is all the seed creates, and it never deletes anything. The servers, channels and
 messages you make while developing stay put, and re-running it on an existing account reports it and
 changes nothing. Everything else is yours to create in the app.
 
@@ -69,7 +69,7 @@ Register at http://localhost:5173/register, or log in with the seeded account ab
 
 - Passwords are hashed with Argon2id. `POST /api/auth/register|login|refresh|logout` and
   `GET /api/auth/me` are the whole surface.
-- A short-lived access token comes back in the response body and is kept in memory by the web app —
+- A short-lived access token comes back in the response body and is kept in memory by the web app
   never in `localStorage`.
 - The long-lived refresh token is an httpOnly cookie scoped to `/api/auth`, stored hashed in the
   `Session` table and rotated on every refresh. Logging out deletes the session row, so the access
@@ -81,9 +81,7 @@ validates them at boot and refuses to start if any are missing.
 
 ## Errors
 
-Users are never shown a technical error. A global exception filter turns everything a route throws
-into one shape: a 4xx keeps the sentence the route wrote for the user, and anything unexpected — a
-crash, an unhandled Prisma error — becomes a generic apology plus a short reference code such as
+Users are never shown a technical error. An error becomes a generic apology plus a short reference code such as
 `ERR-9F3A2C`. The real message and stack go to the `ErrorLog` table and the server log, never to the
 client.
 
@@ -142,17 +140,6 @@ apps/web/          React + Vite
 packages/database/ Prisma schema, migrations, seed
 packages/shared/   types, constants, permission flags
 ```
-
-## How it was built
-
-I did not write most of this code. I decided what it would be, and held it to that.
-
-> **Read before running this anywhere real.** Most of the code here was written by AI tools under my
-> direction and review. It is a learning project: nothing in it has been audited or
-> penetration-tested, and the security-sensitive parts — authentication, authorization, file uploads
-> — are written to be sensible, not proven. Take it apart, learn from it, borrow from it. Do not put
-> it in front of real users and expect it to hold.
-
 ## License
 
 [MIT](./LICENSE)
