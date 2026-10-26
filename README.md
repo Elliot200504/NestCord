@@ -6,13 +6,13 @@ typing and presence throughout.
 
 ![NestCord — a channel in a server, with the member list open](./.github/screenshots/channel.png)
 
-- **Scope** One API process, one PostgreSQL database, local file storage, a few hundred users.
+- **Scope**:  One API process, one PostgreSQL database, local file storage, a few hundred users.
   Fixed before the first line was written, and defended since: [PLAN.MD](./PLAN.MD) is as much a
   list of what this deliberately does not do as what it does.
-- **Constraints** [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` are the standing rules for the
+- **Constraints**:  [CLAUDE.md](./CLAUDE.md) and `.claude/rules/` are the standing rules for the
   codebase: the layering (controller, service, Prisma, nothing in between), the immutability and
   file-size conventions, the security invariants, the named technologies that stay out.
-- **Review** Every change was read against those rules before it landed, and the work that
+- **Review**:  Every change was read against those rules before it landed, and the work that
   missed them was sent back rather than patched over. Every pull request in this repository was
   reviewed by hand and merged by me, not rubber-stamped. The rules exist because that is how you
   get a consistent codebase out of a tool that will happily give you five different architectures.
